@@ -1,0 +1,75 @@
+/* =====================================================
+   V2V - ESTILOS MOBILE PEQUEÑO (HUD COMPACTO)
+   Archivo: mobile-small.css
+   ===================================================== */
+
+@media (max-width: 480px) {
+
+    body {
+        font-size: 11px;
+    }
+
+    /* ================= PANEL DATOS ================= */
+
+    .panel-datos {
+        width: 200px;
+        padding: 6px;
+    }
+
+    .panel-datos input {
+        padding: 4px;
+        font-size: 10px;
+    }
+
+    /* ================= BOTÓN FLOTANTE ================= */
+
+    .btn-toggle-comms {
+        padding: 8px 10px;
+        font-size: 14px;
+    }
+
+    /* ================= ASIDE ================= */
+
+    .chat {
+        padding: 6px;
+    }
+
+    .chat h3 {
+        font-size: 11px;
+        margin-bottom: 4px;
+    }
+
+    .chat-mensajes {
+        height: 110px;
+        padding: 4px;
+    }
+
+    .msg {
+        font-size: 10px;
+    }
+
+    /* ================= INPUTS ================= */
+
+    .chat-input,
+    .chat-textarea {
+        padding: 4px;
+        font-size: 10px;
+    }
+
+    .chat-textarea {
+        height: 45px;
+    }
+
+    button {
+        padding: 4px;
+        font-size: 10px;
+    }
+
+    .chat-respuesta {
+        font-size: 9px;
+        max-height: 90px;
+    }
+        .comms-panel {
+        background: rgb(51 51 51);
+    }
+}

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>V2V – Autos con Audio</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/desktop.css">
+<link rel="stylesheet" href="css/mobile-small.css">
+</head>
+
+<body>
+
+<!-- ================= PANEL DE DATOS DEL VEHÍCULO ================= -->
+<div class="panel-datos">
+    <input id="nombre" placeholder="Nombre">
+    <input id="vehiculo" placeholder="Vehículo">
+    <input id="placa" placeholder="Placa">
+    <input id="seguro" placeholder="Seguro">
+    <input id="contacto" placeholder="Contacto">
+</div>
+
+<!-- ================= CONTENEDOR DEL MAPA ================= -->
+<main class="map-container">
+    <div id="map"></div>
+</main>
+
+<!-- ================= BOTÓN HUD PARA ABRIR COMUNICACIONES ================= -->
+<button class="btn-toggle-comms" onclick="toggleComms()">💬</button>
+
+<!-- ================= ASIDE - PANEL DE COMUNICACIONES ================= -->
+<aside class="comms-panel" id="commsPanel">
+
+    <!-- ===== CHAT GENERAL V2V ===== -->
+    <section class="chat chat-general">
+        <h3>CHAT GENERAL</h3>
+        <div id="msgsV2V" class="chat-mensajes"></div>
+        <input id="txtV2V" class="chat-input" placeholder="MENSAJE..." 
+               onkeydown="if(event.key=='Enter') enviarV2V()">
+        <button class="btn-voz" onclick="vozATexto()">🎤 VOZ</button>
+    </section>
+
+    <!-- ===== CONTACTOS CERCANOS ===== -->
+    <section class="chat chat-contactos">
+        <h3>CONTACTOS CERCANOS</h3>
+
+        <select id="radioFiltro" class="select-radio">
+            <option value="5">5 KM</option>
+            <option value="10">10 KM</option>
+            <option value="25">25 KM</option>
+            <option value="50" selected>50 KM</option>
+        </select>
+
+        <div id="listaContactos" class="lista-contactos">
+            <!-- Se llena dinámicamente desde main.js -->
+        </div>
+    </section>
+
+    <!-- ===== CHAT PRIVADO ===== -->
+    <section class="chat chat-privado">
+        <h3>COMUNICACIÓN DIRECTA</h3>
+        <div id="contactoSeleccionado" class="contacto-seleccionado">
+            Ningún contacto seleccionado
+        </div>
+        <div id="msgsPrivado" class="chat-mensajes"></div>
+        <input id="txtPrivado" class="chat-input" placeholder="MENSAJE PRIVADO..."
+               onkeydown="if(event.key=='Enter') enviarPrivado()">
+        <button class="btn-voz" onclick="hablarPrivado()">🎤 VOZ DIRECTA</button>
+    </section>
+
+    <!-- ===== CHAT CON IA ===== -->
+    <section class="chat chat-ia">
+        <h3>ASISTENTE IA</h3>
+        <input id="apikey" class="chat-input" placeholder="API KEY">
+        <textarea id="prompt" class="chat-textarea" placeholder="PREGUNTA..."></textarea>
+        <button class="btn-ia" onclick="preguntarIA()">CONSULTAR</button>
+        <pre id="respuestaIA" class="chat-respuesta"></pre>
+    </section>
+
+</aside>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.marker.slideto@0.2.0/Leaflet.Marker.SlideTo.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

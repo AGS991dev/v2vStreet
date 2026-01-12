@@ -1,0 +1,169 @@
+/* =====================================================
+   V2V - BASE HUD FUTURISTA (SpaceX Style)
+   Archivo: base.css
+   ===================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@300;400;600&display=swap');
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Oxanium', sans-serif;
+}
+
+body {
+    background: #050505;
+    color: #f2f2f2;
+    overflow: hidden;
+}
+
+/* ================= CONTENEDOR MAPA ================= */
+
+.map-container {
+    position: fixed;
+    inset: 0;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+}
+
+/* ================= PANEL DATOS VEHÍCULO ================= */
+
+.panel-datos {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 10px;
+    border-radius: 2px;
+    z-index: 1000;
+    width: 260px;
+}
+
+.panel-datos input {
+    width: 100%;
+    margin-bottom: 6px;
+    padding: 6px;
+    background: rgba(0,0,0,0.4);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 2px;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+/* ================= ASIDE DRAWER ================= */
+
+.comms-panel {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 100%;
+    height: 100%;
+    background: rgba(15,15,15,0.85);
+    backdrop-filter: blur(14px);
+    border-left: 1px solid rgba(255,255,255,0.15);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    transition: right 0.3s ease;
+}
+
+.comms-panel.open {
+    right: 0;
+}
+
+/* ================= BOTÓN FLOTANTE ================= */
+
+.btn-toggle-comms {
+    position: fixed;
+    bottom: 15px;
+    right: 15px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    font-size: 18px;
+    padding: 10px 12px;
+    border-radius: 2px;
+    z-index: 3000;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+}
+
+/* ================= BLOQUES DE CHAT ================= */
+
+.chat {
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+    padding: 10px;
+}
+
+.chat h3 {
+    font-size: 13px;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+}
+
+.chat-mensajes {
+    height: 140px;
+    overflow-y: auto;
+    background: rgba(0,0,0,0.35);
+    padding: 6px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 2px;
+    margin-bottom: 6px;
+}
+
+.msg {
+    font-size: 11px;
+    margin-bottom: 4px;
+    opacity: 0.9;
+}
+
+/* ================= INPUTS Y BOTONES ================= */
+
+.chat-input,
+.chat-textarea {
+    width: 100%;
+    padding: 6px;
+    margin-bottom: 6px;
+    background: rgba(0,0,0,0.5);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 2px;
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+.chat-textarea {
+    resize: none;
+    height: 60px;
+}
+
+button {
+    background: black;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 2px;
+    padding: 6px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+button:hover {
+    background: rgba(255,255,255,0.15);
+}
+
+.chat-respuesta {
+    background: rgba(0,0,0,0.6);
+    padding: 6px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 2px;
+    font-size: 10px;
+    max-height: 120px;
+    overflow-y: auto;
+}

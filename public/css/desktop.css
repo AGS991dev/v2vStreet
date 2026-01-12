@@ -1,0 +1,82 @@
+/* =====================================================
+   V2V - ESTILOS DESKTOP (Control Room)
+   Archivo: desktop.css
+   ===================================================== */
+
+@media (min-width: 1024px) {
+
+    body {
+        display: flex;
+        flex-direction: row;
+    }
+
+    /* ================= MAPA ================= */
+
+    .map-container {
+        position: relative;
+        width: calc(100% - 360px);
+        height: 100vh;
+    }
+
+    #map {
+        height: 100vh;
+    }
+
+    /* ================= ASIDE FIJO ================= */
+
+    .comms-panel {
+        position: relative;
+        right: 0;
+        width: 360px;
+        height: 100vh;
+        background: rgb(51 51 51);
+        backdrop-filter: blur(14px);
+        border-left: 1px solid rgba(255,255,255,0.15);
+        transition: none;
+    }
+
+    .comms-panel.open {
+        right: 0;
+    }
+
+    /* ================= OCULTAR BOTÓN FLOTANTE ================= */
+
+    .btn-toggle-comms {
+        display: none;
+    }
+
+    /* ================= PANEL DATOS ================= */
+
+    .panel-datos {
+        width: 150px;
+    }
+
+    /* ================= BLOQUES DE CHAT ================= */
+
+    .chat {
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .chat-mensajes {
+        height: 25px;
+    }
+
+    .chat-ia .chat-respuesta {
+        max-height: 180px;
+    }
+.contacto{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    align-items: flex-end;
+    font-size: 10px;
+}
+.contacto-seleccionado{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    align-items: flex-end;
+    font-size: 10px;
+}
+}
