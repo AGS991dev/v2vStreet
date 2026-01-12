@@ -12,8 +12,18 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// middleware
 app.use(express.json());
 app.use(express.static('public'));
+
+// puerto dinámico del hosting
+const PORT = process.env.PORT || 3000;
+
+// iniciar servidor
+server.listen(PORT, () => {
+    console.log('Servidor V2V corriendo en puerto:', PORT);
+});
+
 
 // ===================================================
 // BLOQUE 1 - REGISTRO DE AUTOS CONECTADOS
@@ -106,9 +116,3 @@ app.post('/api/ia', async (req,res)=>{
 // BLOQUE 4 - INICIO DEL SERVIDOR
 // ===================================================
 
-// ===================================================
-// FUNCIÓN 07 - Arranque del servidor HTTP + WebSocket
-// ===================================================
-server.listen(3000, ()=>{
-    console.log('Servidor V2V + IA activo en http://localhost:3000');
-});
