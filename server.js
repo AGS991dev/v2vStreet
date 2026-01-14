@@ -1,118 +1,161 @@
-// ===================================================
-// V2V - SERVIDOR DE COMUNICACIÓN VEHICULAR
-// Archivo: server.js
-// ===================================================
-
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
-
-// middleware
-app.use(express.json());
-app.use(express.static('public'));
-
-// puerto dinámico del hosting
-const PORT = process.env.PORT || 3000;
-
-// iniciar servidor
-server.listen(PORT, () => {
-    console.log('Servidor V2V corriendo en puerto:', PORT);
-});
-
-
-// ===================================================
-// BLOQUE 1 - REGISTRO DE AUTOS CONECTADOS
-// ===================================================
-
-let autos = {}; // Almacena todos los vehículos activos por socket.id
-
-// ===================================================
-// BLOQUE 2 - CONEXIONES SOCKET.IO
-// ===================================================
-
-io.on('connection', socket => {
-
-    // ===================================================
-    // FUNCIÓN 01 - Recepción de telemetría de un vehículo
-    // ===================================================
-    socket.on('telemetria', data => {
-        autos[socket.id] = { 
-            id: socket.id, 
-            ...data, 
-            ultimaActualizacion: Date.now() 
-        };
-        io.emit('telemetria_global', autos);
-    });
-
-    // ===================================================
-    // FUNCIÓN 02 - Envío del estado global al nuevo cliente
-    // ===================================================
-    socket.emit('telemetria_global', autos);
-
-    // ===================================================
-    // FUNCIÓN 03 - Chat global V2V (texto)
-    // ===================================================
-    socket.on('mensajeV2V', msg => {
-        io.emit('mensajeV2V', msg);
-    });
-
-    // ===================================================
-    // FUNCIÓN 04 - Mensajería privada entre vehículos
-    // ===================================================
-    socket.on('mensajePrivado', ({id, mensaje}) => {
-        if(io.sockets.sockets.get(id)){
-            io.to(id).emit('mensajePrivado', {id: socket.id, mensaje});
-        }
-    });
-
-    // ===================================================
-    // FUNCIÓN 05 - Desconexión de vehículo
-    // ===================================================
-    socket.on('disconnect', () => {
-        delete autos[socket.id];
-        io.emit('telemetria_global', autos);
-    });
-});
-
-// ===================================================
-// BLOQUE 3 - API DE INTELIGENCIA ARTIFICIAL (GROQ)
-// ===================================================
-
-// ===================================================
-// FUNCIÓN 06 - Endpoint de consulta a IA
-// Descripción: Reenvía prompts a Groq (Llama3)
-// ===================================================
-app.post('/api/ia', async (req,res)=>{
-    const { apiKey, prompt } = req.body;
-
-    try {
-        const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method:'POST',
-            headers:{
-                'Content-Type':'application/json',
-                'Authorization':'Bearer ' + apiKey
-            },
-            body: JSON.stringify({
-                model:'llama3-70b-8192',
-                messages:[{role:'user', content:prompt}]
-            })
-        });
-
-        const data = await r.json();
-        res.json(data.choices[0].message.content);
-
-    } catch(e){
-        console.error("Error IA:", e);
-        res.status(500).json({error:'Error en servicio de IA'});
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
     }
 });
 
-// ===================================================
-// BLOQUE 4 - INICIO DEL SERVIDOR
-// ===================================================
+app.use(express.static('public'));
 
+// Estructuras de datos
+const messages = {};         // username → array de mensajes privados
+const users = {};            // socket.id → username
+const autos = {};            // username → datos de telemetría
+
+// Variable global del módulo (solo una vez, fuera de las funciones)
+let ultimoEmitTimeout = null;
+
+// Cola para emisiones de telemetría (evita spam)
+let colaTelemetria = Promise.resolve();
+let tareaId = 0;
+
+function emitirTelemetriaGlobal() {
+    const id = ++tareaId;
+    colaTelemetria = colaTelemetria
+        .then(() => {
+            console.log(`[T${id}] Emitiendo telemetria_global (${Object.keys(autos).length} autos)`);
+            io.emit('telemetria_global', { ...autos });
+        })
+        .catch(err => {
+            console.error(`[T${id}] Error emitiendo telemetria_global:`, err);
+        });
+    return colaTelemetria;
+}
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Servidor iniciado en http://localhost:${PORT} — ${new Date().toLocaleString('es-AR')}`);
+});
+
+io.on('connection', (socket) => {
+    console.log(`[CONN] Nuevo socket: ${socket.id}  ${new Date().toLocaleTimeString('es-AR')}`);
+
+    let warnedNoUsername = false;
+
+    // Registro de usuario
+    socket.on('set username', (username) => {
+        if (!username || typeof username !== 'string' || username.trim() === '') {
+            socket.emit('username error', 'Nombre inválido');
+            return;
+        }
+
+        const cleanName = username.trim();
+        users[socket.id] = cleanName;
+
+        console.log(`[USER] ${cleanName} registrado → socket ${socket.id}`);
+        socket.emit('username set', cleanName);
+        io.emit('users list', Object.values(users));
+
+        if (messages[cleanName]) {
+            socket.emit('load messages', messages[cleanName]);
+        }
+    });
+
+    // Recepción de telemetría
+
+// Recepción de telemetría
+socket.on('telemetria', data => {
+    const nombre = (data?.nombre || '').trim();
+
+    if (!nombre) {
+        console.log(`[TELE] Ignorada - sin nombre en data para socket ${socket.id}`);
+        return;
+    }
+
+    // Guardamos usando el nombre como clave principal
+    autos[nombre] = { 
+        ...data,
+        id: socket.id,                    // socket actual (útil para limpiar en disconnect)
+        username: nombre,
+        ultimaActualizacion: Date.now()
+    };
+
+    console.log(`[TELE] Guardada para ${nombre} (socket ${socket.id})`);
+
+    // Throttle: máximo 1 emisión cada 800 ms
+    if (ultimoEmitTimeout) {
+        clearTimeout(ultimoEmitTimeout);
+    }
+
+    ultimoEmitTimeout = setTimeout(() => {
+        console.log(`[TELE GLOBAL] Emitiendo actualización (${Object.keys(autos).length} vehículos)`);
+        io.emit('telemetria_global', { ...autos });  // copia shallow para seguridad
+        ultimoEmitTimeout = null;
+    }, 800);
+});
+    // Limpieza al desconectar
+    socket.on('disconnect', () => {
+        // Buscar y borrar autos que usaban este socket.id
+        for (let key in autos) {
+            if (autos[key].id === socket.id) {
+                console.log(`[DISCONN] Borrando auto de ${key} (socket ${socket.id})`);
+                delete autos[key];
+            }
+        }
+        io.emit('telemetria_global', { ...autos });
+    });
+
+
+    // Mensaje privado
+    socket.on('private message', ({ to, text }) => {
+        const from = users[socket.id];
+        if (!from || !to || !text?.trim()) return;
+
+        const msg = {
+            from,
+            to,
+            text: text.trim(),
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+
+        messages[from] = messages[from] || [];
+        messages[to]   = messages[to]   || [];
+
+        messages[from].push(msg);
+        messages[to].push(msg);
+
+        const recipientId = Object.keys(users).find(id => users[id] === to);
+        if (recipientId) {
+            io.to(recipientId).emit('private message', msg);
+        }
+        socket.emit('private message', msg);
+    });
+
+    // Mensaje general (chat público)
+    socket.on('general message', (text) => {
+        const from = users[socket.id];
+        if (!from || !text?.trim()) return;
+
+        const msg = `${from}: ${text.trim()}`;
+        io.emit('general message', msg);
+    });
+
+    // Desconexión
+    socket.on('disconnect', () => {
+        const username = users[socket.id];
+        if (username) {
+            console.log(`[DISCONN] ${username} (${socket.id}) desconectado`);
+            delete users[socket.id];
+            delete autos[username];
+
+            io.emit('users list', Object.values(users));
+            emitirTelemetriaGlobal();
+        }
+    });
+});
