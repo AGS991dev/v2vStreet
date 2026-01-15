@@ -4,7 +4,7 @@
 
 const socket = io();
 
-const map = L.map('map').setView([-34.6037, -58.3816], 13);
+const map = L.map('map').setView([-34.6037, -58.3816], 15);
 L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png').addTo(map);
 
 let markers = {};
@@ -12,8 +12,11 @@ let miPosicion = null;
 let miMarker = null;
 let contactoActivo = null;           // username del chat abierto actualmente
 let mensajesPorConversacion = {};    // { username: [ {from:'yo'|'el', text, time?} ] }
-
+let radioCircle = null;
+let fadeTimeout = null;     // para controlar el fade out
 const campos = ['nombre', 'vehiculo', 'placa', 'seguro', 'contacto'];
+
+
 
 // ────────────────────────────────────────────────
 // LocalStorage persistencia
@@ -33,10 +36,14 @@ campos.forEach(id => {
 // ────────────────────────────────────────────────
 socket.on('connect', () => {
     console.log("[SOCKET] Conectado →", socket.id);
-    
+    // Intentamos enviar el nombre guardado en localStorage si existe
+    const nombreGuardado = localStorage.getItem('nombre')?.trim();
+    if (nombreGuardado) {
+        socket.emit('set username', nombreGuardado);
+    }
     // Completamos inmediatamente el socket ID
-    $('#mi_socket_id').val(socket.id || '---');
     $('#mi_username').val('esperando nombre...');
+    $('#mi_socket_id').val(socket.id || '---');
     $('#mi_ultima_pos').val('---');
     $('#mi_velocidad').val('--- km/h');
     $('#mi_ultima_update').val('---');
@@ -100,20 +107,81 @@ function enviarPosicion(pos) {
 
     // Centrar la primera vez
     if (!map.getCenter().equals([miPosicion.lat, miPosicion.lng], 0.002)) {
-        map.setView([miPosicion.lat, miPosicion.lng], 18);
+        map.setView([miPosicion.lat, miPosicion.lng], 15);
+        setTimeout(() => {
+                   map.flyTo([miPosicion.lat, miPosicion.lng], 18); 
+        }, 3500);
     }
 
     socket.emit('telemetria', data);
+    actualizarCirculoRadio()
     console.log(`[TX] Telemetría → ${nombre} @ ${miPosicion.lat.toFixed(5)},${miPosicion.lng.toFixed(5)}`);
 }
+// Función para actualizar/dibujar el círculo de radio
+function actualizarCirculoRadio() {
+    // Cancelamos cualquier fade pendiente para evitar conflictos
+    if (fadeTimeout) clearTimeout(fadeTimeout);
 
+    if (!miPosicion) {
+        console.warn("No hay posición → no se dibuja círculo");
+        return;
+    }
+
+    const radioKm = parseFloat($('#radioFiltro').val()) || 50;
+    const radioMetros = radioKm * 1000;
+
+    // Si el círculo no existe → lo creamos
+    if (!radioCircle) {
+        radioCircle = L.circle([miPosicion.lat, miPosicion.lng], {
+            radius: radioMetros,
+            color: '#00bfff',
+            fillColor: '#00bfff',
+            fillOpacity: 0.15,
+            weight: 2,
+            className: 'radio-line-gps',
+            opacity: 1,               // aparece inmediatamente
+            interactive: false
+        }).addTo(map);
+    } else {
+        // Actualizamos posición y radio
+        radioCircle.setLatLng([miPosicion.lat, miPosicion.lng]);
+        radioCircle.setRadius(radioMetros);
+        radioCircle.setStyle({
+            opacity: 1,
+            fillOpacity: 0.15
+        });
+    }
+
+    console.log(`Círculo visible: ${radioKm} km`);
+
+    // ─── Después de 5 segundos → fade out ───
+    fadeTimeout = setTimeout(() => {
+        radioCircle.setStyle({
+            opacity: 0,
+            fillOpacity: 0
+        });
+        console.log("Círculo haciendo fade out...");
+    }, 3500);
+}
+
+// ────────────────────────────────────────────────
+// Escuchar cambio en el select
+// ────────────────────────────────────────────────
+$('#radioFiltro').on('change', function() {
+    actualizarCirculoRadio();
+});
 // Geolocalización
 if (navigator.geolocation) {
-    setInterval(() => {
-        navigator.geolocation.getCurrentPosition(enviarPosicion, err => {
+    // LOOP
+    // setInterval(() => {
+    //     navigator.geolocation.getCurrentPosition(enviarPosicion, err => {
+    //         console.error("Geolocalización falló:", err);
+    //     }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+    // }, 3000);
+    // UNICA VEZ
+    navigator.geolocation.getCurrentPosition(enviarPosicion, err => {
             console.error("Geolocalización falló:", err);
         }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
-    }, 3000);
 } else {
     console.error("Geolocalización no disponible en este navegador");
 }

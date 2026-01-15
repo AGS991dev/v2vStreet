@@ -37,7 +37,25 @@ server.listen(PORT, () => {
 
 io.on('connection', (socket) => {
     console.log(`[CONN] Nuevo socket: ${socket.id}`);
+    // Registro simple de nombre (sin rooms por ahora, solo para mostrar)
+    socket.on('set username', (username) => {
+        if (!username || typeof username !== 'string' || !username.trim()) {
+            socket.emit('username error', 'Nombre inválido');
+            return;
+        }
 
+        const cleanName = username.trim();
+
+        // Guardamos el nombre asociado al socket.id
+        socket.username = cleanName;  // ← lo guardamos directamente en el socket
+
+        console.log(`[USERNAME] ${cleanName} registrado para socket ${socket.id}`);
+
+        socket.emit('username set', cleanName);
+
+        // Opcional: reenviar telemetría global para que todos actualicen nombres
+        emitirTelemetriaGlobal();
+    });
     // Enviar estado actual a quien se acaba de conectar
     socket.emit('telemetria_global', autos);
 
@@ -52,6 +70,7 @@ io.on('connection', (socket) => {
         autos[socket.id] = {
             ...data,
             id: socket.id,
+            nombre: socket.username || data.nombre || 'Anónimo',   // ← prioridad: nombre registrado > nombre en telemetria > Anónimo
             ultimaActualizacion: Date.now()
         };
 

@@ -76,10 +76,11 @@
         <h3><span style="font-size: 20px;">𖣠</span>  CONTACTOS CERCANOS</h3>
         <span style="font-size: 20px;" class="pulse">📡</span> 
         <select id="radioFiltro" class="select-radio">
+            <option value="1" selected>1 KM</option>
+            <option value="2">2 KM</option>
             <option value="5">5 KM</option>
             <option value="10">10 KM</option>
             <option value="25">25 KM</option>
-            <option value="50" selected>50 KM</option>
         </select>
         <div id="listaContactos" class="lista-contactos">
             <!-- Se llena dinámicamente desde main.js -->
@@ -88,10 +89,12 @@
     <!-- ===== CHAT GENERAL V2V ===== -->
     <section class="chat chat-general">
         <h3><span style="font-size: 20px;" class="pendulo">🛰️</span> CHAT GENERAL</h3>
+        <div class="css_flex">
+            <input id="txtV2V" class="chat-input" placeholder="MENSAJE..." 
+            onkeydown="if(event.key=='Enter') enviarV2V()">
+            <button class="btn-voz" onclick="vozATexto()">🎤 VOZ</button>
+        </div>
         <div id="msgsV2V" class="chat-mensajes"></div>
-        <input id="txtV2V" class="chat-input" placeholder="MENSAJE..." 
-               onkeydown="if(event.key=='Enter') enviarV2V()">
-        <button class="btn-voz" onclick="vozATexto()">🎤 VOZ</button>
     </section>
 </aside>
 
@@ -107,13 +110,17 @@
         <div id="contactoSeleccionado" class="contacto-seleccionado">
             Ningún contacto seleccionado
         </div>
+
+    <div class="css_flex">
+        <input id="txtPrivado" class="chat-input" placeholder="MENSAJE PRIVADO..."
+        onkeydown="if(event.key=='Enter') enviarPrivado()">
+        <button class="btn-voz" onclick="hablarPrivado()">🎤</button>
+    </div>
+
         <div id="msgsPrivado" class="chat-mensajes">
             <div id="chatPrivado"></div>
-
+            
         </div>
-        <input id="txtPrivado" class="chat-input" placeholder="MENSAJE PRIVADO..."
-               onkeydown="if(event.key=='Enter') enviarPrivado()">
-        <button class="btn-voz" onclick="hablarPrivado()">🎤 VOZ DIRECTA</button>
     </section>
 
     <!-- ===== NUEVA SECCIÓN: MENSAJES RECIBIDOS (desplegables para conversaciones) ===== -->

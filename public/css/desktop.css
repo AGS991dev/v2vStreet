@@ -61,11 +61,13 @@
 
     .chat-mensajes {
             height: auto;
-
+        min-height: 100px;
     }
 
     .chat-ia .chat-respuesta {
         max-height: 180px;
+        min-height: 60px;
+
     }
 .contacto{
     display: flex;

@@ -143,7 +143,19 @@ aside{
 
 /* ================= INPUTS Y BOTONES ================= */
 
-.chat-input,
+.chat-input {
+    width: 66%;
+    padding: 6px;
+    background: rgba(0,0,0,0.5);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 2px;
+    font-size: 11px;
+    text-transform: uppercase;
+}
+.btn-voz{
+    width: 33%;
+}
 .chat-textarea {
     width: 100%;
     padding: 6px;
@@ -216,6 +228,22 @@ button:hover {
     align-items: center;
     gap: 5px;
 }
+.contacto-item{
+    background: #212121;
+    border-radius: 2px;
+    padding: 2px;
+    border-bottom: 1px black solid;
+}
+.contacto-item:hover{
+    background: #4a4949;
+    border-radius: 2px;
+    padding: 2px;
+    border-bottom: 1px white solid;
+    cursor: pointer;
+}
+.leaflet-circle-pane .radio-line-gps {
+    transition: opacity 4s ease-in-out, fill-opacity 4s ease-in-out;
+}
 .chat-respuesta {
     background: rgba(0,0,0,0.6);
     padding: 6px;
@@ -224,6 +252,12 @@ button:hover {
     font-size: 10px;
     max-height: 120px;
     overflow-y: auto;
+}
+.radio-line-gps {
+    /* Puedes personalizar más si quieres */
+    stroke-dasharray: 6 6;          /* borde punteado opcional */
+    stroke-linecap: round;
+    /* filter: drop-shadow(0 0 4px rgba(0, 191, 255, 0.6)); */ /* sombra suave opcional */
 }
    .pulse {
     display: inline-block;
@@ -251,4 +285,9 @@ button:hover {
   50%  { transform: rotate(-50deg); }
   75%  { transform: rotate(0deg); }
   100% { transform: rotate(25deg); }
+}
+.css_flex{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
 }
