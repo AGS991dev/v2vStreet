@@ -37,7 +37,7 @@ campos.forEach(id => {
 socket.on('connect', () => {
     console.log("[SOCKET] Conectado →", socket.id);
     // Intentamos enviar el nombre guardado en localStorage si existe
-    const nombreGuardado = localStorage.getItem('nombre')?.trim();
+    const nombreGuardado = localStorage.getItem('nombre')?.trim() || "Anónimo";
     if (nombreGuardado) {
         socket.emit('set username', nombreGuardado);
     }
@@ -78,7 +78,7 @@ function enviarPosicion(pos) {
     const nombre = data.nombre;
     if (!nombre) {
         console.warn("⚠️ No se envía telemetría: falta nombre");
-        return;
+        //return; DISABLE
     }
 
     // ─── Actualizamos panel hi_status (como ya tenías) ───
