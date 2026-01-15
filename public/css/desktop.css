@@ -48,18 +48,20 @@
     /* ================= PANEL DATOS ================= */
 
     .panel-datos {
-        width: 150px;
+        padding-bottom: 25px;
+
     }
 
     /* ================= BLOQUES DE CHAT ================= */
 
     .chat {
         flex: 1;
-        overflow: hidden;
+        overflow: auto;
     }
 
     .chat-mensajes {
-        height: 25px;
+            height: auto;
+
     }
 
     .chat-ia .chat-respuesta {

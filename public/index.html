@@ -14,15 +14,37 @@
 </head>
 
 <body>
+<!-- Panel de debug / estado propio (puede estar oculto con CSS) -->
+<div class="hi_status" style="display: ;width: 200px; padding: 12px; background: #1e293b; color: #e2e8f0; border-radius: 8px; margin: 10px; font-family: monospace; font-size: 13px;">
+    <strong>Mi estado V2V</strong><br><br>
+    
+    <label>Socket ID:</label>
+    <input type="text" id="mi_socket_id" class="mi_socket_id" readonly value="---" style="width: 100%; margin: 4px 0; padding: 6px; background: #0f172a; color: #94a3b8; border: 1px solid #334155;">
 
-<!-- ================= PANEL DE DATOS DEL VEHÍCULO ================= -->
-<div class="panel-datos">
-    <input id="nombre" placeholder="Nombre">
-    <input id="vehiculo" placeholder="Vehículo">
-    <input id="placa" placeholder="Placa">
-    <input id="seguro" placeholder="Seguro">
-    <input id="contacto" placeholder="Contacto">
+    <label>Username:</label>
+    <input type="text" id="mi_username" readonly value="---" style="width: 100%; margin: 4px 0; padding: 6px; background: #0f172a; color: #94a3b8; border: 1px solid #334155;">
+
+    <label>Última posición:</label>
+    <input type="text" id="mi_ultima_pos" readonly value="---" style="width: 100%; margin: 4px 0; padding: 6px; background: #0f172a; color: #94a3b8; border: 1px solid #334155;">
+
+    <label>Velocidad:</label>
+    <input type="text" id="mi_velocidad" readonly value="--- km/h" style="width: 100%; margin: 4px 0; padding: 6px; background: #0f172a; color: #94a3b8; border: 1px solid #334155;">
+
+    <label>Última actualización:</label>
+    <input type="text" id="mi_ultima_update" readonly value="---" style="width: 100%; margin: 4px 0; padding: 6px; background: #0f172a; color: #94a3b8; border: 1px solid #334155;">
+    
+    <small style="color: #64748b; display: block; margin-top: 8px;">
+        (visible solo para debug – puedes ocultarlo o mostrarlo con botón)
+    </small>
 </div>
+
+<!-- Opcional: botón para mostrar/ocultar el panel de debug -->
+<button onclick="$('.hi_status').toggle()" style="position: fixed; bottom: 80px; right: 20px; z-index: 1000; padding: 8px 12px; background: #334155; color: white; border: none; border-radius: 6px; cursor: pointer;">
+    Toggle Debug
+</button>
+
+
+
 
 <!-- ================= CONTENEDOR DEL MAPA ================= -->
 <main class="map-container">
@@ -35,23 +57,37 @@
 <!-- ================= ASIDE - PANEL DE COMUNICACIONES ================= -->
  <aside class="comms-panel" id="commsPanel">
         <!-- ===== CONTACTOS CERCANOS ===== -->
-    <section class="chat chat-contactos">
-        <h3>CONTACTOS CERCANOS</h3>
 
+
+    <section class="chat panel-datos padre">
+        <!-- ================= PANEL DE DATOS DEL VEHÍCULO ================= -->
+        <h3><span style="font-size: 20px;">ℹ️</span> MIS DATOS </h3>
+
+        <div class="panel-datos">
+            <input id="nombre" placeholder="Nombre">
+            <input id="vehiculo" placeholder="Vehículo">
+            <input id="placa" placeholder="Placa">
+            <input id="seguro" placeholder="Seguro">
+            <input id="contacto" placeholder="Contacto">
+        </div>
+
+    </section>
+    <section class="chat chat-contactos">
+        <h3><span style="font-size: 20px;">𖣠</span>  CONTACTOS CERCANOS</h3>
+        <span style="font-size: 20px;" class="pulse">📡</span> 
         <select id="radioFiltro" class="select-radio">
             <option value="5">5 KM</option>
             <option value="10">10 KM</option>
             <option value="25">25 KM</option>
             <option value="50" selected>50 KM</option>
         </select>
-
         <div id="listaContactos" class="lista-contactos">
             <!-- Se llena dinámicamente desde main.js -->
         </div>
     </section>
     <!-- ===== CHAT GENERAL V2V ===== -->
     <section class="chat chat-general">
-        <h3>CHAT GENERAL</h3>
+        <h3><span style="font-size: 20px;" class="pendulo">🛰️</span> CHAT GENERAL</h3>
         <div id="msgsV2V" class="chat-mensajes"></div>
         <input id="txtV2V" class="chat-input" placeholder="MENSAJE..." 
                onkeydown="if(event.key=='Enter') enviarV2V()">
@@ -67,11 +103,14 @@
 
     <!-- ===== CHAT PRIVADO ===== -->
     <section class="chat chat-privado">
-        <h3>COMUNICACIÓN DIRECTA</h3>
+        <h3><span style="font-size: 20px;">🗣️</span> COMUNICACIÓN DIRECTA</h3>
         <div id="contactoSeleccionado" class="contacto-seleccionado">
             Ningún contacto seleccionado
         </div>
-        <div id="msgsPrivado" class="chat-mensajes"></div>
+        <div id="msgsPrivado" class="chat-mensajes">
+            <div id="chatPrivado"></div>
+
+        </div>
         <input id="txtPrivado" class="chat-input" placeholder="MENSAJE PRIVADO..."
                onkeydown="if(event.key=='Enter') enviarPrivado()">
         <button class="btn-voz" onclick="hablarPrivado()">🎤 VOZ DIRECTA</button>
@@ -80,7 +119,7 @@
     <!-- ===== NUEVA SECCIÓN: MENSAJES RECIBIDOS (desplegables para conversaciones) ===== -->
     <!-- Agregada para manejar mensajes de múltiples usuarios sin cambiar de contacto activo. Usa <details> para desplegables. -->
     <section class="chat chat-recibidos">
-        <h3>MENSAJES RECIBIDOS</h3>
+        <h3><span style="font-size: 20px;">🔔</span> MENSAJES RECIBIDOS</h3>
         <div id="conversacionesRecibidas" class="lista-conversaciones">
             <!-- Se llena dinámicamente con <details> para cada remitente -->
         </div>
@@ -88,7 +127,7 @@
 
     <!-- ===== CHAT CON IA ===== -->
     <section class="chat chat-ia">
-        <h3>ASISTENTE IA</h3>
+        <h3><span style="font-size: 20px;">🧠</span> ASISTENTE IA</h3>
         <input id="apikey" class="chat-input" placeholder="API KEY">
         <textarea id="prompt" class="chat-textarea" placeholder="PREGUNTA..."></textarea>
         <button class="btn-ia" onclick="preguntarIA()">CONSULTAR</button>
@@ -99,8 +138,9 @@
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.marker.slideto@0.2.0/Leaflet.Marker.SlideTo.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" 
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script src="js/main.js"></script>
-
 </body>
 </html>

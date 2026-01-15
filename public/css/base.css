@@ -17,6 +17,9 @@ body {
     color: #f2f2f2;
     overflow: hidden;
 }
+.sombra-card{
+    box-shadow: rgba(0, 0, 0, 0.19) 0px 10px 20px, rgba(0, 0, 0, 0.23) 0px 6px 6px;
+}
 .mi-marcador {
     background: #607d8b;
     border-radius: 50%;
@@ -50,13 +53,8 @@ body {
 /* ================= PANEL DATOS VEHÍCULO ================= */
 
 .panel-datos {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    padding: 10px;
+    padding: 0px 10px;
     border-radius: 2px;
-    z-index: 1000;
-    width: 260px;
 }
 
 .panel-datos input {
@@ -114,6 +112,7 @@ body {
 .chat {
     border-bottom: 1px solid rgba(255,255,255,0.12);
     padding: 10px;
+    overflow: auto;
 }
 
 .chat h3 {
@@ -124,13 +123,13 @@ body {
 }
 
 .chat-mensajes {
-    height: 140px;
     overflow-y: auto;
     background: rgba(0,0,0,0.35);
     padding: 6px;
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 2px;
     margin-bottom: 6px;
+    height: auto;
 }
 
 .msg {
@@ -176,8 +175,43 @@ button:hover {
 }
 .contacto.yo {
     background: rgba(0, 255, 136, 0.15);
-    border: 2px dashed #00ff88;
     opacity: 0.8;
+    padding: 4px 0px 0px 5px;
+    margin: 1px;
+    border-radius: 4px;
+    box-shadow: rgba(0, 0, 0, 0.19) 0px 10px 20px, rgba(0, 0, 0, 0.23) 0px 6px 6px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.contacto.yo:hover {
+    background: rgba(0, 255, 136, 0.15);
+    opacity: 0.8;
+    padding: 4px 0px 0px 5px;
+    margin: 1px;
+    border-radius: 4px;
+    box-shadow: rgba(0, 0, 0, 0.19) 0px 10px 20px, rgba(0, 0, 0, 0.23) 0px 6px 6px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.contacto {
+    padding: 4px 0px 0px 5px;
+    margin: 1px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.contacto:hover {
+    background: rgba(196, 196, 196, 0.15);
+    opacity: 0.8;
+    padding: 4px 0px 0px 5px;
+    margin: 1px;
+    border-radius: 4px;
+    box-shadow: rgba(0, 0, 0, 0.19) 0px 10px 20px, rgba(0, 0, 0, 0.23) 0px 6px 6px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 .chat-respuesta {
     background: rgba(0,0,0,0.6);
@@ -187,4 +221,31 @@ button:hover {
     font-size: 10px;
     max-height: 120px;
     overflow-y: auto;
+}
+   .pulse {
+    display: inline-block;
+  animation: heartbeat-real 10s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  transform-origin: center;
+}
+
+@keyframes heartbeat-real {
+  0%   { transform: scale(1); }
+  14%  { transform: scale(1.28); }   /* primer latido fuerte */
+  28%  { transform: scale(1); }
+  42%  { transform: scale(1); }   
+  56%  { transform: scale(1.18); /* segundo latido más débil */}
+  100% { transform: scale(1); }
+}
+.pendulos {
+  display: inline-block;
+  transform-origin: top center;
+  animation: pendulo 10s ease-in-out infinite;
+}
+
+@keyframes pendulos {
+  0%   { transform: rotate(25deg); }
+  25%  { transform: rotate(0deg); }
+  50%  { transform: rotate(-50deg); }
+  75%  { transform: rotate(0deg); }
+  100% { transform: rotate(25deg); }
 }
