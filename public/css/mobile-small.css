@@ -6,70 +6,211 @@
 @media (max-width: 480px) {
 
     body {
-        font-size: 11px;
+        font-size: 13px;                /* base un poco más grande para legibilidad */
+        -webkit-tap-highlight-color: transparent; /* evita resaltado azul al tocar */
     }
 
-    /* ================= PANEL DATOS ================= */
+    /* ================= MAPA ================= */
+    .map-container {
+        position: fixed;
+        inset: 0;
+    }
 
+    #map {
+        height: 100vh;
+    }
+
+    /* ================= PANEL DATOS VEHÍCULO ================= */
     .panel-datos {
-        width: 200px;
-        padding: 6px;
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        z-index: 1000;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 8px;
+        background: rgba(0,0,0,0.55);
+        backdrop-filter: blur(10px);
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.12);
     }
 
     .panel-datos input {
-        padding: 4px;
-        font-size: 10px;
+        flex: 1 1 45%;
+        min-width: 120px;
+        padding: 8px 10px;
+        font-size: 12px;
+        background: rgba(20,20,20,0.7);
+        border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 4px;
+        color: #e0f7ff;
     }
 
     /* ================= BOTÓN FLOTANTE ================= */
-
     .btn-toggle-comms {
-        padding: 8px 10px;
-        font-size: 14px;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 56px;
+        height: 56px;
+        background: rgba(0, 191, 255, 0.18);
+        border: 2px solid #00bfff;
+        border-radius: 50%;
+        font-size: 24px;
+        color: #00bfff;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 15px rgba(0, 191, 255, 0.4);
+        z-index: 3000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
     }
 
-    /* ================= ASIDE ================= */
+    .btn-toggle-comms:hover,
+    .btn-toggle-comms:active {
+        background: rgba(0, 191, 255, 0.35);
+        transform: scale(1.1);
+    }
 
+    /* ================= ASIDE / PANEL COMUNICACIONES ================= */
+    .comms-panel {
+        position: fixed;
+        inset: 0;
+        background: rgba(10,10,15,0.92);
+        backdrop-filter: blur(16px);
+        z-index: 2000;
+        padding: 16px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch; /* scroll suave en iOS */
+        transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+        transform: translateX(100%);
+    }
+
+    .comms-panel.open {
+        transform: translateX(0);
+    }
+
+    /* ================= SECCIONES CHAT ================= */
     .chat {
-        padding: 6px;
+        margin-bottom: 16px;
+        padding: 12px;
+        background: rgba(20,20,30,0.4);
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.08);
     }
 
     .chat h3 {
-        font-size: 11px;
-        margin-bottom: 4px;
+        font-size: 14px;
+        margin-bottom: 10px;
+        letter-spacing: 1.2px;
+        color: #00d4ff;
     }
 
     .chat-mensajes {
-        height: 110px;
-        padding: 4px;
+        max-height: 180px;
+        overflow-y: auto;
+        padding: 8px;
+        background: rgba(0,0,0,0.45);
+        border-radius: 6px;
+        border: 1px solid rgba(0, 212, 255, 0.12);
     }
 
     .msg {
-        font-size: 10px;
+        font-size: 13px;
+        margin: 6px 0;
+        padding: 6px 10px;
+        border-radius: 6px;
+        background: rgba(255,255,255,0.04);
     }
 
-    /* ================= INPUTS ================= */
-
-    .chat-input,
-    .chat-textarea {
-        padding: 4px;
-        font-size: 10px;
+    /* ================= INPUTS Y BOTONES ================= */
+    .chat-input {
+        width: 68%;
+        padding: 10px;
+        font-size: 14px;
+        background: rgba(20,20,30,0.7);
+        border: 1px solid #00bfff44;
+        border-radius: 6px;
+        color: white;
     }
 
-    .chat-textarea {
-        height: 45px;
+    .btn-voz {
+        width: 30%;
+        margin-left: 4px;
+        padding: 10px;
+        font-size: 16px;
+        background: #00bfff22;
+        border: 1px solid #00bfff;
+        color: #00d4ff;
     }
 
     button {
-        padding: 4px;
-        font-size: 10px;
+        padding: 10px 14px;
+        font-size: 13px;
+        min-height: 44px; /* mínimo táctil recomendado */
+        min-width: 44px;
     }
 
-    .chat-respuesta {
-        font-size: 9px;
-        max-height: 90px;
+    /* ================= CONTACTOS ================= */
+    .contacto, .contacto-item {
+        padding: 10px;
+        margin: 6px 0;
+        background: rgba(30,30,40,0.6);
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.08);
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s;
     }
-        .comms-panel {
-        background: rgb(51 51 51);
+
+    .contacto:hover, .contacto-item:hover {
+        background: rgba(0, 212, 255, 0.15);
+        border-color: #00bfff;
+        transform: translateY(-1px);
+    }
+
+    .contacto.yo {
+        background: rgba(0, 255, 136, 0.22);
+        border-color: #00ff88;
+    }
+
+    /* ================= CÍRCULO RADIO GPS ================= */
+    .leaflet-circle-pane .radio-line-gps {
+        transition: opacity 1.8s ease-in-out, fill-opacity 1.8s ease-in-out;
+    }
+
+    /* ================= LOADING OVERLAY ================= */
+    #loadingOverlay {
+        font-size: 15px;
+    }
+
+    #loadingOverlay h2 {
+        font-size: 22px;
+    }
+
+    #loadingOverlay img {
+        width: 100px;
+        height: 100px;
+    }
+
+    /* ================= AJUSTES GENERALES MOBILE ================= */
+    .chat-respuesta {
+        font-size: 12px;
+        max-height: 140px;
+    }
+
+    .pulse {
+        animation: heartbeat-real 8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes heartbeat-real {
+        0%   { transform: scale(1); }
+        14%  { transform: scale(1.20); }
+        28%  { transform: scale(1); }
+        56%  { transform: scale(1.12); }
+        100% { transform: scale(1); }
     }
 }
