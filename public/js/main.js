@@ -58,6 +58,11 @@ socket.on('username set', nombre => {
 // ────────────────────────────────────────────────
 // Inicialización de envío de posición + telemetría + actualizar panel hi_status
 // ────────────────────────────────────────────────
+// ────────────────────────────────────────────────
+// Control de la cortina de carga
+// ────────────────────────────────────────────────
+let primeraTelemetriaEnviada = false;  // bandera para saber si ya enviamos la primera
+
 function enviarPosicion(pos) {
     miPosicion = {
         lat: pos.coords.latitude,
@@ -76,20 +81,12 @@ function enviarPosicion(pos) {
         return;
     }
 
-    // ─── Actualizamos el panel hi_status cada vez que enviamos ───
-    $('#mi_ultima_pos').val(
-        miPosicion.lat.toFixed(6) + ', ' + miPosicion.lng.toFixed(6)
-    );
+    // ─── Actualizamos panel hi_status (como ya tenías) ───
+    $('#mi_ultima_pos').val(miPosicion.lat.toFixed(6) + ', ' + miPosicion.lng.toFixed(6));
     $('#mi_velocidad').val(data.velocidad.toFixed(1) + ' km/h');
-    $('#mi_ultima_update').val(
-        new Date().toLocaleTimeString('es-AR', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        })
-    );
+    $('#mi_ultima_update').val(new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}));
 
-    // Marcador propio
+    // Marcador propio, centrado, etc. (tu código existente)
     if (!miMarker) {
         miMarker = L.marker([miPosicion.lat, miPosicion.lng], {
             icon: L.divIcon({
@@ -105,18 +102,34 @@ function enviarPosicion(pos) {
         miMarker.slideTo([miPosicion.lat, miPosicion.lng], { duration: 1200 });
     }
 
-    // Centrar la primera vez
     if (!map.getCenter().equals([miPosicion.lat, miPosicion.lng], 0.002)) {
-        map.setView([miPosicion.lat, miPosicion.lng], 15);
+        map.setView([miPosicion.lat, miPosicion.lng], 14);
         setTimeout(() => {
                    map.flyTo([miPosicion.lat, miPosicion.lng], 18); 
         }, 3500);
     }
 
     socket.emit('telemetria', data);
-    actualizarCirculoRadio()
     console.log(`[TX] Telemetría → ${nombre} @ ${miPosicion.lat.toFixed(5)},${miPosicion.lng.toFixed(5)}`);
+
+    // ─── ¡AQUÍ DESAPARECE LA CORTINA! ───
+    if (!primeraTelemetriaEnviada) {
+        primeraTelemetriaEnviada = true;
+
+        // Fade out suave
+        $('#loadingOverlay').css('opacity', 0);
+
+        // La quitamos del DOM después de la transición
+        setTimeout(() => {
+            $('#loadingOverlay').remove();
+            console.log("Cortina de carga desaparecida – primera telemetría enviada");
+        }, 1000); // 1 segundo = duración de la transición CSS
+    }
+
+    // Actualizamos círculo de radio (si tenés esa función)
+    actualizarCirculoRadio();
 }
+
 // Función para actualizar/dibujar el círculo de radio
 function actualizarCirculoRadio() {
     // Cancelamos cualquier fade pendiente para evitar conflictos
