@@ -5,212 +5,68 @@
 
 @media (max-width: 480px) {
 
-    body {
-        font-size: 13px;                /* base un poco más grande para legibilidad */
-        -webkit-tap-highlight-color: transparent; /* evita resaltado azul al tocar */
-    }
-
-    /* ================= MAPA ================= */
-    .map-container {
-        position: fixed;
-        inset: 0;
-    }
-
-    #map {
-        height: 100vh;
-    }
-
-    /* ================= PANEL DATOS VEHÍCULO ================= */
-    .panel-datos {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        right: 10px;
-        z-index: 1000;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        padding: 8px;
-        background: rgba(0,0,0,0.55);
-        backdrop-filter: blur(10px);
-        border-radius: 6px;
-        border: 1px solid rgba(255,255,255,0.12);
-    }
-
-    .panel-datos input {
-        flex: 1 1 45%;
-        min-width: 120px;
-        padding: 8px 10px;
-        font-size: 12px;
-        background: rgba(20,20,20,0.7);
-        border: 1px solid rgba(255,255,255,0.18);
-        border-radius: 4px;
-        color: #e0f7ff;
-    }
-
-    /* ================= BOTÓN FLOTANTE ================= */
-    .btn-toggle-comms {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        width: 56px;
-        height: 56px;
-        background: rgba(0, 191, 255, 0.18);
-        border: 2px solid #00bfff;
-        border-radius: 50%;
-        font-size: 24px;
-        color: #00bfff;
-        backdrop-filter: blur(10px);
-        box-shadow: 0 4px 15px rgba(0, 191, 255, 0.4);
-        z-index: 3000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.3s ease;
-    }
-
-    .btn-toggle-comms:hover,
-    .btn-toggle-comms:active {
-        background: rgba(0, 191, 255, 0.35);
-        transform: scale(1.1);
-    }
-
-    /* ================= ASIDE / PANEL COMUNICACIONES ================= */
-    .comms-panel {
-        position: fixed;
-        inset: 0;
-        background: rgba(10,10,15,0.92);
-        backdrop-filter: blur(16px);
-        z-index: 2000;
-        padding: 16px;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch; /* scroll suave en iOS */
-        transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
-        transform: translateX(100%);
-    }
-
-    .comms-panel.open {
-        transform: translateX(0);
-    }
-
-    /* ================= SECCIONES CHAT ================= */
+    /* ================= SECCIONES CHAT - ALTURA MÍNIMA ================= */
     .chat {
-        margin-bottom: 16px;
+        min-height: 220px;              /* base para todas las secciones */
+        margin-bottom: 20px;
         padding: 12px;
         background: rgba(20,20,30,0.4);
         border-radius: 8px;
         border: 1px solid rgba(255,255,255,0.08);
+        display: flex;
+        flex-direction: column;
     }
 
-    .chat h3 {
-        font-size: 14px;
-        margin-bottom: 10px;
-        letter-spacing: 1.2px;
-        color: #00d4ff;
+    /* Contactos cercanos (lista) */
+    .chat-contactos {
+        min-height: 240px;              /* un poco más alto porque tiene lista + filtro */
+        flex: 1 1 auto;
     }
 
+    /* Chat general (mensajes públicos) */
+    .chat-general {
+        min-height: 280px;              /* espacio para mensajes + input + botón voz */
+        flex: 1 1 auto;
+    }
+
+    /* Comunicación directa (chat privado) */
+    .chat-privado {
+        min-height: 300px;              /* el más importante, necesita espacio para conversación */
+        flex: 1 1 auto;
+    }
+
+    /* Mensajes recibidos (desplegables) */
+    .chat-recibidos {
+        min-height: 220px;
+        flex: 1 1 auto;
+    }
+
+    /* Asistente IA */
+    .chat-ia {
+        min-height: 260px;              /* textarea + botón + respuesta */
+        flex: 1 1 auto;
+    }
+
+    /* Ajustes internos para que el contenido ocupe bien el espacio */
     .chat-mensajes {
-        max-height: 180px;
+        flex: 1;                        /* crece para llenar el min-height */
+        min-height: 120px;              /* evita que quede muy vacío si no hay mensajes */
         overflow-y: auto;
-        padding: 8px;
-        background: rgba(0,0,0,0.45);
-        border-radius: 6px;
-        border: 1px solid rgba(0, 212, 255, 0.12);
+        margin-bottom: 10px;
     }
 
-    .msg {
-        font-size: 13px;
-        margin: 6px 0;
-        padding: 6px 10px;
-        border-radius: 6px;
-        background: rgba(255,255,255,0.04);
+    /* Inputs y controles inferiores */
+    .chat-input, .btn-voz, .btn-ia {
+        min-height: 44px;               /* mínimo táctil recomendado */
     }
 
-    /* ================= INPUTS Y BOTONES ================= */
-    .chat-input {
-        width: 68%;
-        padding: 10px;
-        font-size: 14px;
-        background: rgba(20,20,30,0.7);
-        border: 1px solid #00bfff44;
-        border-radius: 6px;
-        color: white;
+    /* Aseguramos que el aside use todo el espacio disponible */
+    .comms-panel {
+        padding-bottom: 80px;           /* evita que el último chat quede tapado por botón flotante */
     }
 
-    .btn-voz {
-        width: 30%;
-        margin-left: 4px;
-        padding: 10px;
-        font-size: 16px;
-        background: #00bfff22;
-        border: 1px solid #00bfff;
-        color: #00d4ff;
-    }
-
-    button {
-        padding: 10px 14px;
-        font-size: 13px;
-        min-height: 44px; /* mínimo táctil recomendado */
-        min-width: 44px;
-    }
-
-    /* ================= CONTACTOS ================= */
-    .contacto, .contacto-item {
-        padding: 10px;
-        margin: 6px 0;
-        background: rgba(30,30,40,0.6);
-        border-radius: 8px;
-        border: 1px solid rgba(255,255,255,0.08);
-        font-size: 13px;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .contacto:hover, .contacto-item:hover {
-        background: rgba(0, 212, 255, 0.15);
-        border-color: #00bfff;
-        transform: translateY(-1px);
-    }
-
-    .contacto.yo {
-        background: rgba(0, 255, 136, 0.22);
-        border-color: #00ff88;
-    }
-
-    /* ================= CÍRCULO RADIO GPS ================= */
-    .leaflet-circle-pane .radio-line-gps {
-        transition: opacity 1.8s ease-in-out, fill-opacity 1.8s ease-in-out;
-    }
-
-    /* ================= LOADING OVERLAY ================= */
-    #loadingOverlay {
-        font-size: 15px;
-    }
-
-    #loadingOverlay h2 {
-        font-size: 22px;
-    }
-
-    #loadingOverlay img {
-        width: 100px;
-        height: 100px;
-    }
-
-    /* ================= AJUSTES GENERALES MOBILE ================= */
-    .chat-respuesta {
-        font-size: 12px;
-        max-height: 140px;
-    }
-
-    .pulse {
-        animation: heartbeat-real 8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-
-    @keyframes heartbeat-real {
-        0%   { transform: scale(1); }
-        14%  { transform: scale(1.20); }
-        28%  { transform: scale(1); }
-        56%  { transform: scale(1.12); }
-        100% { transform: scale(1); }
+    /* Si hay muy poco contenido, forzamos scroll suave */
+    .comms-panel > section:last-child {
+        margin-bottom: 60px;
     }
 }
