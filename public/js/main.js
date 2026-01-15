@@ -186,15 +186,15 @@ $('#radioFiltro').on('change', function() {
 // Geolocalización
 if (navigator.geolocation) {
     // LOOP
-    // setInterval(() => {
-    //     navigator.geolocation.getCurrentPosition(enviarPosicion, err => {
-    //         console.error("Geolocalización falló:", err);
-    //     }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
-    // }, 3000);
-    // UNICA VEZ
-    navigator.geolocation.getCurrentPosition(enviarPosicion, err => {
+    setInterval(() => {
+        navigator.geolocation.getCurrentPosition(enviarPosicion, err => {
             console.error("Geolocalización falló:", err);
         }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+    }, 2500);
+    // UNICA VEZ
+    // navigator.geolocation.getCurrentPosition(enviarPosicion, err => {
+    //         console.error("Geolocalización falló:", err);
+    //     }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
 } else {
     console.error("Geolocalización no disponible en este navegador");
 }
