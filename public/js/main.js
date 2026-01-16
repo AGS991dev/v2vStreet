@@ -23,6 +23,7 @@ const MIN_MOVIMIENTO_METROS = 8;     // solo enviamos si nos movimos ≥ 8 metro
 let primeraTelemetriaEnviada = false;
 
 const campos = ['nombre', 'vehiculo', 'placa', 'seguro', 'contacto'];
+const campoImagenMarker = 'imagenMarker';
 
 // ────────────────────────────────────────────────
 // Persistencia con LocalStorage
@@ -36,6 +37,57 @@ campos.forEach(id => {
         localStorage.setItem(id, $(this).val());
     });
 });
+
+// Persistencia para imagen del marker
+const $imagenMarker = $(`#${campoImagenMarker}`);
+const imagenMarkerGuardada = localStorage.getItem(campoImagenMarker) || 'auto1.png';
+$imagenMarker.val(imagenMarkerGuardada);
+
+// Inicializar selector de autos
+function inicializarSelectorAutos() {
+    const autoSeleccionado = imagenMarkerGuardada;
+    $('.auto-option').each(function() {
+        const $img = $(this);
+        const autoValue = $img.data('auto');
+        if (autoValue === autoSeleccionado) {
+            $img.addClass('selected');
+        }
+        
+        $img.on('click', function() {
+            $('.auto-option').removeClass('selected');
+            $img.addClass('selected');
+            $imagenMarker.val(autoValue);
+            localStorage.setItem(campoImagenMarker, autoValue);
+            // Actualizar marker si ya existe
+            if (miMarker && miPosicion) {
+                actualizarMarker();
+            }
+            // Actualizar imagen en hi_status
+            if (miPosicion) {
+                const nombre = $('#nombre').val().trim() || 'Anónimo';
+                const vehiculo = $('#vehiculo').val().trim() || '';
+                const placa = $('#placa').val().trim() || '';
+                const velocidad = parseFloat($('#mi_velocidad').val()) || 0;
+                const tiempo = new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+                actualizarPopupHiStatus(nombre, vehiculo, placa, velocidad, miPosicion.lat, miPosicion.lng, tiempo);
+            }
+        });
+    });
+}
+
+inicializarSelectorAutos();
+
+// Mostrar auto seleccionado en hi_status al cargar
+setTimeout(() => {
+    if (miPosicion) {
+        const nombre = $('#nombre').val().trim() || 'Anónimo';
+        const vehiculo = $('#vehiculo').val().trim() || '';
+        const placa = $('#placa').val().trim() || '';
+        const velocidad = 0;
+        const tiempo = new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+        actualizarPopupHiStatus(nombre, vehiculo, placa, velocidad, miPosicion.lat, miPosicion.lng, tiempo);
+    }
+}, 500);
 
 // ────────────────────────────────────────────────
 // Al conectar socket
@@ -83,6 +135,162 @@ function haCambiadoSuficiente(nuevaLat, nuevaLng) {
 }
 
 // ────────────────────────────────────────────────
+// Crear popup futurista con información completa
+// ────────────────────────────────────────────────
+function crearPopupFuturista(nombre, vehiculo, placa, velocidad, lat, lng, tiempo, incluirBotonHablar = false, socketId = null) {
+    const velocidadFormateada = velocidad ? velocidad.toFixed(1) : '0.0';
+    const latFormateada = lat ? lat.toFixed(6) : '---';
+    const lngFormateada = lng ? lng.toFixed(6) : '---';
+    
+    return `
+        <div style="
+            font-family: 'Oxanium', monospace;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            border: 1px solid #00bfff;
+            border-radius: 4px;
+            padding: 12px;
+            min-width: 200px;
+            box-shadow: 0 0 20px rgba(0, 191, 255, 0.3);
+            color: #e2e8f0;
+        ">
+            <div style="
+                display: flex;
+                align-items: center;
+                margin-bottom: 10px;
+                padding-bottom: 8px;
+                border-bottom: 1px solid rgba(0, 191, 255, 0.3);
+            ">
+                <span style="font-size: 18px; margin-right: 8px;">🚗</span>
+                <strong style="color: #00bfff; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
+                    ${nombre || 'Anónimo'}
+                </strong>
+            </div>
+            
+            <div style="font-size: 11px; line-height: 1.6;">
+                <div style="margin-bottom: 6px;">
+                    <span style="color: #64748b; text-transform: uppercase;">Vehículo:</span>
+                    <span style="color: #e2e8f0; margin-left: 8px;">${vehiculo || '---'}</span>
+                </div>
+                
+                <div style="margin-bottom: 6px;">
+                    <span style="color: #64748b; text-transform: uppercase;">Placa:</span>
+                    <span style="color: #00bfff; margin-left: 8px; font-weight: 600;">${placa || '---'}</span>
+                </div>
+                
+                <div style="margin-bottom: 6px;">
+                    <span style="color: #64748b; text-transform: uppercase;">Velocidad:</span>
+                    <span style="color: #10b981; margin-left: 8px; font-weight: 600;">
+                        ${velocidadFormateada} <span style="color: #64748b; font-size: 10px;">km/h</span>
+                    </span>
+                </div>
+                
+                <div style="margin-bottom: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <div style="color: #64748b; font-size: 10px; margin-bottom: 4px;">COORDENADAS</div>
+                    <div style="color: #94a3b8; font-size: 10px; font-family: 'Courier New', monospace;">
+                        LAT: ${latFormateada}<br>
+                        LNG: ${lngFormateada}
+                    </div>
+                </div>
+                
+                <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <span style="color: #64748b; font-size: 9px; text-transform: uppercase;">
+                        ⏱️ ${tiempo || new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'})}
+                    </span>
+                </div>
+            </div>
+        </div>
+        ${incluirBotonHablar && socketId ? `
+            <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <button onclick="hablarCon('${socketId}', '${nombre || 'Usuario'}')" 
+                        style="
+                            width: 100%;
+                            padding: 8px;
+                            background: rgba(0, 191, 255, 0.2);
+                            border: 1px solid #00bfff;
+                            border-radius: 4px;
+                            color: #00bfff;
+                            cursor: pointer;
+                            font-family: 'Oxanium', monospace;
+                            font-size: 11px;
+                            text-transform: uppercase;
+                            transition: all 0.2s ease;
+                        "
+                        onmouseover="this.style.background='rgba(0, 191, 255, 0.3)'; this.style.boxShadow='0 0 10px rgba(0, 191, 255, 0.5)';"
+                        onmouseout="this.style.background='rgba(0, 191, 255, 0.2)'; this.style.boxShadow='none';">
+                    🎤 Hablar
+                </button>
+            </div>
+        ` : ''}
+    `;
+}
+
+// ────────────────────────────────────────────────
+// Crear o actualizar marker con imagen seleccionada
+// ────────────────────────────────────────────────
+function actualizarMarker() {
+    if (!miPosicion) return;
+
+    const imagenSeleccionada = $('#imagenMarker').val() || 'auto1.png';
+    const iconUrl = `img/${imagenSeleccionada}`;
+
+    // Crear icono pequeño (solo la imagen, sin pin azul)
+    const icono = L.icon({
+        iconUrl: iconUrl,
+        iconSize: [28, 28],        // Marker pequeño
+        iconAnchor: [12, 12],      // Centro del icono
+        popupAnchor: [0, -12]      // Posición del popup arriba del icono
+    });
+
+    if (miMarker) {
+        // Si el marker ya existe, actualizar su icono y posición
+        miMarker.setIcon(icono);
+        miMarker.setLatLng([miPosicion.lat, miPosicion.lng]);
+    } else {
+        // Crear nuevo marker (sin el pin azul por defecto)
+        miMarker = L.marker([miPosicion.lat, miPosicion.lng], {
+            icon: icono,
+            keyboard: false,
+            title: 'Mi posición'
+        }).addTo(map);
+    }
+}
+
+// ────────────────────────────────────────────────
+// Actualizar imagen del auto en panel hi_status
+// ────────────────────────────────────────────────
+function actualizarPopupHiStatus(nombre, vehiculo, placa, velocidad, lat, lng, tiempo) {
+    const $hiStatus = $('.hi_status');
+    
+    // Buscar o crear contenedor de la imagen del auto
+    let $autoContainer = $hiStatus.find('.auto-hi-status');
+    if ($autoContainer.length === 0) {
+        $autoContainer = $('<div class="auto-hi-status" style="margin-top: 12px; text-align: center;"></div>');
+        $hiStatus.append($autoContainer);
+    }
+    
+    // Obtener la imagen del auto seleccionado
+    const imagenSeleccionada = $('#imagenMarker').val() || 'auto1.png';
+    const iconUrl = `img/${imagenSeleccionada}`;
+    
+    // Mostrar la imagen del auto
+    $autoContainer.html(`
+        <label style="font-size: 11px; margin-bottom: 6px; display: block; text-transform: uppercase; opacity: 0.8;">Mi Vehículo:</label>
+        <img src="${iconUrl}" 
+             alt="Auto seleccionado" 
+             style="
+                 width: 80px; 
+                 height: auto; 
+                 max-width: 100%; 
+                 filter: drop-shadow(0 0 8px rgba(0, 191, 255, 0.5));
+                 border: 2px solid rgba(0, 191, 255, 0.3);
+                 border-radius: 4px;
+                 padding: 4px;
+                 background: rgba(0, 191, 255, 0.1);
+             ">
+    `);
+}
+
+// ────────────────────────────────────────────────
 // Procesar nueva posición GPS
 // ────────────────────────────────────────────────
 function enviarPosicion(pos) {
@@ -106,8 +314,8 @@ function enviarPosicion(pos) {
     data.lng = miPosicion.lng;
     data.velocidad = velocidad;
 
-    const nombre = data.nombre;
-    if (!nombre) {
+    const nombreUsuario = data.nombre;
+    if (!nombreUsuario) {
         console.warn("⚠️ No se envía telemetría: falta nombre");
         // return; // descomentar si querés bloquear envíos sin nombre
     }
@@ -118,20 +326,29 @@ function enviarPosicion(pos) {
     $('#mi_ultima_update').val(new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}));
 
     // Marcador propio
+    const nombre = data.nombre || 'Anónimo';
+    const vehiculo = data.vehiculo || '';
+    const placa = data.placa || '';
+    const tiempo = new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    
+    // Crear contenido del popup futurista (sin botón "Hablar" para el propio)
+    const popupContent = crearPopupFuturista(nombre, vehiculo, placa, velocidad, miPosicion.lat, miPosicion.lng, tiempo, false);
+    
     if (!miMarker) {
-        miMarker = L.marker([miPosicion.lat, miPosicion.lng], {
-            icon: L.divIcon({
-                className: 'mi-marcador',
-                html: '<div class="pulsar">YO</div>',
-                iconSize: [28, 28],
-                iconAnchor: [14, 14]
-            })
-        }).addTo(map);
-
-        miMarker.bindPopup(`<b>YO: ${nombre}</b><br>Vel: ${velocidad || 0} km/h`);
+        actualizarMarker();
+        miMarker.bindPopup(popupContent, {
+            className: 'popup-futurista',
+            maxWidth: 250
+        });
     } else {
-        miMarker.slideTo([miPosicion.lat, miPosicion.lng], { duration: 9000 });
+        // Actualizar posición del marker
+        miMarker.setLatLng([miPosicion.lat, miPosicion.lng]);
+        // Actualizar popup con datos actuales
+        miMarker.setPopupContent(popupContent);
     }
+    
+    // Actualizar popup en hi_status
+    actualizarPopupHiStatus(nombre, vehiculo, placa, velocidad, miPosicion.lat, miPosicion.lng, tiempo);
 
     // Centrado y zoom progresivo
     if (!map.getCenter().equals([miPosicion.lat, miPosicion.lng], 0.002)) {
@@ -307,8 +524,12 @@ socket.on('private message', msg => {
     }
 
     console.log(`[RX Private] ${fromSocketId} : ${text}`);
-    const texto = "Audio entrante: " + text;
-    hablar(texto);
+    
+    // Solo reproducir audio si NO es nuestro propio mensaje (eco)
+    if (!esMio) {
+        const texto = "Audio entrante: " + text;
+        hablar(texto);
+    }
 });
 
 function hablar(texto){
@@ -379,6 +600,18 @@ function getNameFromSocketId(socketId) {
 socket.on('telemetria_global', autos => {
     console.log(`[TELE GLOBAL] Recibidos ${Object.keys(autos).length} vehículos`);
 
+    // Obtener socket ID propio para no procesarlo aquí
+    const miSocketId = socket.id;
+
+    // Eliminar markers de usuarios que ya no están conectados
+    Object.keys(markers).forEach(socketId => {
+        if (socketId !== miSocketId && !autos[socketId]) {
+            console.log(`[MARKER] Eliminando marker de usuario desconectado: ${socketId}`);
+            map.removeLayer(markers[socketId]);
+            delete markers[socketId];
+        }
+    });
+
     // Actualizar mapa de nombres
     socketToName = {};
     Object.entries(autos).forEach(([socketId, data]) => {
@@ -386,23 +619,54 @@ socket.on('telemetria_global', autos => {
     });
 
     Object.entries(autos).forEach(([socketId, data]) => {
+        // Saltar el marker propio (se maneja en enviarPosicion)
+        if (socketId === miSocketId) return;
         if (!data.lat || !data.lng) return;
 
+        // Usar auto1.png por defecto si no hay imagen seleccionada
+        const imagenAuto = 'auto1.png'; // Por ahora todos usan auto1, podría venir del servidor
+        const iconUrl = `img/${imagenAuto}`;
+
+        // Crear icono personalizado para otros usuarios
+        const icono = L.icon({
+            iconUrl: iconUrl,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+            popupAnchor: [0, -12]
+        });
+
         if (!markers[socketId]) {
-            markers[socketId] = L.marker([data.lat, data.lng]).addTo(map);
+            markers[socketId] = L.marker([data.lat, data.lng], {
+                icon: icono
+            }).addTo(map);
+        } else {
+            markers[socketId].setIcon(icono);
         }
 
-        markers[socketId].slideTo([data.lat, data.lng], { duration: 1000 });
+        markers[socketId].setLatLng([data.lat, data.lng]);
 
-        const popup = `
-            <b>${data.nombre || 'Anónimo'}</b><br>
-            ${data.vehiculo || ''}<br>
-            Vel: ${data.velocidad || 0} km/h<br>
-    <button onclick="hablarCon('${socketId}', '${data.nombre}')">
-    
-        Hablar
-    </button>`;
-        markers[socketId].bindPopup(popup);
+        // Crear popup futurista para otros usuarios
+        const tiempo = data.ultimaActualizacion 
+            ? new Date(data.ultimaActualizacion).toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', second:'2-digit'})
+            : new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
+        
+        // Crear popup futurista con botón "Hablar" para otros usuarios
+        const popupContent = crearPopupFuturista(
+            data.nombre || 'Anónimo',
+            data.vehiculo || '',
+            data.placa || '',
+            data.velocidad || 0,
+            data.lat,
+            data.lng,
+            tiempo,
+            true,  // incluir botón "Hablar"
+            socketId
+        );
+        
+        markers[socketId].bindPopup(popupContent, {
+            className: 'popup-futurista',
+            maxWidth: 250
+        });
     });
 
     renderizarContactos(autos);
