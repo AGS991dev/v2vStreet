@@ -1,6 +1,7 @@
-// main.js - Versión ajustada 2025/2026 + panel hi_status
-// Enfoque: garantizar que los mensajes privados se vean SIEMPRE en "Mensajes Recibidos"
-// + mejor manejo de chat activo + debug más claro + info en .hi_status
+// main.js - Versión ajustada 2025/2026 + panel hi_status + GPS eficiente con watchPosition
+// Enfoque: mensajes privados SIEMPRE visibles en "Mensajes Recibidos"
+// + mejor manejo de chat activo + debug claro + info en .hi_status
+// + GPS: watchPosition + filtro de movimiento mínimo (8 metros) para bajo consumo
 
 const socket = io();
 
@@ -10,16 +11,21 @@ L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.
 let markers = {};
 let miPosicion = null;
 let miMarker = null;
-let contactoActivo = null;           // username del chat abierto actualmente
-let mensajesPorConversacion = {};    // { username: [ {from:'yo'|'el', text, time?} ] }
+let contactoActivo = null;           // socketId del chat abierto actualmente
+let mensajesPorConversacion = {};    // { socketId: [ {from:'yo'|'el', text, time} ] }
 let radioCircle = null;
-let fadeTimeout = null;     // para controlar el fade out
+let fadeTimeout = null;              // para fade out del círculo
+let watchId = null;                  // para detener watchPosition si es necesario
+
+// ─── Variables para GPS eficiente ───
+let ultimaPosicionEnviada = null;    // {lat, lng} de la última posición ENVIADA al server
+const MIN_MOVIMIENTO_METROS = 8;     // solo enviamos si nos movimos ≥ 8 metros
+let primeraTelemetriaEnviada = false;
+
 const campos = ['nombre', 'vehiculo', 'placa', 'seguro', 'contacto'];
 
-
-
 // ────────────────────────────────────────────────
-// LocalStorage persistencia
+// Persistencia con LocalStorage
 // ────────────────────────────────────────────────
 campos.forEach(id => {
     const $el = $(`#${id}`);
@@ -32,16 +38,14 @@ campos.forEach(id => {
 });
 
 // ────────────────────────────────────────────────
-// Inicialización del panel hi_status al conectar
+// Al conectar socket
 // ────────────────────────────────────────────────
 socket.on('connect', () => {
     console.log("[SOCKET] Conectado →", socket.id);
-    // Intentamos enviar el nombre guardado en localStorage si existe
     const nombreGuardado = localStorage.getItem('nombre')?.trim() || "Anónimo";
     if (nombreGuardado) {
         socket.emit('set username', nombreGuardado);
     }
-    // Completamos inmediatamente el socket ID
     $('#mi_username').val('esperando nombre...');
     $('#mi_socket_id').val(socket.id || '---');
     $('#mi_ultima_pos').val('---');
@@ -49,44 +53,71 @@ socket.on('connect', () => {
     $('#mi_ultima_update').val('---');
 });
 
-// Cuando el servidor confirma el username
 socket.on('username set', nombre => {
     console.log("[USERNAME] Confirmado por servidor:", nombre);
     $('#mi_username').val(nombre || '---');
 });
 
 // ────────────────────────────────────────────────
-// Inicialización de envío de posición + telemetría + actualizar panel hi_status
+// Funciones auxiliares de distancia
 // ────────────────────────────────────────────────
-// ────────────────────────────────────────────────
-// Control de la cortina de carga
-// ────────────────────────────────────────────────
-let primeraTelemetriaEnviada = false;  // bandera para saber si ya enviamos la primera
+function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
 
+function haCambiadoSuficiente(nuevaLat, nuevaLng) {
+    if (!ultimaPosicionEnviada) return true; // primera vez siempre enviar
+
+    const distanciaKm = calcularDistanciaKm(
+        ultimaPosicionEnviada.lat,
+        ultimaPosicionEnviada.lng,
+        nuevaLat,
+        nuevaLng
+    );
+    return (distanciaKm * 1000) >= MIN_MOVIMIENTO_METROS;
+}
+
+// ────────────────────────────────────────────────
+// Procesar nueva posición GPS
+// ────────────────────────────────────────────────
 function enviarPosicion(pos) {
-    miPosicion = {
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude
-    };
+    const nuevaLat = pos.coords.latitude;
+    const nuevaLng = pos.coords.longitude;
+    const velocidad = pos.coords.speed || 0;
+    const precision = pos.coords.accuracy;
+
+    // Filtrado: ignorar si el movimiento es muy pequeño (salvo la primera vez)
+    if (!haCambiadoSuficiente(nuevaLat, nuevaLng) && primeraTelemetriaEnviada) {
+        console.log(`[GPS] Movimiento pequeño (${(calcularDistanciaKm(ultimaPosicionEnviada.lat, ultimaPosicionEnviada.lng, nuevaLat, nuevaLng)*1000).toFixed(1)} m) → ignorado`);
+        return;
+    }
+
+    miPosicion = { lat: nuevaLat, lng: nuevaLng };
+    ultimaPosicionEnviada = { lat: nuevaLat, lng: nuevaLng };
 
     const data = {};
     campos.forEach(c => data[c] = $(`#${c}`).val().trim());
     data.lat = miPosicion.lat;
     data.lng = miPosicion.lng;
-    data.velocidad = pos.coords.speed || 0;
+    data.velocidad = velocidad;
 
     const nombre = data.nombre;
     if (!nombre) {
         console.warn("⚠️ No se envía telemetría: falta nombre");
-        //return; DISABLE
+        // return; // descomentar si querés bloquear envíos sin nombre
     }
 
-    // ─── Actualizamos panel hi_status (como ya tenías) ───
+    // Actualizar panel hi_status
     $('#mi_ultima_pos').val(miPosicion.lat.toFixed(6) + ', ' + miPosicion.lng.toFixed(6));
-    $('#mi_velocidad').val(data.velocidad.toFixed(1) + ' km/h');
+    $('#mi_velocidad').val(velocidad.toFixed(1) + ' km/h');
     $('#mi_ultima_update').val(new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}));
 
-    // Marcador propio, centrado, etc. (tu código existente)
+    // Marcador propio
     if (!miMarker) {
         miMarker = L.marker([miPosicion.lat, miPosicion.lng], {
             icon: L.divIcon({
@@ -97,42 +128,66 @@ function enviarPosicion(pos) {
             })
         }).addTo(map);
 
-        miMarker.bindPopup(`<b>YO: ${nombre}</b><br>Vel: ${data.velocidad || 0} km/h`);
+        miMarker.bindPopup(`<b>YO: ${nombre}</b><br>Vel: ${velocidad || 0} km/h`);
     } else {
         miMarker.slideTo([miPosicion.lat, miPosicion.lng], { duration: 1200 });
     }
 
+    // Centrado y zoom progresivo
     if (!map.getCenter().equals([miPosicion.lat, miPosicion.lng], 0.002)) {
         map.setView([miPosicion.lat, miPosicion.lng], 14);
         setTimeout(() => {
-                   map.flyTo([miPosicion.lat, miPosicion.lng], 18); 
+            map.flyTo([miPosicion.lat, miPosicion.lng], 18);
         }, 3500);
     }
 
     socket.emit('telemetria', data);
-    console.log(`[TX] Telemetría → ${nombre} @ ${miPosicion.lat.toFixed(5)},${miPosicion.lng.toFixed(5)}`);
+    console.log(`[TX] Telemetría → ${nombre} @ ${miPosicion.lat.toFixed(5)},${miPosicion.lng.toFixed(5)} (prec: ${precision.toFixed(0)}m)`);
 
-    // ─── ¡AQUÍ DESAPARECE LA CORTINA! ───
+    // Quitar cortina de carga en la primera fix válida
     if (!primeraTelemetriaEnviada) {
         primeraTelemetriaEnviada = true;
-
-        // Fade out suave
         $('#loadingOverlay').css('opacity', 0);
 
-        // La quitamos del DOM después de la transición
+        actualizarCirculoRadio();
+        
         setTimeout(() => {
             $('#loadingOverlay').remove();
             console.log("Cortina de carga desaparecida – primera telemetría enviada");
-        }, 1000); // 1 segundo = duración de la transición CSS
+        }, 1000);
     }
 
-    // Actualizamos círculo de radio (si tenés esa función)
-    actualizarCirculoRadio();
+    
 }
 
-// Función para actualizar/dibujar el círculo de radio
+// ────────────────────────────────────────────────
+// Iniciar seguimiento GPS eficiente
+// ────────────────────────────────────────────────
+if (navigator.geolocation) {
+    const geoOptions = {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 30000              // permite algo de caché para ahorrar batería
+    };
+
+    watchId = navigator.geolocation.watchPosition(
+        enviarPosicion,
+        err => {
+            console.error("[GPS ERROR]", err.code, err.message);
+            // Opcional: mostrar alerta al usuario si es grave (ej: permiso denegado)
+        },
+        geoOptions
+    );
+
+    console.log("[GPS] watchPosition iniciado – filtro ≥ " + MIN_MOVIMIENTO_METROS + " metros");
+} else {
+    console.error("[GPS] Geolocalización no disponible en este navegador");
+}
+
+// ────────────────────────────────────────────────
+// Actualizar círculo de radio
+// ────────────────────────────────────────────────
 function actualizarCirculoRadio() {
-    // Cancelamos cualquier fade pendiente para evitar conflictos
     if (fadeTimeout) clearTimeout(fadeTimeout);
 
     if (!miPosicion) {
@@ -143,7 +198,6 @@ function actualizarCirculoRadio() {
     const radioKm = parseFloat($('#radioFiltro').val()) || 50;
     const radioMetros = radioKm * 1000;
 
-    // Si el círculo no existe → lo creamos
     if (!radioCircle) {
         radioCircle = L.circle([miPosicion.lat, miPosicion.lng], {
             radius: radioMetros,
@@ -152,64 +206,24 @@ function actualizarCirculoRadio() {
             fillOpacity: 0.15,
             weight: 2,
             className: 'radio-line-gps',
-            opacity: 1,               // aparece inmediatamente
+            opacity: 1,
             interactive: false
         }).addTo(map);
     } else {
-        // Actualizamos posición y radio
         radioCircle.setLatLng([miPosicion.lat, miPosicion.lng]);
         radioCircle.setRadius(radioMetros);
-        radioCircle.setStyle({
-            opacity: 1,
-            fillOpacity: 0.15
-        });
+        radioCircle.setStyle({ opacity: 1, fillOpacity: 0.15 });
     }
 
     console.log(`Círculo visible: ${radioKm} km`);
 
-    // ─── Después de 5 segundos → fade out ───
     fadeTimeout = setTimeout(() => {
-        radioCircle.setStyle({
-            opacity: 0,
-            fillOpacity: 0
-        });
+        radioCircle.setStyle({ opacity: 0, fillOpacity: 0 });
         console.log("Círculo haciendo fade out...");
     }, 3500);
 }
 
-// ────────────────────────────────────────────────
-// Escuchar cambio en el select
-// ────────────────────────────────────────────────
-$('#radioFiltro').on('change', function() {
-    actualizarCirculoRadio();
-});
-// Geolocalización
-if (navigator.geolocation) {
-    // LOOP
-    setInterval(() => {
-        navigator.geolocation.getCurrentPosition(enviarPosicion, err => {
-            console.error("Geolocalización falló:", err);
-        }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
-    }, 2500);
-    // UNICA VEZ
-    // navigator.geolocation.getCurrentPosition(enviarPosicion, err => {
-    //         console.error("Geolocalización falló:", err);
-    //     }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
-} else {
-    console.error("Geolocalización no disponible en este navegador");
-}
-
-// ────────────────────────────────────────────────
-// Distancia Haversine
-// ────────────────────────────────────────────────
-function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-}
+$('#radioFiltro').on('change', actualizarCirculoRadio);
 
 // ────────────────────────────────────────────────
 // Renderizar contactos cercanos
@@ -232,20 +246,19 @@ function renderizarContactos(autos) {
         const esYo = data.nombre === miNombre;
 
         const $item = $(`
-            <div class="contacto-item">
+            <div class="contacto-item" data-socketid="${socketId}">
                 <strong>${data.nombre || 'Anónimo'}</strong><br>
                 <small>${data.vehiculo || ''} • ${data.placa || '---'} • ${dist.toFixed(1)} km</small>
             </div>
         `);
 
         $item.click(() => abrirChatConUsuario(socketId, data));
-
         $lista.append($item);
     });
 }
 
 // ────────────────────────────────────────────────
-// Enviar mensaje privado (usando socket ID del target)
+// Enviar mensaje privado
 // ────────────────────────────────────────────────
 function enviarPrivado() {
     const texto = $('#txtPrivado').val().trim();
@@ -258,7 +271,7 @@ function enviarPrivado() {
     }
 
     socket.emit('private message', {
-        toSocketId: contactoActivo,  // socket ID del target
+        toSocketId: contactoActivo,
         text: texto
     });
 
@@ -266,7 +279,7 @@ function enviarPrivado() {
 }
 
 // ────────────────────────────────────────────────
-// Voz para chat privado
+// Voz → texto para chat privado
 // ────────────────────────────────────────────────
 function hablarPrivado() {
     vozATexto(texto => {
@@ -281,15 +294,12 @@ function hablarPrivado() {
 // ────────────────────────────────────────────────
 socket.on('private message', msg => {
     const { fromSocketId, text, time } = msg;
-
-    const interlocutor = fromSocketId;  // Ahora interlocutor es socket ID
     const esMio = fromSocketId === $('.mi_socket_id').val().trim();
 
-    agregarMensajeEnChat(esMio ? 'yo' : 'el', text, interlocutor, time);
-
+    agregarMensajeEnChat(esMio ? 'yo' : 'el', text, fromSocketId, time);
     renderizarMensajesRecibidos();
 
-    if (interlocutor === contactoActivo) {
+    if (fromSocketId === contactoActivo) {
         $('#chatPrivado').scrollTop($('#chatPrivado')[0].scrollHeight);
         if (!esMio) textoAVoz(text);
     } else if (!esMio) {
@@ -300,7 +310,7 @@ socket.on('private message', msg => {
 });
 
 // ────────────────────────────────────────────────
-// Agregar mensaje a memoria + DOMs
+// Agregar mensaje a memoria y DOM
 // ────────────────────────────────────────────────
 function agregarMensajeEnChat(origen, texto, interlocutor, time = null) {
     if (!mensajesPorConversacion[interlocutor]) {
@@ -322,7 +332,7 @@ function agregarMensajeEnChat(origen, texto, interlocutor, time = null) {
 }
 
 // ────────────────────────────────────────────────
-// Renderizar sección "MENSAJES RECIBIDOS" (usando socket ID como key)
+// Renderizar "Mensajes Recibidos"
 // ────────────────────────────────────────────────
 function renderizarMensajesRecibidos() {
     const $cont = $('#conversacionesRecibidas').empty();
@@ -330,14 +340,13 @@ function renderizarMensajesRecibidos() {
     Object.entries(mensajesPorConversacion).forEach(([socketId, msgs]) => {
         if (msgs.length === 0) return;
 
-        const userName = getNameFromSocketId(socketId);  // Función nueva para resolver name de socket ID
+        const userName = getNameFromSocketId(socketId);
 
         const $details = $('<details>').append(
             $('<summary>').text(`${userName || socketId} (${msgs.length})`)
         );
 
         const $mensajesDiv = $('<div class="chat-mensajes">');
-
         msgs.forEach(m => {
             const prefijo = m.from === 'yo' ? 'YO: ' : 'ÉL: ';
             $mensajesDiv.append(`<div class="msg">${prefijo}${m.text} <small>${m.time}</small></div>`);
@@ -348,20 +357,19 @@ function renderizarMensajesRecibidos() {
     });
 }
 
-// Nueva función para resolver name de socket ID (usando autos de telemetria_global)
-let socketToName = {};  // Mapa socketId → name, actualizado en telemetria_global
+let socketToName = {};
 
 function getNameFromSocketId(socketId) {
     return socketToName[socketId] || 'Anónimo';
 }
 
 // ────────────────────────────────────────────────
-// Render telemetría global + actualizar mapa socketToName
+// Telemetría global + actualización de marcadores
 // ────────────────────────────────────────────────
 socket.on('telemetria_global', autos => {
     console.log(`[TELE GLOBAL] Recibidos ${Object.keys(autos).length} vehículos`);
 
-    // Actualizar mapa socketToName
+    // Actualizar mapa de nombres
     socketToName = {};
     Object.entries(autos).forEach(([socketId, data]) => {
         socketToName[socketId] = data.nombre || 'Anónimo';
@@ -389,10 +397,11 @@ socket.on('telemetria_global', autos => {
 
     renderizarContactos(autos);
 });
-// Abre el chat privado con un usuario específico
-// Recibe el socketId del destinatario y los datos del usuario (opcional)
+
+// ────────────────────────────────────────────────
+// Abrir chat privado
+// ────────────────────────────────────────────────
 function abrirChatConUsuario(socketId, userData) {
-    // Validación básica
     if (!socketId) {
         console.warn("No se puede abrir chat: falta socketId");
         Swal.fire({
@@ -403,17 +412,13 @@ function abrirChatConUsuario(socketId, userData) {
         return;
     }
 
-    // Guardamos el socketId del contacto activo
     contactoActivo = socketId;
 
-    // Actualizamos el título del chat privado
     const nombre = userData?.nombre || 'Usuario desconocido';
     $('#contactoSeleccionado').text(`Chat con ${nombre} (${socketId.slice(0,8)}...)`);
 
-    // Limpiamos o mostramos mensajes previos de esa conversación
     $('#chatPrivado').empty();
 
-    // Si hay mensajes guardados para este socketId
     if (mensajesPorConversacion[socketId] && mensajesPorConversacion[socketId].length > 0) {
         mensajesPorConversacion[socketId].forEach(msg => {
             const prefijo = msg.from === 'yo' ? 'YO: ' : 'ÉL: ';
@@ -424,19 +429,18 @@ function abrirChatConUsuario(socketId, userData) {
         $('#chatPrivado').append('<div class="msg system">Conversación iniciada</div>');
     }
 
-    // Opcional: resaltar el contacto en la lista
     $('.contacto-item').removeClass('active');
     $(`.contacto-item[data-socketid="${socketId}"]`).addClass('active');
 
-    // Abrimos el panel de comunicaciones si está colapsado (móvil)
     if (!$('#commsPanel').hasClass('open')) {
         toggleComms();
     }
 
     console.log(`[CHAT ABIERTO] con socketId: ${socketId} (${nombre})`);
 }
+
 // ────────────────────────────────────────────────
-// Chat general (público)
+// Chat general (V2V)
 // ────────────────────────────────────────────────
 function enviarV2V() {
     const texto = $('#txtV2V').val().trim();
@@ -464,7 +468,7 @@ socket.on('general message', msg => {
 });
 
 // ────────────────────────────────────────────────
-// Voz → texto
+// Reconocimiento y síntesis de voz
 // ────────────────────────────────────────────────
 function vozATexto(callback) {
     if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
@@ -486,9 +490,6 @@ function vozATexto(callback) {
     rec.start();
 }
 
-// ────────────────────────────────────────────────
-// Texto → voz
-// ────────────────────────────────────────────────
 function textoAVoz(texto) {
     if (!texto) return;
     const utterance = new SpeechSynthesisUtterance(texto);
@@ -509,3 +510,12 @@ function toggleComms() {
 socket.on('username error', err => {
     alert("Error al registrar nombre: " + err);
 });
+
+// Opcional: para detener GPS manualmente (podes agregar un botón si querés)
+// function detenerGPS() {
+//     if (watchId !== null) {
+//         navigator.geolocation.clearWatch(watchId);
+//         watchId = null;
+//         console.log("[GPS] Seguimiento detenido");
+//     }
+// }
