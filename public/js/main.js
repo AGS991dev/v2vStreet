@@ -307,7 +307,17 @@ socket.on('private message', msg => {
     }
 
     console.log(`[RX Private] ${fromSocketId} : ${text}`);
+    const texto = "Audio entrante: " + text;
+    hablar(texto);
 });
+
+function hablar(texto){
+    const msg = new SpeechSynthesisUtterance(texto);
+    msg.lang = "es-AR";
+    msg.rate = 1;
+    msg.pitch = 1;
+    speechSynthesis.speak(msg);
+}
 
 // ────────────────────────────────────────────────
 // Agregar mensaje a memoria y DOM
@@ -388,15 +398,25 @@ socket.on('telemetria_global', autos => {
             <b>${data.nombre || 'Anónimo'}</b><br>
             ${data.vehiculo || ''}<br>
             Vel: ${data.velocidad || 0} km/h<br>
-            <button onclick="abrirChatConUsuario('${socketId}', ${JSON.stringify(data).replace(/"/g, '&quot;')} )">
-                Chatear
-            </button>
-        `;
+    <button onclick="hablarCon('${socketId}', '${data.nombre}')">
+    
+        Hablar
+    </button>`;
         markers[socketId].bindPopup(popup);
     });
 
     renderizarContactos(autos);
 });
+
+
+function hablarCon(id, nombre){
+    var userData= {}
+    userData.nombre = nombre
+    abrirChatConUsuario(id, userData);
+    setTimeout(() => {
+        hablarPrivado(); // id real del botón 🎤
+    }, 300);
+}
 
 // ────────────────────────────────────────────────
 // Abrir chat privado
