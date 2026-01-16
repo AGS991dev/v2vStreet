@@ -236,7 +236,7 @@ function actualizarMarker() {
     // Crear icono pequeño (solo la imagen, sin pin azul)
     const icono = L.icon({
         iconUrl: iconUrl,
-        iconSize: [28, 28],        // Marker pequeño
+        iconSize: [40, 40],        // Marker pequeño
         iconAnchor: [12, 12],      // Centro del icono
         popupAnchor: [0, -12]      // Posición del popup arriba del icono
     });
@@ -630,7 +630,7 @@ socket.on('telemetria_global', autos => {
         // Crear icono personalizado para otros usuarios
         const icono = L.icon({
             iconUrl: iconUrl,
-            iconSize: [24, 24],
+            iconSize: [40, 40],
             iconAnchor: [12, 12],
             popupAnchor: [0, -12]
         });
