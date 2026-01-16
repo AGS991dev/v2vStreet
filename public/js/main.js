@@ -130,7 +130,7 @@ function enviarPosicion(pos) {
 
         miMarker.bindPopup(`<b>YO: ${nombre}</b><br>Vel: ${velocidad || 0} km/h`);
     } else {
-        miMarker.slideTo([miPosicion.lat, miPosicion.lng], { duration: 1200 });
+        miMarker.slideTo([miPosicion.lat, miPosicion.lng], { duration: 9000 });
     }
 
     // Centrado y zoom progresivo
