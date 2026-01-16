@@ -19,7 +19,7 @@ let watchId = null;                  // para detener watchPosition si es necesar
 
 // ─── Variables para GPS eficiente ───
 let ultimaPosicionEnviada = null;    // {lat, lng} de la última posición ENVIADA al server
-const MIN_MOVIMIENTO_METROS = 8;     // solo enviamos si nos movimos ≥ 8 metros
+const MIN_MOVIMIENTO_METROS = 16;     // solo enviamos si nos movimos ≥ 8 metros
 let primeraTelemetriaEnviada = false;
 
 const campos = ['nombre', 'vehiculo', 'placa', 'seguro', 'contacto'];
