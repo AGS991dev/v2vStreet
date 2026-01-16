@@ -21,7 +21,7 @@
 
 <body>
 <!-- Panel de debug / estado propio (puede estar oculto con CSS) -->
-<div class="hi_status" style="display: ;width: 200px; padding: 12px; background: #1e293b; color: #e2e8f0; border-radius: 8px; margin: 10px; font-family: monospace; font-size: 13px;">
+<div class="hi_status" style="display: block;width: 200px; padding: 12px; background: #1e293b; color: #e2e8f0; border-radius: 8px; margin: 10px; font-family: monospace; font-size: 13px;">
     <strong>Mi estado V2V</strong><br><br>
     
     <label>Socket ID:</label>
@@ -44,10 +44,7 @@
     </small>
 </div>
 
-<!-- Opcional: botón para mostrar/ocultar el panel de debug -->
-<button onclick="$('.hi_status').toggle()" style="position: fixed; bottom: 80px; right: 20px; z-index: 1000; padding: 8px 12px; background: #334155; color: white; border: none; border-radius: 6px; cursor: pointer;">
-    Toggle Debug
-</button>
+
 
 
 
@@ -96,7 +93,10 @@
             <input id="seguro" placeholder="Seguro">
             <input id="contacto" placeholder="Contacto">
         </div>
-
+        <!-- Opcional: botón para mostrar/ocultar el panel de debug -->
+        <button onclick="$('.hi_status').toggle()" style="padding: 8px 12px; background: #334155; color: white; border: none; border-radius: 6px; cursor: pointer;">
+            Toggle Debug
+        </button>
     </section>
     <section class="chat chat-contactos">
         <h3><span style="font-size: 20px;">𖣠</span>  CONTACTOS CERCANOS</h3>
