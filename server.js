@@ -37,7 +37,8 @@ server.listen(PORT, () => {
 
 io.on('connection', (socket) => {
     console.log(`[CONN] Nuevo socket: ${socket.id}`);
-    // Registro simple de nombre (sin rooms por ahora, solo para mostrar)
+
+    // 1. Registro de nombre
     socket.on('set username', (username) => {
         if (!username || typeof username !== 'string' || !username.trim()) {
             socket.emit('username error', 'Nombre inválido');
@@ -46,20 +47,27 @@ io.on('connection', (socket) => {
 
         const cleanName = username.trim();
 
-        // Guardamos el nombre asociado al socket.id
-        socket.username = cleanName;  // ← lo guardamos directamente en el socket
+        // Guardamos el nombre asociado al socket
+        socket.username = cleanName;
 
         console.log(`[USERNAME] ${cleanName} registrado para socket ${socket.id}`);
 
         socket.emit('username set', cleanName);
 
+        // Notificar a los DEMÁS que alguien nuevo se unió
+        socket.broadcast.emit('user joined', {
+            socketId: socket.id,
+            nombre: cleanName
+        });
+
         // Opcional: reenviar telemetría global para que todos actualicen nombres
         emitirTelemetriaGlobal();
     });
+
     // Enviar estado actual a quien se acaba de conectar
     socket.emit('telemetria_global', autos);
 
-    // 1. Actualización de posición y datos del vehículo
+    // 2. Actualización de posición y datos del vehículo
     socket.on('telemetria', (data) => {
         if (!data?.lat || !data?.lng) {
             console.warn('[TELE] Ignorada - sin coordenadas para socket', socket.id);
@@ -70,21 +78,21 @@ io.on('connection', (socket) => {
         autos[socket.id] = {
             ...data,
             id: socket.id,
-            nombre: socket.username || data.nombre || 'Anónimo',   // ← prioridad: nombre registrado > nombre en telemetria > Anónimo
+            nombre: socket.username || data.nombre || 'Anónimo',
             ultimaActualizacion: Date.now()
         };
 
         emitirTelemetriaGlobal();
     });
 
-    // 2. Mensaje general (broadcast con fromSocketId y fromName)
+    // 3. Mensaje general (broadcast con fromSocketId y fromName)
     socket.on('general message', (data) => {
         if (!data?.text?.trim()) return;
 
         const msg = {
             text: data.text.trim(),
             fromSocketId: socket.id,
-            fromName: data.fromName || 'Anónimo',
+            fromName: data.fromName || socket.username || 'Anónimo',
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
 
@@ -93,7 +101,7 @@ io.on('connection', (socket) => {
         io.emit('general message', msg);
     });
 
-    // 3. Mensaje privado
+    // 4. Mensaje privado
     socket.on('private message', ({ toSocketId, text }) => {
         if (!toSocketId || !text?.trim()) {
             console.warn("[PRIVATE] Mensaje inválido", { toSocketId, text });
@@ -115,10 +123,19 @@ io.on('connection', (socket) => {
         socket.emit('private message', msg);
     });
 
-    // Desconexión - limpieza
+    // 5. Desconexión - limpieza + notificación
     socket.on('disconnect', () => {
         console.log(`[DISCONN] Socket desconectado: ${socket.id}`);
 
+        const nombre = socket.username || 'Anónimo';
+
+        // Notificar a los DEMÁS que alguien se fue
+        socket.broadcast.emit('user left', {
+            socketId: socket.id,
+            nombre
+        });
+
+        // Limpieza de datos
         if (autos[socket.id]) {
             delete autos[socket.id];
             emitirTelemetriaGlobal();

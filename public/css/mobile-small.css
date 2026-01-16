@@ -16,7 +16,9 @@
         display: flex;
         flex-direction: column;
     }
-
+    .toast-fijo {
+        font-size: 12px;
+    }
     /* Contactos cercanos (lista) */
     .chat-contactos {
         min-height: 240px;              /* un poco más alto porque tiene lista + filtro */

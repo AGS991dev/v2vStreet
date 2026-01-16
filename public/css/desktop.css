@@ -9,7 +9,12 @@
         display: flex;
         flex-direction: row;
     }
-
+.toast-fijo {
+    position: fixed !important;
+    right: 310px !important;
+    width: 330px !important;
+    font-size: 14px;
+}
     /* ================= MAPA ================= */
 
     .map-container {

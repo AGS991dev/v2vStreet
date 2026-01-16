@@ -25,6 +25,7 @@ let primeraTelemetriaEnviada = false;
 const campos = ['nombre', 'vehiculo', 'placa', 'seguro', 'contacto'];
 const campoImagenMarker = 'imagenMarker';
 
+
 // ────────────────────────────────────────────────
 // Persistencia con LocalStorage
 // ────────────────────────────────────────────────
@@ -88,10 +89,70 @@ setTimeout(() => {
         actualizarPopupHiStatus(nombre, vehiculo, placa, velocidad, miPosicion.lat, miPosicion.lng, tiempo);
     }
 }, 500);
+function solicitarGPSObligatorio() {
+    return new Promise((resolve, reject) => {
+
+        Swal.fire({
+            title: "Activar GPS",
+            html: "Esta aplicación necesita acceder a tu ubicación.<br><b>Encendé el GPS y aceptá para continuar.</b>",
+            icon: "info",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            confirmButtonText: "Activar GPS",
+            background: "#0b0f1a",
+            color: "#00e5ff",
+            confirmButtonColor: "#00bcd4",
+            backdrop: `
+                radial-gradient(circle at center, rgba(0,229,255,0.2), rgba(0,0,0,0.9))
+            `
+        }).then(result => {
+            if (!result.isConfirmed) return;
+
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    resolve(pos);
+                },
+                err => {
+                    Swal.fire({
+                        title: "GPS no habilitado",
+                        text: "Debés activar el GPS y permitir la ubicación para usar la aplicación.",
+                        icon: "error",
+                        confirmButtonText: "Reintentar",
+                        background: "#0b0f1a",
+                        color: "#ff5252"
+                    }).then(() => {
+                        solicitarGPSObligatorio().then(resolve);
+                    });
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000
+                }
+            );
+        });
+
+    });
+}
 
 // ────────────────────────────────────────────────
 // Al conectar socket
 // ────────────────────────────────────────────────
+// Nuevos eventos
+socket.on('user joined', (data) => {
+    if (data.socketId === socket.id) return;
+    const quien = data.nombre?.trim() 
+        ? `${data.nombre} (${data.socketId.slice(0,8)}...)` 
+        : `Usuario ${data.socketId.slice(0,8)}...`;
+    toast(`${quien} se conectó`, "success", 3800);
+});
+
+socket.on('user left', (data) => {
+    const quien = data.nombre?.trim() 
+        ? `${data.nombre} (${data.socketId.slice(0,8)}...)` 
+        : `Usuario ${data.socketId.slice(0,8)}...`;
+    toast(`${quien} se desconectó`, "info", 3200);
+});
+
 socket.on('connect', () => {
     console.log("[SOCKET] Conectado →", socket.id);
     const nombreGuardado = localStorage.getItem('nombre')?.trim() || "Anónimo";
@@ -787,6 +848,33 @@ function textoAVoz(texto) {
 function toggleComms() {
     $('#commsPanel').toggleClass('open');
 }
+function toast(mensaje, icono = "info", tiempo = 3000) {
+    Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: icono,
+        title: mensaje,
+        showConfirmButton: false,
+        timer: tiempo,
+        timerProgressBar: true,
+        background: "#0b0f1a",
+        color: "#00e5ff",
+        iconColor: "#00e5ff",
+        width: "300px",
+        customClass: {
+            popup: 'toast-fijo'
+        },
+        didOpen: (el) => {
+            el.style.zIndex = 9999999;
+            el.addEventListener('mouseenter', Swal.stopTimer);
+            el.addEventListener('mouseleave', Swal.resumeTimer);
+        }
+    });
+}
+
+// Reemplazos de alert
+// (ya mencionados arriba)
+
 
 // ────────────────────────────────────────────────
 // Errores de username
