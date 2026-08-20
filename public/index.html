@@ -6,11 +6,17 @@
 <meta name="description" content="RadioMap es radio de ruta: mapa en el tránsito, convoy, asistencia y operativos. Ves a otros y, si hace falta, los ayudás.">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#f4f0e6">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="RadioMap">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="css/base.css?v=20260820m">
-<link rel="stylesheet" href="css/desktop.css?v=20260820m">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260820m">
+<link rel="stylesheet" href="css/base.css?v=20260820p">
+<link rel="stylesheet" href="css/desktop.css?v=20260820p">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260820p">
 </head>
 
 <body>
@@ -128,6 +134,7 @@
                 <span class="perfil-fila-lab">Teléfono</span>
                 <input id="contacto" placeholder="—" maxlength="40" inputmode="tel">
             </label>
+            <p class="perfil-aviso">Patente, seguro y teléfono no van al mapa. Solo se ven si alguien abre tu ficha.</p>
         </div>
     </div>
 
@@ -144,6 +151,10 @@
         <button type="button" id="btnQueEs" class="hud-btn" title="Qué es RadioMap">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M9.6 9.4a2.4 2.4 0 1 1 3.2 2.2c-.7.3-1.3.8-1.3 1.6V14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
             <span>Qué es</span>
+        </button>
+        <button type="button" id="btnManejo" class="hud-btn" title="Modo manejo: pantalla grande y no se apaga">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16V9l3-3h8l3 3v7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="8" cy="16" r="1.7" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="16" cy="16" r="1.7" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
+            <span>Manejo</span>
         </button>
         <button type="button" id="btnToggleComms" class="btn-toggle-comms hud-btn" title="Radio del grupo">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6.5" cy="17" r="1.6" fill="currentColor"/><path d="M9.6 14.4a5 5 0 0 1 0 5.2M13 11.4a8.8 8.8 0 0 1 0 11.2M16.4 8.4a12.4 12.4 0 0 1 0 17.2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
@@ -172,6 +183,10 @@
                 <strong>Mantené para hablar</strong>
                 <small>Walkie a RADIO</small>
             </span>
+        </button>
+        <button type="button" id="btnSosMapa" class="btn-sos-mapa" title="Avisar a quien está cerca que necesitás ayuda">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 3.8 19h16.4L12 4z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M12 10v4.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="12" cy="17.2" r="1" fill="currentColor"/></svg>
+            <span>Necesito ayuda</span>
         </button>
     </div>
     <div id="avisoAudio" class="aviso-audio oculto"></div>
@@ -232,6 +247,19 @@
                 </select>
             </label>
         </div>
+        <div class="caja-grupo" id="cajaGrupo">
+            <label>
+                Código de grupo
+                <input id="txtGrupo" maxlength="8" placeholder="Ej. RUTA82" autocomplete="off" spellcheck="false">
+            </label>
+            <div class="grupo-acciones">
+                <button type="button" id="btnGrupoUnir">Unirse</button>
+                <button type="button" id="btnGrupoCrear">Crear</button>
+                <button type="button" id="btnGrupoSalir" class="oculto">Salir</button>
+                <button type="button" id="btnGrupoShare" class="oculto">Compartir</button>
+            </div>
+            <p id="estadoGrupo" class="estado-grupo">Sin grupo: la RADIO llega a tu alcance en km.</p>
+        </div>
         <div id="listaContactos" class="lista-contactos">
             <p class="vacio">Nadie en la RADIO todavía. Compartí el enlace.</p>
         </div>
@@ -241,7 +269,7 @@
             <div class="chat-tabs" role="tablist">
             <button type="button" class="tab activa" data-tab="general">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6.5" cy="17" r="1.6" fill="currentColor"/><path d="M9.6 14.4a5 5 0 0 1 0 5.2M13 11.4a8.8 8.8 0 0 1 0 11.2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
-                Canal RADIO
+                <span id="lblTabRadio">Canal RADIO</span>
             </button>
             <button type="button" class="tab" data-tab="privado" id="tabPrivado">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="10" r="2.4" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="16" cy="10" r="2.4" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M4 18c.6-2.4 2.2-3.6 4-3.6s3.4 1.2 4 3.6M12 18c.6-2.4 2.2-3.6 4-3.6s3.4 1.2 4 3.6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
@@ -316,8 +344,24 @@
     </div>
 </div>
 
+<div id="modalSalir" class="modal-salir oculto" role="dialog" aria-labelledby="tituloSalir" aria-modal="true">
+    <div class="modal-salir-fondo" id="fondoModalSalir"></div>
+    <div class="modal-salir-card">
+        <p class="marca">
+            <span class="marca-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 21s-6.2-4.4-6.2-10.2a6.2 6.2 0 1 1 12.4 0C18.2 16.6 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="12" cy="10.8" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M3.5 7.6a10 10 0 0 1 0 8.8M20.5 7.6a10 10 0 0 0 0 8.8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+            </span>
+            RadioMap
+        </p>
+        <h2 id="tituloSalir">¿Salís de RadioMap?</h2>
+        <p class="mision">Si te vas, dejás de verse en el mapa y el walkie se corta.</p>
+        <button type="button" class="btn-portada" id="btnSalirNo">Seguir en el mapa</button>
+        <button type="button" class="btn-portada-sec" id="btnSalirSi">Sí, salir</button>
+    </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/socket.io/socket.io.js"></script>
-<script src="js/main.js?v=20260820m"></script>
+<script src="js/main.js?v=20260820p"></script>
 </body>
 </html>

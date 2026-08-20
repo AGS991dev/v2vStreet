@@ -1,33 +1,51 @@
-self.addEventListener('push', event => {
-  const data = event.data ? event.data.json() : { title: 'Hola', body: 'Leyenda de ejemplo' };
+const CACHE = "radiomap-20260820p";
 
-  // Mostrar notificación
-  event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: '/icon-192.png'
-    })
-  );
-
-  // Ejecutar Text-to-Speech cuando llega la notificación
-  // Nota: Esto solo funciona si la app está abierta o el navegador permite usar clientes
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then(clients => {
-        for (const client of clients) {
-          client.postMessage({
-            type: 'TTS',
-            text: data.body
-          });
-        }
-      })
-  );
+self.addEventListener("install", event => {
+    self.skipWaiting();
+    event.waitUntil(
+        caches.open(CACHE).then(cache => cache.addAll([
+            "/",
+            "/index.html",
+            "/manifest.json",
+            "/icon-192.png",
+            "/icon-512.png"
+        ]).catch(() => {}))
+    );
 });
 
-// Recibir mensaje en el cliente para hablar
-self.addEventListener('message', event => {
-  if (event.data.type === 'TTS') {
-    const utter = new SpeechSynthesisUtterance(event.data.text);
-    speechSynthesis.speak(utter);
-  }
+self.addEventListener("activate", event => {
+    event.waitUntil(
+        caches.keys().then(keys => Promise.all(
+            keys.filter(k => k !== CACHE).map(k => caches.delete(k))
+        )).then(() => self.clients.claim())
+    );
+});
+
+self.addEventListener("fetch", event => {
+    const req = event.request;
+    if (req.method !== "GET") return;
+    const url = new URL(req.url);
+    if (url.pathname.indexOf("/socket.io") === 0 || url.pathname.indexOf("/api/") === 0) return;
+
+    if (req.mode === "navigate") {
+        event.respondWith(
+            fetch(req).catch(() => caches.match("/index.html"))
+        );
+        return;
+    }
+
+    if (url.origin !== self.location.origin) return;
+
+    event.respondWith(
+        caches.match(req).then(hit => {
+            const vivo = fetch(req).then(res => {
+                if (res && res.ok) {
+                    const copia = res.clone();
+                    caches.open(CACHE).then(cache => cache.put(req, copia));
+                }
+                return res;
+            }).catch(() => hit);
+            return hit || vivo;
+        })
+    );
 });

@@ -1,20 +1,25 @@
 {
-  "name": "v2vstreet",
-  "short_name": "v2vstreet",
-  "start_url": "/index.html",
+  "name": "RadioMap",
+  "short_name": "RadioMap",
+  "description": "Radio de ruta: mapa, walkie y asistencia en el tránsito.",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#007bff",
+  "orientation": "portrait",
+  "background_color": "#f4f0e6",
+  "theme_color": "#f4f0e6",
+  "lang": "es-AR",
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

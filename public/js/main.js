@@ -81,11 +81,17 @@
     let fichasForzadas = {};
     let introPaso = 0;
     let introGpsResuelto = false;
+    let permitirSalir = false;
     let iconoCfg = { src: "static/iconos/autos.png", cols: 15, rows: 8, celdaCm: 2, celdaPx: 128 };
     let iconoMosaicoListo = false;
     let mosaicoImg = null;
     const recortesCelda = {};
     let radioTimer = null;
+    let miGrupo = localStorage.getItem("radiomap_grupo") || "";
+    let modoManejo = localStorage.getItem("radiomap_manejo") === "1";
+    let asistenciaActiva = false;
+    let wakeLock = null;
+    const cacheFichas = {};
 
     function debeMostrarFicha(id) {
         if (fichasForzadas[id] === "cerrada") return false;
@@ -100,6 +106,7 @@
         if (!marker) return;
         marker.openTooltip();
         requestAnimationFrame(function () { engancharFicha(marker, id); });
+        if (id !== miId) pedirFicha(id);
     }
 
     function cerrarFicha(id) {
@@ -116,11 +123,12 @@
             abrirFicha(id);
         });
     }
-    function fichaOpts(soyYo) {
+    function fichaOpts(soyYo, a) {
+        const sos = !!(a && a.asistencia && a.asistencia.activo);
         return Object.assign({}, FICHA_BASE, {
             direction: soyYo ? "bottom" : "top",
             offset: soyYo ? [0, 14] : [0, -16],
-            className: "ficha" + (soyYo ? " ficha-propia" : "")
+            className: "ficha" + (soyYo ? " ficha-propia" : "") + (sos ? " ficha-sos" : "")
         });
     }
 
@@ -207,7 +215,22 @@
         const xy = leerIconoLocal();
         data.iconoX = xy.x;
         data.iconoY = xy.y;
+        data.radioKm = radioKmActual();
+        data.grupo = miGrupo || "";
         return data;
+    }
+
+    function normalizarGrupo(valor) {
+        return String(valor || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+    }
+
+    function codigoDesdeUrl() {
+        try {
+            const q = new URLSearchParams(location.search);
+            return normalizarGrupo(q.get("g") || q.get("grupo"));
+        } catch (e) {
+            return "";
+        }
     }
 
     // ===================================================
@@ -829,7 +852,21 @@
     }
 
     function radioKmActual() {
-        return parseFloat($("radioFiltro").value) || 5;
+        const el = $("radioFiltro");
+        const n = parseFloat(el && el.value);
+        return Number.isFinite(n) && n > 0 ? n : 5;
+    }
+
+    function restaurarRadioGuardado() {
+        const raw = localStorage.getItem("radiomap_radio");
+        const n = parseFloat(raw);
+        if (!Number.isFinite(n)) return;
+        const el = $("radioFiltro");
+        if (!el) return;
+        const ok = Array.prototype.some.call(el.options, function (o) {
+            return parseFloat(o.value) === n;
+        });
+        if (ok) el.value = String(n);
     }
 
     function ocultarCirculoRadio() {
@@ -896,15 +933,32 @@
     // ===================================================
     // Markers + popup útil
     // ===================================================
+    function datosFichaDe(a) {
+        if (!a) return { placa: "", seguro: "", contacto: "" };
+        if (a.id === miId) {
+            return {
+                placa: $("placa").value.trim(),
+                seguro: $("seguro").value.trim(),
+                contacto: $("contacto").value.trim()
+            };
+        }
+        return cacheFichas[a.id] || null;
+    }
+
     function fichaHtml(a) {
         const soyYo = a.id === miId;
         let distHtml = "";
         if (!soyYo && miPosicion && a.lat && a.lng) {
             distHtml = "<p>" + esc(textoDistancia(calcularDistanciaKm(miPosicion.lat, miPosicion.lng, a.lat, a.lng))) + "</p>";
         }
-        const tel = (a.contacto || "").replace(/[^\d+]/g, "");
+        const det = datosFichaDe(a);
+        const placa = det ? det.placa : "";
+        const seguro = det ? det.seguro : "";
+        const telRaw = det ? det.contacto : "";
+        const tel = (telRaw || "").replace(/[^\d+]/g, "");
         const nombre = a.nombre || (soyYo ? "Vos" : "Sin nombre");
-        const destino = soyYo ? "RADIO" : nombre;
+        const destino = soyYo ? etiquetaCanal() : nombre;
+        const sos = !!(a.asistencia && a.asistencia.activo) || (soyYo && asistenciaActiva);
         const walkie =
             '<button type="button" class="btn-ficha btn-walkie" data-accion="walkie">' +
                 '<span class="walkie-mic" aria-hidden="true">' +
@@ -919,25 +973,43 @@
                     "<small>Soltá para enviar</small>" +
                 "</span>" +
             "</button>";
-        const extra = soyYo
-            ? ""
-            : '<div class="acciones-sec">' +
-              '<button type="button" class="btn-ficha" data-accion="mensaje">Escribir</button>' +
-              (tel ? '<a href="tel:' + esc(tel) + '">Llamar</a>' : "") +
-              "</div>";
+        let extra = "";
+        if (soyYo) {
+            extra = '<div class="acciones-sec">' +
+                '<button type="button" class="btn-ficha" data-accion="sos">' +
+                    (sos ? "Cancelar ayuda" : "Pedir ayuda") +
+                "</button>" +
+                "</div>";
+        } else {
+            extra = '<div class="acciones-sec">' +
+                '<button type="button" class="btn-ficha" data-accion="mensaje">Escribir</button>' +
+                (tel ? '<a href="tel:' + esc(tel) + '">Llamar</a>' : '<button type="button" class="btn-ficha" data-accion="ficha">Ver datos</button>') +
+                "</div>";
+        }
+        let privados = "";
+        if (det) {
+            if (placa) privados += "<p>Patente · " + esc(placa) + "</p>";
+            if (seguro) privados += "<p>Seguro · " + esc(seguro) + "</p>";
+            if (telRaw && !tel) privados += "<p>" + esc(telRaw) + "</p>";
+        } else if (!soyYo) {
+            privados = '<p class="ficha-priv">Teléfono y seguro se piden al abrir.</p>';
+        }
 
         return (
             '<div class="v2v-popup" data-id="' + esc(a.id) + '">' +
                 '<div class="v2v-popup-top">' +
-                    '<p class="para">' + (soyYo ? "Tu radio · RADIO te oye" : "Directo a esta persona") + "</p>" +
+                    '<p class="para">' +
+                        (sos ? "Pide ayuda" : (soyYo ? "Tu radio · " + etiquetaCanal() + " te oye" : (a.enGrupo ? "Mismo grupo" : "Directo a esta persona"))) +
+                    "</p>" +
                     '<button type="button" class="btn-cerrar-ficha" data-accion="cerrar" title="Cerrar" aria-label="Cerrar">' +
                         '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>' +
                     "</button>" +
                 "</div>" +
                 "<h4>" + esc(nombre) + "</h4>" +
-                "<p>" + esc(a.vehiculo || "Vehículo") + (a.placa ? " · " + esc(a.placa) : "") + "</p>" +
+                "<p>" + esc(a.vehiculo || "Vehículo") + "</p>" +
                 "<p><b>" + esc(Math.round(a.velocidad || 0)) + " km/h</b> · " + esc(textoRumbo(a.rumbo)) + "</p>" +
                 distHtml +
+                privados +
                 '<div class="acciones">' + walkie + extra + "</div>" +
             "</div>"
         );
@@ -997,6 +1069,8 @@
                     abrirComms();
                     mostrarTab("privado");
                 }
+                if (accion === "ficha") pedirFicha(id);
+                if (accion === "sos") alternarAsistencia();
             };
         });
     }
@@ -1012,10 +1086,11 @@
                 zIndexOffset: soyYo ? 1000 : 0,
                 title: a.nombre || (soyYo ? "Vos" : "Vehículo")
             }).addTo(map);
-            marker.bindTooltip(fichaHtml(a), fichaOpts(soyYo));
+            marker.bindTooltip(fichaHtml(a), fichaOpts(soyYo, a));
             markers[a.id] = marker;
             engancharClickMarker(marker, a.id);
             aplicarIconoEnMarker(a.id, iconoDeAuto(a));
+            marcarSosMarker(a.id, !!(a.asistencia && a.asistencia.activo));
             requestAnimationFrame(function () {
                 aplicarRumbo(a.id, a.rumbo);
                 aplicarIconoEnMarker(a.id, iconoDeAuto(a));
@@ -1041,14 +1116,29 @@
         moverPorCalle(a.id, markers[a.id], latlng);
         aplicarRumbo(a.id, a.rumbo);
         aplicarIconoEnMarker(a.id, iconoDeAuto(a));
+        marcarSosMarker(a.id, !!(a.asistencia && a.asistencia.activo));
         refrescarFicha(a.id, a);
     }
 
     function refrescarFicha(id, a) {
         const m = markers[id];
         if (!m || pttActivo) return;
-        if (!m.getTooltip()) m.bindTooltip(fichaHtml(a), fichaOpts(id === miId));
-        else m.setTooltipContent(fichaHtml(a));
+        const opts = fichaOpts(id === miId, a);
+        const tip = m.getTooltip();
+        const misma = tip && tip.options && tip.options.className === opts.className;
+        if (!tip || !misma) {
+            const abierta = m.isTooltipOpen && m.isTooltipOpen();
+            m.unbindTooltip();
+            m.bindTooltip(fichaHtml(a), opts);
+            if (debeMostrarFicha(id) || abierta) {
+                m.openTooltip();
+                requestAnimationFrame(function () { engancharFicha(m, id); });
+            } else {
+                m.closeTooltip();
+            }
+            return;
+        }
+        m.setTooltipContent(fichaHtml(a));
         if (debeMostrarFicha(id)) {
             m.openTooltip();
             requestAnimationFrame(function () { engancharFicha(m, id); });
@@ -1083,6 +1173,7 @@
         }
         delete autos[id];
         delete fichasForzadas[id];
+        delete cacheFichas[id];
         if (contactoActivo === id) {
             contactoActivo = null;
             $("contactoSeleccionado").textContent = "Ese vehículo se desconectó.";
@@ -1109,42 +1200,64 @@
         const contenedor = $("listaContactos");
         contenedor.innerHTML = "";
 
-        if (!miPosicion) {
+        const lista = [];
+        Object.keys(autos).forEach(function (id) {
+            if (id === miId) return;
+            const a = autos[id];
+            if (!a || !a.lat || !a.lng) return;
+            const dist = miPosicion
+                ? calcularDistanciaKm(miPosicion.lat, miPosicion.lng, a.lat, a.lng)
+                : null;
+            lista.push({
+                id: id,
+                a: a,
+                dist: dist,
+                enGrupo: !!a.enGrupo || !!(miGrupo && a.grupo && a.grupo === miGrupo),
+                sos: !!(a.asistencia && a.asistencia.activo)
+            });
+        });
+
+        lista.sort(function (x, y) {
+            if (x.sos !== y.sos) return x.sos ? -1 : 1;
+            if (x.enGrupo !== y.enGrupo) return x.enGrupo ? -1 : 1;
+            const dx = x.dist == null ? 9999 : x.dist;
+            const dy = y.dist == null ? 9999 : y.dist;
+            return dx - dy;
+        });
+
+        if (!miPosicion && !lista.length) {
             contenedor.innerHTML = '<p class="vacio">Activá la ubicación para armar la RADIO.</p>';
             actualizarResumenRed();
             return;
         }
 
-        const radioKm = parseFloat($("radioFiltro").value);
-        const lista = [];
-
-        Object.keys(autos).forEach(function (id) {
-            if (id === miId) return;
-            const a = autos[id];
-            if (!a.lat || !a.lng) return;
-            const dist = calcularDistanciaKm(miPosicion.lat, miPosicion.lng, a.lat, a.lng);
-            if (dist <= radioKm) lista.push({ id: id, a: a, dist: dist });
-        });
-
-        lista.sort(function (x, y) { return x.dist - y.dist; });
-
         if (!lista.length) {
-            contenedor.innerHTML = '<p class="vacio">Nadie dentro de ' + radioKm + " km. Compartí el enlace de RadioMap con el grupo.</p>";
+            contenedor.innerHTML = '<p class="vacio">Nadie en tu RADIO' +
+                (miGrupo ? " ni en el grupo " + esc(miGrupo) : " de " + radioKmActual() + " km") +
+                ". Compartí el enlace o un código de grupo.</p>";
             actualizarResumenRed(0);
             return;
         }
 
         lista.forEach(function (item, idx) {
             const div = document.createElement("div");
-            const primero = idx === 0;
-            div.className = "contacto" + (contactoActivo === item.id ? " activo" : "") + (primero ? " mas-cerca" : "");
+            const primero = idx === 0 && !item.sos;
+            div.className = "contacto" +
+                (contactoActivo === item.id ? " activo" : "") +
+                (primero ? " mas-cerca" : "") +
+                (item.sos ? " contacto-sos" : "") +
+                (item.enGrupo ? " contacto-grupo" : "");
+            const tags =
+                (item.sos ? '<em class="tag-cerca tag-sos">Pide ayuda</em>' : "") +
+                (item.enGrupo ? '<em class="tag-cerca">Grupo</em>' : "") +
+                (primero && !item.enGrupo ? '<em class="tag-cerca">Más cerca de vos</em>' : "");
             div.innerHTML =
                 "<div><strong>" + esc(item.a.nombre || "Sin nombre") + "</strong>" +
-                (primero ? '<em class="tag-cerca">Más cerca de vos</em>' : "") +
-                "<small>" + esc(item.a.vehiculo || "Vehículo") +
-                (item.a.placa ? " · " + esc(item.a.placa) : "") + "</small></div>" +
+                tags +
+                "<small>" + esc(item.a.vehiculo || "Vehículo") + "</small></div>" +
                 '<div class="acciones-mini">' +
-                '<span class="dist">' + ICO_PIN + " " + esc(textoDistancia(item.dist)) + "</span>" +
+                '<span class="dist">' + ICO_PIN + " " +
+                    esc(item.dist == null ? "—" : textoDistancia(item.dist)) + "</span>" +
                 '<button type="button" class="btn-icon-lista" title="Mantené para hablarle a ' + esc(item.a.nombre || "esta persona") + '">' +
                     ICO_MIC +
                     "<em>Mantené</em>" +
@@ -1189,28 +1302,46 @@
         actualizarDestinoUI(n);
     }
 
+    function etiquetaCanal() {
+        return miGrupo ? ("GRUPO " + miGrupo) : "RADIO";
+    }
+
     function actualizarDestinoUI(cerca) {
         const radio = radioKmActual();
         const n = typeof cerca === "number" ? cerca : Object.keys(autos).filter(function (id) { return id !== miId; }).length;
-        const detalle = "RADIO · " + radio + " km" + (n ? " · " + n + (n === 1 ? " auto" : " autos") : "");
+        const canal = etiquetaCanal();
+        const detalle = miGrupo
+            ? (canal + (n ? " · " + n + (n === 1 ? " auto" : " autos") : ""))
+            : ("RADIO · " + radio + " km" + (n ? " · " + n + (n === 1 ? " auto" : " autos") : ""));
         if ($("destinoNombre")) $("destinoNombre").textContent = detalle;
         if ($("destinoKicker")) $("destinoKicker").textContent = "Walkie y avisos van a";
         if ($("destinoConvoyDetalle")) $("destinoConvoyDetalle").textContent = detalle;
-        if ($("txtV2V")) $("txtV2V").placeholder = "Aviso a RADIO (" + radio + " km)…";
+        if ($("txtV2V")) $("txtV2V").placeholder = "Aviso a " + canal + "…";
+        if ($("lblTabRadio")) $("lblTabRadio").textContent = miGrupo ? "Canal GRUPO" : "Canal RADIO";
+        const pttSmall = document.querySelector("#btnPttMapa .ptt-leyenda small");
+        if (pttSmall) pttSmall.textContent = "Walkie a " + canal;
+        const btnRadio = $("btnEnviarV2V");
+        if (btnRadio) {
+            const txt = btnRadio.childNodes[btnRadio.childNodes.length - 1];
+            if (txt && txt.nodeType === 3) txt.textContent = miGrupo ? " GRUPO" : " RADIO";
+        }
         if (contactoActivo && autos[contactoActivo] && $("lblEnviarPrivado")) {
             const nom = autos[contactoActivo].nombre || "esa persona";
             $("lblEnviarPrivado").textContent = "A " + nom;
             $("txtPrivado").placeholder = "Mensaje a " + nom + "…";
         }
+        pintarEstadoGrupo();
     }
 
     function seleccionarContacto(id, silencioso) {
         const a = autos[id];
         if (!a) return;
         contactoActivo = id;
+        pedirFicha(id);
+        const det = cacheFichas[id];
         $("contactoSeleccionado").textContent =
             (a.nombre || "Sin nombre") + " · " + (a.vehiculo || "Vehículo") +
-            (a.placa ? " · " + a.placa : "");
+            (det && det.placa ? " · " + det.placa : "");
         if ($("lblEnviarPrivado")) $("lblEnviarPrivado").textContent = "A " + (a.nombre || "esa persona");
         if ($("txtPrivado")) $("txtPrivado").placeholder = "Mensaje a " + (a.nombre || "esa persona") + "…";
         pintarHistorialPrivado(id);
@@ -1242,9 +1373,9 @@
         return t ? "audio: " + t : "audio: (sin transcripción)";
     }
 
-    function agregarMensaje(cont, nombre, texto, propio, ts) {
+    function agregarMensaje(cont, nombre, texto, propio, ts, extraClass) {
         const div = document.createElement("div");
-        div.className = "msg" + (propio ? " propio" : "");
+        div.className = "msg" + (propio ? " propio" : "") + (extraClass ? " " + extraClass : "");
         const hora = ts
             ? '<span class="hora">' + esc(formatearFechaHora(ts)) + "</span>"
             : "";
@@ -1301,6 +1432,205 @@
         const u = new SpeechSynthesisUtterance(texto);
         u.lang = "es-AR";
         speechSynthesis.speak(u);
+    }
+
+    function pedirFicha(id) {
+        if (!id || id === miId) return;
+        socket.emit("pedirFicha", { id: id }, function (res) {
+            if (!res || !res.ok) return;
+            cacheFichas[id] = {
+                placa: res.placa || "",
+                seguro: res.seguro || "",
+                contacto: res.contacto || ""
+            };
+            const a = autos[id];
+            if (a) refrescarFicha(id, a);
+            if (contactoActivo === id && a && $("contactoSeleccionado")) {
+                $("contactoSeleccionado").textContent =
+                    (a.nombre || "Sin nombre") + " · " + (a.vehiculo || "Vehículo") +
+                    (res.placa ? " · " + res.placa : "");
+            }
+        });
+    }
+
+    function marcarSosMarker(id, on) {
+        const marker = markers[id];
+        const el = marker && marker.getElement();
+        if (el) el.classList.toggle("sos", !!on);
+        if (marker) marker.setZIndexOffset(id === miId ? 1000 : (on ? 800 : 0));
+    }
+
+    function pintarEstadoGrupo() {
+        const estado = $("estadoGrupo");
+        const salir = $("btnGrupoSalir");
+        const share = $("btnGrupoShare");
+        const unir = $("btnGrupoUnir");
+        const crear = $("btnGrupoCrear");
+        const txt = $("txtGrupo");
+        if (!estado) return;
+        if (miGrupo) {
+            estado.textContent = "En el grupo " + miGrupo + ". El walkie va al convoy, no a extraños.";
+            if (txt && !txt.value) txt.value = miGrupo;
+            if (salir) salir.classList.remove("oculto");
+            if (share) share.classList.remove("oculto");
+            if (unir) unir.classList.add("oculto");
+            if (crear) crear.classList.add("oculto");
+        } else {
+            estado.textContent = "Sin grupo: la RADIO llega solo a tu alcance en km.";
+            if (salir) salir.classList.add("oculto");
+            if (share) share.classList.add("oculto");
+            if (unir) unir.classList.remove("oculto");
+            if (crear) crear.classList.remove("oculto");
+        }
+    }
+
+    function aplicarGrupo(codigo) {
+        miGrupo = normalizarGrupo(codigo);
+        if (miGrupo) localStorage.setItem("radiomap_grupo", miGrupo);
+        else localStorage.removeItem("radiomap_grupo");
+        const txt = $("txtGrupo");
+        if (txt) txt.value = miGrupo;
+        pintarEstadoGrupo();
+        actualizarDestinoUI();
+        emitirTelemetria(true);
+        const propia = markers[miId] && (autos[miId] || Object.assign(datosPropios(), miPosicion || {}, { id: miId }));
+        if (propia && markers[miId]) refrescarFicha(miId, propia);
+    }
+
+    function unirseAGrupo() {
+        const codigo = normalizarGrupo($("txtGrupo") && $("txtGrupo").value);
+        if (codigo.length < 4) {
+            alert("El código tiene que tener entre 4 y 8 letras o números.");
+            return;
+        }
+        socket.emit("grupoUnirse", { codigo: codigo }, function (res) {
+            if (!res || !res.ok) {
+                aplicarGrupo(codigo);
+                return;
+            }
+            aplicarGrupo(res.codigo);
+        });
+    }
+
+    function crearGrupo() {
+        socket.emit("grupoCrear", {}, function (res) {
+            if (!res || !res.ok || !res.codigo) {
+                alert("No se pudo crear el grupo. Probá de nuevo.");
+                return;
+            }
+            aplicarGrupo(res.codigo);
+        });
+    }
+
+    function salirDeGrupo() {
+        socket.emit("grupoSalir");
+        aplicarGrupo("");
+    }
+
+    function compartirGrupo() {
+        if (!miGrupo) return;
+        const url = location.origin + location.pathname + "?g=" + encodeURIComponent(miGrupo);
+        const texto = "Entrá al grupo " + miGrupo + " en RadioMap: " + url;
+        if (navigator.share) {
+            navigator.share({ title: "RadioMap", text: texto, url: url }).catch(function () {});
+            return;
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(function () {
+                alert("Copiamos el enlace del grupo.");
+            }).catch(function () {
+                prompt("Copiá el enlace del grupo:", url);
+            });
+            return;
+        }
+        prompt("Copiá el enlace del grupo:", url);
+    }
+
+    function pintarBotonSos() {
+        const btn = $("btnSosMapa");
+        if (!btn) return;
+        btn.classList.toggle("activo", asistenciaActiva);
+        const span = btn.querySelector("span");
+        if (span) span.textContent = asistenciaActiva ? "Cancelar ayuda" : "Necesito ayuda";
+    }
+
+    function sonidoSos() {
+        const ctx = ctxPtt();
+        if (!ctx) return;
+        const t = ctx.currentTime + 0.01;
+        tonoPtt(ctx, 880, t, 0.16, "square", 0.1);
+        tonoPtt(ctx, 660, t + 0.18, 0.16, "square", 0.09);
+        tonoPtt(ctx, 880, t + 0.36, 0.22, "square", 0.1);
+    }
+
+    function aplicarAsistenciaLocal(data) {
+        if (!data || !data.id) return;
+        const activo = !!data.activo;
+        if (data.id === miId) {
+            asistenciaActiva = activo;
+            pintarBotonSos();
+            const propia = Object.assign(datosPropios(), miPosicion || {}, {
+                id: miId,
+                asistencia: activo ? { activo: true, ts: data.ts } : null
+            });
+            if (markers[miId]) {
+                marcarSosMarker(miId, activo);
+                refrescarFicha(miId, propia);
+            }
+            return;
+        }
+        if (!autos[data.id]) return;
+        autos[data.id].asistencia = activo ? { activo: true, ts: data.ts } : null;
+        marcarSosMarker(data.id, activo);
+        refrescarFicha(data.id, autos[data.id]);
+        renderizarContactos();
+        if (activo) {
+            sonidoSos();
+            textoAVoz((data.nombre || "Alguien") + " necesita ayuda");
+            if (markers[data.id] && data.lat && data.lng) {
+                abrirFicha(data.id);
+            }
+        }
+    }
+
+    function alternarAsistencia() {
+        if (!socket.connected) return;
+        const proximo = !asistenciaActiva;
+        socket.emit("asistencia", { activo: proximo }, function (res) {
+            if (res && res.ok) {
+                asistenciaActiva = !!res.activo;
+                pintarBotonSos();
+                aplicarAsistenciaLocal({
+                    id: miId,
+                    activo: asistenciaActiva,
+                    ts: Date.now()
+                });
+            }
+        });
+    }
+
+    function pedirWakeLock() {
+        if (!("wakeLock" in navigator)) return;
+        navigator.wakeLock.request("screen").then(function (lock) {
+            wakeLock = lock;
+            lock.addEventListener("release", function () {
+                if (wakeLock === lock) wakeLock = null;
+            });
+        }).catch(function () {});
+    }
+
+    function aplicarModoManejo() {
+        document.body.classList.toggle("modo-manejo", modoManejo);
+        const btn = $("btnManejo");
+        if (btn) btn.classList.toggle("on", modoManejo);
+        if (modoManejo) pedirWakeLock();
+        if (map) setTimeout(function () { map.invalidateSize(); }, 80);
+    }
+
+    function alternarModoManejo() {
+        modoManejo = !modoManejo;
+        localStorage.setItem("radiomap_manejo", modoManejo ? "1" : "0");
+        aplicarModoManejo();
     }
 
     // ===================================================
@@ -1608,6 +1938,9 @@
     socket.on("connect", function () {
         setEstado(true);
         emitirTelemetria(true);
+        if (miGrupo) {
+            socket.emit("grupoUnirse", { codigo: miGrupo });
+        }
     });
 
     socket.on("disconnect", function () {
@@ -1640,8 +1973,11 @@
             $("msgsV2V"),
             payload.nombre || "Anónimo",
             payload.texto || "",
-            payload.de === miId
+            payload.de === miId,
+            payload.ts,
+            payload.asistencia ? "msg-sos" : ""
         );
+        if (payload.asistencia && payload.de !== miId) abrirComms();
     });
 
     socket.on("mensajePrivado", function (data) {
@@ -1686,6 +2022,33 @@
             if (!contactoActivo) seleccionarContacto(de, true);
         }
         reproducirAudio(data);
+    });
+
+    socket.on("grupoEstado", function (data) {
+        const codigo = normalizarGrupo(data && data.codigo);
+        if (codigo === miGrupo) {
+            pintarEstadoGrupo();
+            return;
+        }
+        miGrupo = codigo;
+        if (miGrupo) localStorage.setItem("radiomap_grupo", miGrupo);
+        else localStorage.removeItem("radiomap_grupo");
+        const txt = $("txtGrupo");
+        if (txt) txt.value = miGrupo;
+        pintarEstadoGrupo();
+        actualizarDestinoUI();
+    });
+
+    socket.on("asistencia", aplicarAsistenciaLocal);
+
+    socket.on("fichaDetalle", function (res) {
+        if (!res || !res.ok || !res.id) return;
+        cacheFichas[res.id] = {
+            placa: res.placa || "",
+            seguro: res.seguro || "",
+            contacto: res.contacto || ""
+        };
+        if (autos[res.id]) refrescarFicha(res.id, autos[res.id]);
     });
 
     function setEstado(ok) {
@@ -1879,6 +2242,8 @@
         localStorage.setItem("baliza_entro", "1");
         $("portada").classList.add("oculto");
         ctxPtt();
+        pedirWakeLock();
+        asegurarTrampaAtras();
         setTimeout(function () { map.invalidateSize(); }, 80);
     }
 
@@ -1891,6 +2256,10 @@
         } else {
             mostrarPasoIntro(0);
         }
+        asegurarTrampaAtras();
+        $("btnSalirNo").addEventListener("click", ocultarModalSalir);
+        $("btnSalirSi").addEventListener("click", salirDeLaApp);
+        $("fondoModalSalir").addEventListener("click", ocultarModalSalir);
         $("btnStepEmpezar").addEventListener("click", function () {
             mostrarPasoIntro(1);
         });
@@ -1933,13 +2302,26 @@
         });
         $("btnToggleComms").addEventListener("click", toggleComms);
         $("btnCerrarComms").addEventListener("click", function () {
-            $("commsPanel").classList.remove("open");
+            cerrarComms();
         });
         $("btnActivarGps").addEventListener("click", iniciarGps);
         $("radioFiltro").addEventListener("change", function () {
+            localStorage.setItem("radiomap_radio", String(radioKmActual()));
             renderizarContactos();
             actualizarCirculoRadio(true);
+            emitirTelemetria(true);
         });
+        if ($("btnGrupoUnir")) $("btnGrupoUnir").addEventListener("click", unirseAGrupo);
+        if ($("btnGrupoCrear")) $("btnGrupoCrear").addEventListener("click", crearGrupo);
+        if ($("btnGrupoSalir")) $("btnGrupoSalir").addEventListener("click", salirDeGrupo);
+        if ($("btnGrupoShare")) $("btnGrupoShare").addEventListener("click", compartirGrupo);
+        if ($("txtGrupo")) {
+            $("txtGrupo").addEventListener("keydown", function (e) {
+                if (e.key === "Enter") unirseAGrupo();
+            });
+        }
+        if ($("btnSosMapa")) $("btnSosMapa").addEventListener("click", alternarAsistencia);
+        if ($("btnManejo")) $("btnManejo").addEventListener("click", alternarModoManejo);
         $("btnEnviarV2V").addEventListener("click", enviarV2V);
         $("btnEnviarPrivado").addEventListener("click", enviarPrivado);
         $("txtV2V").addEventListener("keydown", function (e) {
@@ -1974,7 +2356,24 @@
         bindPtt($("btnPttV2V"), "general");
         bindPtt($("btnPttPrivado"), "privado");
         bindPtt($("btnPttMapa"), "general");
+        restaurarRadioGuardado();
+        const gUrl = codigoDesdeUrl();
+        if (gUrl) {
+            miGrupo = gUrl;
+            localStorage.setItem("radiomap_grupo", miGrupo);
+            if ($("txtGrupo")) $("txtGrupo").value = miGrupo;
+        } else if (miGrupo && $("txtGrupo")) {
+            $("txtGrupo").value = miGrupo;
+        }
+        pintarEstadoGrupo();
+        pintarBotonSos();
+        aplicarModoManejo();
         actualizarDestinoUI();
+        if (yaEntroMapa()) pedirWakeLock();
+        if (miGrupo) {
+            emitirTelemetria(true);
+            if (socket.connected) socket.emit("grupoUnirse", { codigo: miGrupo });
+        }
     }
 
     function mostrarTab(nombre) {
@@ -1990,15 +2389,100 @@
         }
     }
 
+    function commsEsOverlay() {
+        return window.matchMedia("(max-width: 1023px)").matches;
+    }
+
+    function commsAbierto() {
+        return $("commsPanel").classList.contains("open");
+    }
+
     function toggleComms() {
-        $("commsPanel").classList.toggle("open");
+        if (commsAbierto()) cerrarComms();
+        else abrirComms();
     }
 
     function abrirComms() {
         $("commsPanel").classList.add("open");
+        asegurarTrampaAtras();
     }
+
+    function cerrarComms() {
+        $("commsPanel").classList.remove("open");
+    }
+
+    function modalSalirVisible() {
+        const el = $("modalSalir");
+        return !!(el && !el.classList.contains("oculto"));
+    }
+
+    function mostrarModalSalir() {
+        $("modalSalir").classList.remove("oculto");
+    }
+
+    function ocultarModalSalir() {
+        $("modalSalir").classList.add("oculto");
+    }
+
+    function asegurarTrampaAtras() {
+        if (!history.state || history.state.radiomap !== "app") {
+            history.pushState({ radiomap: "app" }, "", location.href);
+        }
+    }
+
+    function consumirAtrasEnLaApp() {
+        if (modalSalirVisible()) {
+            ocultarModalSalir();
+            return true;
+        }
+        const icono = $("modalIcono");
+        if (icono && !icono.classList.contains("oculto")) {
+            cerrarModalIcono();
+            return true;
+        }
+        if (portadaVisible() && yaEntroMapa()) {
+            $("portada").classList.add("oculto");
+            return true;
+        }
+        if (commsEsOverlay() && commsAbierto()) {
+            cerrarComms();
+            return true;
+        }
+        return false;
+    }
+
+    function onPopAtras() {
+        if (permitirSalir) return;
+        if (!consumirAtrasEnLaApp()) mostrarModalSalir();
+        history.pushState({ radiomap: "app" }, "", location.href);
+    }
+
+    function salirDeLaApp() {
+        permitirSalir = true;
+        ocultarModalSalir();
+        window.removeEventListener("popstate", onPopAtras);
+        window.removeEventListener("beforeunload", onAntesDeSalir);
+        history.go(-2);
+    }
+
+    function onAntesDeSalir(e) {
+        if (permitirSalir) return;
+        e.preventDefault();
+        e.returnValue = "";
+    }
+
+    window.addEventListener("popstate", onPopAtras);
+    window.addEventListener("beforeunload", onAntesDeSalir);
 
     window.addEventListener("resize", function () {
         map.invalidateSize();
     });
+
+    document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "visible") pedirWakeLock();
+    });
+
+    if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/service-worker.js").catch(function () {});
+    }
 })();

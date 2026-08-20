@@ -486,6 +486,43 @@ body {
     outline: none;
 }
 
+.modal-salir {
+    position: fixed;
+    inset: 0;
+    z-index: 6000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal-salir-fondo {
+    position: absolute;
+    inset: 0;
+    background: rgba(244, 240, 230, 0.92);
+}
+
+.modal-salir-card {
+    position: relative;
+    z-index: 1;
+    width: min(420px, 100%);
+    background: var(--nieve);
+    border: 1px solid var(--linea);
+    padding: 22px 22px 18px;
+    box-shadow: 0 16px 40px rgba(40, 30, 10, 0.12);
+}
+
+.modal-salir-card h2 {
+    margin: 10px 0 8px;
+    font-size: 24px;
+    line-height: 1.15;
+    font-weight: 700;
+}
+
+.modal-salir-card .mision {
+    margin-bottom: 16px;
+}
+
 .modal-icono {
     position: fixed;
     inset: 0;
@@ -658,6 +695,7 @@ body {
 .estado,
 .switch-popups,
 #btnQueEs,
+#btnManejo,
 .btn-toggle-comms,
 .btn-cerrar-comms,
 .chat-composer button,
@@ -1517,4 +1555,187 @@ body.mosaico-listo .marker-otro .auto-cuerpo {
 .leaflet-control-attribution {
     font-size: 10px;
     background: rgba(255,252,247,0.85) !important;
+}
+
+.perfil-aviso {
+    margin: 8px 2px 0;
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--suave);
+}
+
+.caja-grupo {
+    padding: 0 12px 10px;
+    border-bottom: 1px solid var(--linea);
+}
+
+.caja-grupo label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--suave);
+}
+
+.caja-grupo input {
+    width: 100%;
+    margin: 0;
+    padding: 8px 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+}
+
+.grupo-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.grupo-acciones button {
+    background: var(--nieve);
+    color: var(--tinta);
+    border: 1px solid var(--linea);
+    padding: 7px 10px;
+    font-size: 11px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.grupo-acciones button:hover {
+    border-color: var(--ambar);
+}
+
+.estado-grupo {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--ambar);
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.btn-sos-mapa {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #fff;
+    color: #9b1c1c;
+    border: 1.5px solid #c0392b;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 8px 18px rgba(40, 30, 10, 0.1);
+}
+
+.btn-sos-mapa svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
+.btn-sos-mapa.activo {
+    background: #c0392b;
+    color: #fff;
+    animation: pulso-sos 1.2s ease-in-out infinite;
+}
+
+.marker-auto.sos {
+    filter: drop-shadow(0 0 8px #c0392b);
+    animation: titilar-sos 1.1s ease-in-out infinite;
+}
+
+.leaflet-tooltip.ficha-sos {
+    border-color: #c0392b !important;
+    box-shadow: 0 10px 24px rgba(192, 57, 43, 0.2);
+}
+
+.ficha-sos .para {
+    color: #c0392b;
+}
+
+.contacto-sos {
+    border-color: #c0392b !important;
+    background: #fff4f2 !important;
+}
+
+.tag-sos {
+    color: #c0392b !important;
+}
+
+.msg-sos {
+    border-left: 3px solid #c0392b;
+    background: #fff4f2;
+}
+
+.ficha-priv {
+    font-size: 11px;
+    color: var(--suave);
+}
+
+#btnManejo.on {
+    border-color: var(--ambar);
+    background: #f8eedf;
+}
+
+body.modo-manejo .hud-card {
+    width: min(220px, 70vw);
+}
+
+body.modo-manejo .habla-mapa {
+    max-width: min(380px, calc(100% - 20px));
+}
+
+body.modo-manejo .perfil-form,
+body.modo-manejo #btnQueEs,
+body.modo-manejo .switch-popups,
+body.modo-manejo .marca-mini span,
+body.modo-manejo .perfil-centrar {
+    display: none !important;
+}
+
+body.modo-manejo .perfil-cabeza {
+    padding-bottom: 10px;
+}
+
+body.modo-manejo .btn-ptt-mapa {
+    min-width: min(340px, calc(100vw - 24px));
+    padding: 16px 18px;
+}
+
+body.modo-manejo .btn-ptt-mapa .ico {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+}
+
+body.modo-manejo .btn-ptt-mapa .ico svg {
+    width: 20px;
+    height: 20px;
+}
+
+body.modo-manejo .ptt-leyenda strong {
+    font-size: 14px;
+}
+
+body.modo-manejo .btn-sos-mapa {
+    padding: 12px 14px;
+    font-size: 13px;
+}
+
+@keyframes pulso-sos {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+}
+
+@keyframes titilar-sos {
+    0%, 100% { filter: drop-shadow(0 0 4px #c0392b); opacity: 1; }
+    50% { filter: drop-shadow(0 0 12px #e74c3c); opacity: 0.85; }
 }
