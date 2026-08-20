@@ -64,6 +64,8 @@
     let pttReconocimiento = null;
     let popupsVisibles = true;
     let fichaPropiaAbierta = true;
+    let introPaso = 0;
+    let introGpsResuelto = false;
     let iconoCfg = { src: "static/iconos/autos.png", cols: 15, rows: 8, celdaCm: 2, celdaPx: 128 };
     let iconoMosaicoListo = false;
     let mosaicoImg = null;
@@ -114,7 +116,7 @@
     iniciarPerfil();
     iniciarMosaico();
     bindUi();
-    iniciarGps();
+    if (localStorage.getItem("baliza_entro") === "1") iniciarGps();
     setTimeout(function () { map.invalidateSize(); }, 250);
 
     map.on("dragstart", function () {
@@ -443,6 +445,7 @@
         navigator.geolocation.getCurrentPosition(function (pos) {
             ocultarAvisoGps();
             onPosicion(pos, true);
+            avisarGpsListoIntro();
         }, onGpsError, GEO_OPTS);
 
         if (gpsWatchId != null) navigator.geolocation.clearWatch(gpsWatchId);
@@ -455,6 +458,9 @@
     function onGpsError(err) {
         if (err && err.code === 1) {
             mostrarAvisoGps("Para verte en el mapa, permití el acceso a la ubicación.");
+            avisarGpsErrorIntro("Sin problema. Si más tarde lo permitís, aparecés en el mapa al toque.");
+        } else {
+            avisarGpsErrorIntro("No pudimos leer el GPS ahora. Podés entrar igual y activarlo después.");
         }
     }
 
@@ -1557,19 +1563,122 @@
     }
 
     // ===================================================
+    // Intro stepper (GPS y mic antes de entrar al mapa)
+    // ===================================================
+    function portadaVisible() {
+        const el = $("portada");
+        return !!(el && !el.classList.contains("oculto"));
+    }
+
+    function avisarGpsListoIntro() {
+        if (introGpsResuelto) return;
+        introGpsResuelto = true;
+        if (!portadaVisible() || introPaso !== 1) return;
+        if ($("estadoGps")) $("estadoGps").textContent = "Listo. Ya te vemos en el mapa.";
+        if ($("stepAyuda")) $("stepAyuda").textContent = "Ubicación ok. Ahora el micrófono para el walkie.";
+        setTimeout(function () { mostrarPasoIntro(2); }, 550);
+    }
+
+    function avisarGpsErrorIntro(texto) {
+        if (!portadaVisible() || introPaso !== 1) return;
+        if ($("estadoGps")) $("estadoGps").textContent = texto;
+        if ($("stepAyuda")) $("stepAyuda").textContent = "Podés seguir igual. El mapa te va a pedir el GPS cuando lo necesites.";
+    }
+
+    function mostrarEntrarMapa() {
+        $("btnPermitirGps").classList.add("oculto");
+        $("btnPermitirMic").classList.add("oculto");
+        $("btnSaltarPermiso").classList.add("oculto");
+        $("btnStepEmpezar").classList.add("oculto");
+        $("btnEntrar").classList.remove("oculto");
+        document.querySelectorAll(".stepper-puntos li").forEach(function (li) {
+            li.classList.add("ok");
+            li.classList.remove("on");
+        });
+        const ultimo = document.querySelector(".stepper-puntos li[data-i='2']");
+        if (ultimo) ultimo.classList.add("on");
+    }
+
+    function mostrarPasoIntro(n) {
+        introPaso = n;
+        [0, 1, 2].forEach(function (i) {
+            const el = $("step" + i);
+            if (el) el.classList.toggle("oculto", i !== n);
+        });
+        document.querySelectorAll(".stepper-puntos li").forEach(function (li) {
+            const i = Number(li.getAttribute("data-i"));
+            li.classList.toggle("on", i === n);
+            li.classList.toggle("ok", i < n);
+        });
+        $("btnStepEmpezar").classList.toggle("oculto", n !== 0);
+        $("btnPermitirGps").classList.toggle("oculto", n !== 1);
+        $("btnPermitirMic").classList.toggle("oculto", n !== 2);
+        $("btnEntrar").classList.add("oculto");
+        $("btnSaltarPermiso").classList.toggle("oculto", n === 0);
+        $("btnSaltarPermiso").textContent = n === 1 ? "Ahora no, seguir" : "Prefiero después";
+        const ayudas = [
+            "Sin apuro: en un momento dejamos todo listo para el mapa.",
+            "El navegador va a preguntarte. Tocá Permitir: es para verte a vos y a los que están cerca.",
+            "Ahora el mic. Es solo para el walkie, cuando mantenés el botón."
+        ];
+        if ($("stepAyuda")) $("stepAyuda").textContent = ayudas[n];
+    }
+
+    function pedirMicrofonoIntro() {
+        const estado = $("estadoMic");
+        const btn = $("btnPermitirMic");
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            if (estado) estado.textContent = "Este navegador no deja usar el micrófono. Igual podés entrar al mapa.";
+            mostrarEntrarMapa();
+            return;
+        }
+        if (btn) btn.disabled = true;
+        if (estado) estado.textContent = "Esperando tu permiso…";
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+            stream.getTracks().forEach(function (t) { t.stop(); });
+            if (estado) estado.textContent = "Listo. El walkie ya no te va a interrumpir al usarlo.";
+            if ($("stepAyuda")) $("stepAyuda").textContent = "GPS y mic listos. Entrá al mapa y hablá cuando quieras.";
+            if (btn) btn.disabled = false;
+            mostrarEntrarMapa();
+        }).catch(function () {
+            if (estado) estado.textContent = "Sin problema: cuando quieras hablar, el navegador te lo vuelve a pedir.";
+            if ($("stepAyuda")) $("stepAyuda").textContent = "Podés entrar igual. El walkie pide el mic la primera vez que lo uses.";
+            if (btn) btn.disabled = false;
+            mostrarEntrarMapa();
+        });
+    }
+
+    function entrarAlMapa() {
+        localStorage.setItem("baliza_entro", "1");
+        $("portada").classList.add("oculto");
+        setTimeout(function () { map.invalidateSize(); }, 80);
+    }
+
+    // ===================================================
     // UI
     // ===================================================
     function bindUi() {
         if (localStorage.getItem("baliza_entro") === "1") {
             $("portada").classList.add("oculto");
+        } else {
+            mostrarPasoIntro(0);
         }
-        $("btnEntrar").addEventListener("click", function () {
-            localStorage.setItem("baliza_entro", "1");
-            $("portada").classList.add("oculto");
-            setTimeout(function () { map.invalidateSize(); }, 80);
+        $("btnStepEmpezar").addEventListener("click", function () {
+            mostrarPasoIntro(1);
         });
+        $("btnPermitirGps").addEventListener("click", function () {
+            if ($("estadoGps")) $("estadoGps").textContent = "Esperando tu permiso…";
+            iniciarGps();
+        });
+        $("btnPermitirMic").addEventListener("click", pedirMicrofonoIntro);
+        $("btnSaltarPermiso").addEventListener("click", function () {
+            if (introPaso === 1) mostrarPasoIntro(2);
+            else mostrarEntrarMapa();
+        });
+        $("btnEntrar").addEventListener("click", entrarAlMapa);
         $("btnQueEs").addEventListener("click", function () {
             $("portada").classList.remove("oculto");
+            mostrarPasoIntro(0);
         });
         $("chkPopups").addEventListener("change", function () {
             popupsVisibles = $("chkPopups").checked;

@@ -5,32 +5,25 @@
 @media (max-width: 480px) {
 
     .portada-card {
-        padding: 16px 14px 18px;
+        padding: 14px 12px 12px;
     }
 
     .portada-card h1 {
-        font-size: 24px;
+        font-size: 22px;
     }
 
-    .portada-dibujo {
-        margin-bottom: 12px;
+    .stepper-foto {
+        height: 148px;
+        margin-top: 10px;
     }
 
-    .portada-chips li {
-        font-size: 10px;
-        padding: 4px 8px 4px 6px;
+    .mision {
+        font-size: 14px;
     }
 
-    .uso-ico {
-        flex: 0 0 34px;
-        width: 34px;
-        height: 34px;
-    }
-
-    .usos li {
-        font-size: 13px;
-        padding: 9px 0;
-        gap: 10px;
+    .stepper-ayuda {
+        min-height: 0;
+        margin-bottom: 10px;
     }
 
     .hud-top {

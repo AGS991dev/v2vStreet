@@ -58,18 +58,18 @@ body {
 }
 
 .portada-card {
-    width: min(560px, 100%);
+    width: min(520px, 100%);
     background: var(--nieve);
     border: 1px solid var(--linea);
-    padding: 22px 24px 22px;
+    padding: 18px 20px 16px;
     box-shadow: 0 16px 40px rgba(40, 30, 10, 0.08);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 32px);
 }
 
-.portada-dibujo {
-    display: block;
-    width: 100%;
-    height: auto;
-    margin-bottom: 16px;
+.portada-stepper {
+    min-height: 0;
 }
 
 .marca,
@@ -99,8 +99,8 @@ body {
 }
 
 .portada-card h1 {
-    margin: 8px 0 10px;
-    font-size: 30px;
+    margin: 10px 0 8px;
+    font-size: 26px;
     line-height: 1.15;
     font-weight: 700;
 }
@@ -109,98 +109,97 @@ body {
     font-size: 15px;
     line-height: 1.45;
     color: var(--suave);
-    margin-bottom: 14px;
 }
 
-.portada-chips {
-    list-style: none;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 14px;
+.stepper-panel {
+    flex: 1;
+    min-height: 0;
 }
 
-.portada-chips li {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 10px 5px 8px;
-    background: var(--papel);
+.stepper-foto {
+    display: block;
+    width: 100%;
+    height: 188px;
+    object-fit: cover;
+    object-position: center 40%;
     border: 1px solid var(--linea);
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-    color: var(--tinta);
+    background: var(--papel);
+    margin: 12px 0 0;
 }
 
-.portada-chips svg {
-    width: 14px;
-    height: 14px;
-    color: var(--navy);
-    flex: 0 0 14px;
-}
-
-.usos {
-    list-style: none;
-    margin-bottom: 18px;
-}
-
-.usos li {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 10px 0;
-    border-top: 1px solid var(--linea);
-    font-size: 14px;
+.stepper-estado {
+    min-height: 1.3em;
+    margin-top: 10px;
+    font-size: 13px;
     line-height: 1.4;
+    color: var(--navy);
+}
+
+.stepper-pie {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--linea);
+}
+
+.stepper-puntos {
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0 0 10px;
+    padding: 0;
+}
+
+.stepper-puntos li {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
     color: var(--suave);
 }
 
-.uso-ico {
-    flex: 0 0 38px;
-    width: 38px;
-    height: 38px;
-    border-radius: 11px;
+.stepper-puntos li span {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
     border: 1px solid var(--linea);
+    background: var(--papel);
     display: grid;
     place-items: center;
+    font-size: 12px;
+    color: var(--suave);
 }
 
-.uso-ico svg {
-    width: 20px;
-    height: 20px;
-    display: block;
-}
-
-.uso-ico--navy {
-    color: var(--navy);
-    background: #e8eef4;
-}
-
-.uso-ico--ambar {
-    color: var(--ambar);
-    background: #f8eedf;
-}
-
-.uso-ico--celeste {
-    color: var(--celeste);
-    background: #e7f3f8;
-}
-
-.uso-ico--tinta {
+.stepper-puntos li.on {
     color: var(--tinta);
-    background: var(--papel);
 }
 
-.usos strong {
-    display: block;
-    color: var(--tinta);
-    margin-bottom: 3px;
-    letter-spacing: 0.3px;
+.stepper-puntos li.on span {
+    background: var(--tinta);
+    border-color: var(--tinta);
+    color: #fff;
 }
 
-#btnEntrar {
+.stepper-puntos li.ok span {
+    background: var(--ambar);
+    border-color: var(--ambar);
+    color: #fff;
+}
+
+.stepper-ayuda {
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--suave);
+    margin-bottom: 12px;
+    min-height: 2.6em;
+}
+
+.btn-portada {
     width: 100%;
     padding: 12px;
     background: var(--tinta);
@@ -216,27 +215,27 @@ body {
     gap: 8px;
 }
 
-#btnEntrar svg {
+.btn-portada svg {
     width: 18px;
     height: 18px;
 }
 
-.nota {
-    margin-top: 12px;
-    font-size: 12px;
-    color: var(--suave);
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    line-height: 1.4;
+.btn-portada:disabled {
+    opacity: 0.65;
+    cursor: wait;
 }
 
-.nota svg {
-    width: 16px;
-    height: 16px;
-    flex: 0 0 16px;
-    margin-top: 1px;
-    color: var(--ambar);
+.btn-portada-sec {
+    width: 100%;
+    margin-top: 8px;
+    padding: 6px;
+    background: transparent;
+    border: 0;
+    color: var(--suave);
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
 /* ================= MAPA ================= */

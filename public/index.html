@@ -8,127 +8,64 @@
 <meta name="theme-color" content="#f4f0e6">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="css/base.css?v=20260820h">
-<link rel="stylesheet" href="css/desktop.css?v=20260820h">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260820h">
+<link rel="stylesheet" href="css/base.css?v=20260820i">
+<link rel="stylesheet" href="css/desktop.css?v=20260820i">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260820i">
 </head>
 
 <body>
 
 <div id="portada" class="portada">
-    <div class="portada-card">
-        <svg class="portada-dibujo" viewBox="0 0 360 100" aria-hidden="true">
-            <rect width="360" height="100" rx="14" fill="#f4f0e6"/>
-            <g fill="#d9d2c4" opacity="0.55">
-                <circle cx="28" cy="22" r="2"/><circle cx="52" cy="18" r="2"/><circle cx="76" cy="24" r="2"/>
-                <circle cx="118" cy="16" r="2"/><circle cx="210" cy="20" r="2"/><circle cx="248" cy="14" r="2"/>
-                <circle cx="292" cy="22" r="2"/><circle cx="332" cy="18" r="2"/><circle cx="40" cy="82" r="2"/>
-                <circle cx="88" cy="86" r="2"/><circle cx="140" cy="80" r="2"/><circle cx="320" cy="84" r="2"/>
-            </g>
-            <path d="M8 64 C68 30, 118 80, 178 50 S268 20, 352 58" fill="none" stroke="#cfc6b6" stroke-width="16" stroke-linecap="round"/>
-            <path d="M8 64 C68 30, 118 80, 178 50 S268 20, 352 58" fill="none" stroke="#fffcf7" stroke-width="2" stroke-dasharray="5 8" stroke-linecap="round"/>
-            <g transform="translate(72,58) rotate(-22)">
-                <rect x="-15" y="-8" width="30" height="16" rx="5" fill="#1e4b7b"/>
-                <rect x="6" y="-5" width="8" height="10" rx="2" fill="#8ec8e0"/>
-            </g>
-            <path d="M96 42a14 14 0 0 1 10-12" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round"/>
-            <path d="M102 36a20 20 0 0 1 14-16" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" opacity=".5"/>
-            <g transform="translate(176,52) rotate(12)">
-                <rect x="-15" y="-8" width="30" height="16" rx="5" fill="#3aa0c8"/>
-                <rect x="6" y="-5" width="8" height="10" rx="2" fill="#e7f4fa"/>
-            </g>
-            <path d="M176 22c0-7 12-7 12 0 0 6-6 9-6 13 0-4-6-7-6-13z" fill="#d97706"/>
-            <circle cx="182" cy="22" r="2.4" fill="#fffcf7"/>
-            <g transform="translate(286,44) rotate(-8)">
-                <rect x="-15" y="-8" width="30" height="16" rx="5" fill="#d97706"/>
-                <rect x="6" y="-5" width="8" height="10" rx="2" fill="#f8eedf"/>
-            </g>
-            <circle cx="312" cy="28" r="11" fill="#1e4b7b"/>
-            <path d="M312 23v10M307 28h10" fill="none" stroke="#fffcf7" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-
+    <div class="portada-card portada-stepper">
         <p class="marca">
             <span class="marca-ico" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="M12 3v4M8.5 5.5 12 8l3.5-2.5M12 8v13M7 21h10" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="8" r="2.2" fill="currentColor"/></svg>
             </span>
             Baliza
         </p>
-        <h1>Tu grupo, a la vista y al aire.</h1>
-        <p class="mision">Misión: que nadie se pierda, se quede tirado o se desconecte. En el tránsito lo usás como mapa: ves a otros, hablás por walkie y, si hace falta, das una mano.</p>
 
-        <ul class="portada-chips">
-            <li>
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5 12 4l8 4.5V20H4V8.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M12 4v16M4 8.5h16" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="9" cy="13" r="1.4" fill="currentColor"/></svg>
-                Mapa
-            </li>
-            <li>
-                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="9" width="9" height="6" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.75"/><rect x="12.5" y="8" width="9" height="6" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M5 15v2M9 15v2M15 14v2M19 14v2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
-                Otros
-            </li>
-            <li>
-                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="7" width="8" height="13" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 3v4M10 12h4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="12" cy="16" r="1.2" fill="currentColor"/></svg>
-                Walkie
-            </li>
-            <li>
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 5.6-7 10-7 10z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>
-                Ayudar
-            </li>
-            <li>
-                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 5v2M12 17v2M5 12h2M17 12h2M7.2 7.2l1.4 1.4M15.4 15.4l1.4 1.4M16.8 7.2l-1.4 1.4M8.6 15.4l-1.4 1.4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
-                Radio
-            </li>
-            <li>
+        <div class="stepper-panel" id="step0" data-step="0">
+            <img class="stepper-foto" src="static/intro/paso-mapa.jpg" alt="Mapa de Baliza con autos cerca y walkie">
+            <h1>Tu grupo, a la vista y al aire.</h1>
+            <p class="mision">Baliza es la radio de ruta: ves a otros en el mapa, hablás por walkie y, si hace falta, das una mano. En dos toques dejamos listos el GPS y el micrófono, así al entrar no te corta ningún cartel.</p>
+        </div>
+
+        <div class="stepper-panel oculto" id="step1" data-step="1">
+            <img class="stepper-foto" src="static/intro/paso-gps.jpg" alt="Ubicación en el mapa para ver quién está cerca">
+            <h1>Para verte en el mapa</h1>
+            <p class="mision">Con la ubicación te ponemos en la calle y ves quién está cerca. No es para seguirte a casa: es para no perderte del grupo y que el resto te encuentre.</p>
+            <p class="stepper-estado" id="estadoGps"></p>
+        </div>
+
+        <div class="stepper-panel oculto" id="step2" data-step="2">
+            <img class="stepper-foto" src="static/intro/paso-mic.jpg" alt="Walkie mantené para hablar">
+            <h1>Para hablar por walkie</h1>
+            <p class="mision">El micrófono se usa solo mientras mantenés el botón. Así avisás “parada en 2 km” sin escribir. No grabamos nada hasta que vos hablás.</p>
+            <p class="stepper-estado" id="estadoMic"></p>
+        </div>
+
+        <div class="stepper-pie">
+            <ol class="stepper-puntos" aria-label="Pasos de la intro">
+                <li class="on" data-i="0"><span>1</span> Qué es</li>
+                <li data-i="1"><span>2</span> GPS</li>
+                <li data-i="2"><span>3</span> Mic</li>
+            </ol>
+            <p class="stepper-ayuda" id="stepAyuda">Sin apuro: en un momento dejamos todo listo para el mapa.</p>
+            <button type="button" class="btn-portada" id="btnStepEmpezar">Empezar</button>
+            <button type="button" class="btn-portada oculto" id="btnPermitirGps">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.6-7-11a7 7 0 1 1 14 0c0 6.4-7 11-7 11z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.2" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
-                GPS
-            </li>
-        </ul>
-
-        <ul class="usos">
-            <li>
-                <span class="uso-ico uso-ico--navy" aria-hidden="true">
-                    <svg viewBox="0 0 24 24"><rect x="2" y="10" width="9" height="6" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.75"/><rect x="12.5" y="8" width="9.5" height="6" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M5 16v2M9 16v2M15.5 14v2M20 14v2M6.5 10V8h4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
-                </span>
-                <div>
-                    <strong>Convoy</strong>
-                    Viaje en varios autos. Ves quién va adelante, quién se atrasó y avisás “parada en 2 km”.
-                </div>
-            </li>
-            <li>
-                <span class="uso-ico uso-ico--ambar" aria-hidden="true">
-                    <svg viewBox="0 0 24 24"><path d="M4 16V9l3-3h8l3 3v7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="7.5" cy="16" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="16.5" cy="16" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M14.5 6.5 16 11h4M9 11h4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
-                </span>
-                <div>
-                    <strong>Asistencia en ruta</strong>
-                    Alguien pinchó o se quedó. Aparece en tu radio, con patente, seguro y teléfono.
-                </div>
-            </li>
-            <li>
-                <span class="uso-ico uso-ico--celeste" aria-hidden="true">
-                    <svg viewBox="0 0 24 24"><path d="M6 21V4h6l-.8 3H18l-1 4h-6.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/></svg>
-                </span>
-                <div>
-                    <strong>Operativo puntual</strong>
-                    Casamiento, feria, recital. Quién llegó, quién está en el acceso, walkie para coordinar.
-                </div>
-            </li>
-            <li>
-                <span class="uso-ico uso-ico--tinta" aria-hidden="true">
-                    <svg viewBox="0 0 24 24"><path d="M4 7.5 12 3l8 4.5V20H4V7.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M12 3v17" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="8.5" cy="12" r="1.5" fill="currentColor"/><circle cx="15.5" cy="15" r="1.5" fill="currentColor"/></svg>
-                </span>
-                <div>
-                    <strong>En el tránsito</strong>
-                    Lo usás como mapa y ves a otros usuarios cerca. Si alguien se quedó en el banquín, le hablás: “¿necesitás una rueda?” o lo escoltás hasta el taller.
-                </div>
-            </li>
-        </ul>
-        <button type="button" id="btnEntrar">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5 12 3l8 4.5V20H4V7.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M9 13h6m0 0-2.2-2.2M15 13l-2.2 2.2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Entrar al mapa
-        </button>
-        <p class="nota">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.6-7-11a7 7 0 1 1 14 0c0 6.4-7 11-7 11z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.2" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
-            Permití la ubicación y completá nombre y patente. Así el resto te reconoce.
-        </p>
+                Permitir ubicación
+            </button>
+            <button type="button" class="btn-portada oculto" id="btnPermitirMic">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                Permitir micrófono
+            </button>
+            <button type="button" class="btn-portada oculto" id="btnEntrar">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5 12 3l8 4.5V20H4V7.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M9 13h6m0 0-2.2-2.2M15 13l-2.2 2.2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Entrar al mapa
+            </button>
+            <button type="button" class="btn-portada-sec oculto" id="btnSaltarPermiso">Ahora no, seguir</button>
+        </div>
     </div>
 </div>
 
@@ -314,6 +251,6 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/socket.io/socket.io.js"></script>
-<script src="js/main.js?v=20260820h"></script>
+<script src="js/main.js?v=20260820i"></script>
 </body>
 </html>

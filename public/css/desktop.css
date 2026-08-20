@@ -43,6 +43,10 @@
     }
 
     .portada-card h1 {
-        font-size: 34px;
+        font-size: 28px;
+    }
+
+    .stepper-foto {
+        height: 210px;
     }
 }
