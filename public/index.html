@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Baliza – Radio de ruta</title>
+<meta name="description" content="Baliza es radio de ruta: mapa en el tránsito, convoy, asistencia y operativos. Ves a otros y, si hace falta, los ayudás.">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f4f0e6">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="css/base.css?v=20260820h">
+<link rel="stylesheet" href="css/desktop.css?v=20260820h">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260820h">
+</head>
+
+<body>
+
+<div id="portada" class="portada">
+    <div class="portada-card">
+        <svg class="portada-dibujo" viewBox="0 0 360 100" aria-hidden="true">
+            <rect width="360" height="100" rx="14" fill="#f4f0e6"/>
+            <g fill="#d9d2c4" opacity="0.55">
+                <circle cx="28" cy="22" r="2"/><circle cx="52" cy="18" r="2"/><circle cx="76" cy="24" r="2"/>
+                <circle cx="118" cy="16" r="2"/><circle cx="210" cy="20" r="2"/><circle cx="248" cy="14" r="2"/>
+                <circle cx="292" cy="22" r="2"/><circle cx="332" cy="18" r="2"/><circle cx="40" cy="82" r="2"/>
+                <circle cx="88" cy="86" r="2"/><circle cx="140" cy="80" r="2"/><circle cx="320" cy="84" r="2"/>
+            </g>
+            <path d="M8 64 C68 30, 118 80, 178 50 S268 20, 352 58" fill="none" stroke="#cfc6b6" stroke-width="16" stroke-linecap="round"/>
+            <path d="M8 64 C68 30, 118 80, 178 50 S268 20, 352 58" fill="none" stroke="#fffcf7" stroke-width="2" stroke-dasharray="5 8" stroke-linecap="round"/>
+            <g transform="translate(72,58) rotate(-22)">
+                <rect x="-15" y="-8" width="30" height="16" rx="5" fill="#1e4b7b"/>
+                <rect x="6" y="-5" width="8" height="10" rx="2" fill="#8ec8e0"/>
+            </g>
+            <path d="M96 42a14 14 0 0 1 10-12" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round"/>
+            <path d="M102 36a20 20 0 0 1 14-16" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" opacity=".5"/>
+            <g transform="translate(176,52) rotate(12)">
+                <rect x="-15" y="-8" width="30" height="16" rx="5" fill="#3aa0c8"/>
+                <rect x="6" y="-5" width="8" height="10" rx="2" fill="#e7f4fa"/>
+            </g>
+            <path d="M176 22c0-7 12-7 12 0 0 6-6 9-6 13 0-4-6-7-6-13z" fill="#d97706"/>
+            <circle cx="182" cy="22" r="2.4" fill="#fffcf7"/>
+            <g transform="translate(286,44) rotate(-8)">
+                <rect x="-15" y="-8" width="30" height="16" rx="5" fill="#d97706"/>
+                <rect x="6" y="-5" width="8" height="10" rx="2" fill="#f8eedf"/>
+            </g>
+            <circle cx="312" cy="28" r="11" fill="#1e4b7b"/>
+            <path d="M312 23v10M307 28h10" fill="none" stroke="#fffcf7" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+
+        <p class="marca">
+            <span class="marca-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 3v4M8.5 5.5 12 8l3.5-2.5M12 8v13M7 21h10" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="8" r="2.2" fill="currentColor"/></svg>
+            </span>
+            Baliza
+        </p>
+        <h1>Tu grupo, a la vista y al aire.</h1>
+        <p class="mision">Misión: que nadie se pierda, se quede tirado o se desconecte. En el tránsito lo usás como mapa: ves a otros, hablás por walkie y, si hace falta, das una mano.</p>
+
+        <ul class="portada-chips">
+            <li>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5 12 4l8 4.5V20H4V8.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M12 4v16M4 8.5h16" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="9" cy="13" r="1.4" fill="currentColor"/></svg>
+                Mapa
+            </li>
+            <li>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="9" width="9" height="6" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.75"/><rect x="12.5" y="8" width="9" height="6" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M5 15v2M9 15v2M15 14v2M19 14v2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                Otros
+            </li>
+            <li>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="7" width="8" height="13" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 3v4M10 12h4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="12" cy="16" r="1.2" fill="currentColor"/></svg>
+                Walkie
+            </li>
+            <li>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 5.6-7 10-7 10z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>
+                Ayudar
+            </li>
+            <li>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 5v2M12 17v2M5 12h2M17 12h2M7.2 7.2l1.4 1.4M15.4 15.4l1.4 1.4M16.8 7.2l-1.4 1.4M8.6 15.4l-1.4 1.4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                Radio
+            </li>
+            <li>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.6-7-11a7 7 0 1 1 14 0c0 6.4-7 11-7 11z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.2" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
+                GPS
+            </li>
+        </ul>
+
+        <ul class="usos">
+            <li>
+                <span class="uso-ico uso-ico--navy" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><rect x="2" y="10" width="9" height="6" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.75"/><rect x="12.5" y="8" width="9.5" height="6" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M5 16v2M9 16v2M15.5 14v2M20 14v2M6.5 10V8h4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                </span>
+                <div>
+                    <strong>Convoy</strong>
+                    Viaje en varios autos. Ves quién va adelante, quién se atrasó y avisás “parada en 2 km”.
+                </div>
+            </li>
+            <li>
+                <span class="uso-ico uso-ico--ambar" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M4 16V9l3-3h8l3 3v7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="7.5" cy="16" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="16.5" cy="16" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M14.5 6.5 16 11h4M9 11h4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                </span>
+                <div>
+                    <strong>Asistencia en ruta</strong>
+                    Alguien pinchó o se quedó. Aparece en tu radio, con patente, seguro y teléfono.
+                </div>
+            </li>
+            <li>
+                <span class="uso-ico uso-ico--celeste" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M6 21V4h6l-.8 3H18l-1 4h-6.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/></svg>
+                </span>
+                <div>
+                    <strong>Operativo puntual</strong>
+                    Casamiento, feria, recital. Quién llegó, quién está en el acceso, walkie para coordinar.
+                </div>
+            </li>
+            <li>
+                <span class="uso-ico uso-ico--tinta" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M4 7.5 12 3l8 4.5V20H4V7.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M12 3v17" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="8.5" cy="12" r="1.5" fill="currentColor"/><circle cx="15.5" cy="15" r="1.5" fill="currentColor"/></svg>
+                </span>
+                <div>
+                    <strong>En el tránsito</strong>
+                    Lo usás como mapa y ves a otros usuarios cerca. Si alguien se quedó en el banquín, le hablás: “¿necesitás una rueda?” o lo escoltás hasta el taller.
+                </div>
+            </li>
+        </ul>
+        <button type="button" id="btnEntrar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5 12 3l8 4.5V20H4V7.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M9 13h6m0 0-2.2-2.2M15 13l-2.2 2.2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Entrar al mapa
+        </button>
+        <p class="nota">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.6-7-11a7 7 0 1 1 14 0c0 6.4-7 11-7 11z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.2" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
+            Permití la ubicación y completá nombre y patente. Así el resto te reconoce.
+        </p>
+    </div>
+</div>
+
+<div class="hud-top">
+    <div class="hud-card" id="cardPerfil">
+        <div class="marca-mini">
+            <strong>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6.5" cy="17" r="1.7" fill="currentColor"/><path d="M9.8 14.2a5.2 5.2 0 0 1 0 5.6M13.4 11a9.2 9.2 0 0 1 0 12M17 7.8a13.2 13.2 0 0 1 0 18.4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                Baliza
+            </strong>
+            <span><i class="punto-vivo" aria-hidden="true"></i>Radio de ruta</span>
+        </div>
+        <div class="perfil-cabeza">
+            <button type="button" id="btnElegirIcono" class="perfil-avatar" title="Elegir el icono de tu auto">
+                <span id="iconoPreview" class="icono-preview" aria-hidden="true"></span>
+            </button>
+            <button type="button" id="btnTogglePerfil" class="perfil-resumen">
+                <span id="perfilNombre">Tu perfil</span>
+                <small id="perfilHint">Tocá para completar tus datos</small>
+                <em id="perfilEstado" class="perfil-badge oculto">En ruta</em>
+            </button>
+        </div>
+        <button type="button" id="btnCentrar" class="perfil-centrar" title="Centrar el mapa en mi posición">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+            Centrar en el mapa
+        </button>
+        <div id="formPerfil" class="perfil-form oculto">
+            <label class="perfil-fila">
+                <span class="perfil-fila-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M5.5 19.5c1.2-3.2 3.5-4.8 6.5-4.8s5.3 1.6 6.5 4.8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                </span>
+                <span class="perfil-fila-lab">Conductor</span>
+                <input id="nombre" placeholder="—" maxlength="40" autocomplete="name">
+            </label>
+            <label class="perfil-fila">
+                <span class="perfil-fila-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M4 16V9l3-3h8l3 3v7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="7.5" cy="16" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="16.5" cy="16" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
+                </span>
+                <span class="perfil-fila-lab">Vehículo</span>
+                <input id="vehiculo" placeholder="—" maxlength="40">
+            </label>
+            <label class="perfil-fila">
+                <span class="perfil-fila-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M4 8h12l4 4v7H4V8z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="8.5" cy="13.5" r="1.2" fill="currentColor"/></svg>
+                </span>
+                <span class="perfil-fila-lab">Patente</span>
+                <input id="placa" placeholder="—" maxlength="20">
+            </label>
+            <label class="perfil-fila">
+                <span class="perfil-fila-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M4 20V9l8-5 8 5v11H4z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M10 20v-6h4v6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="perfil-fila-lab">Seguro</span>
+                <input id="seguro" placeholder="—" maxlength="40">
+            </label>
+            <label class="perfil-fila">
+                <span class="perfil-fila-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M7 3.8h3.4l1.2 4.6-2.4 1.4c.8 1.8 2.2 3.2 4 4l1.4-2.4 4.6 1.2V20h-2.2C9.4 20 4 14.6 4 6V3.8H7z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="perfil-fila-lab">Teléfono</span>
+                <input id="contacto" placeholder="—" maxlength="40" inputmode="tel">
+            </label>
+        </div>
+    </div>
+
+    <div class="hud-acciones">
+        <div id="estadoConexion" class="estado estado-off">Conectando…</div>
+        <label class="switch-popups" title="Mostrar u ocultar las fichas de los demás">
+            <input type="checkbox" id="chkPopups" checked>
+            <span>Fichas</span>
+        </label>
+        <button type="button" id="btnQueEs" title="Para qué sirve Baliza">Qué es</button>
+        <button type="button" id="btnToggleComms" class="btn-toggle-comms" title="Radio del grupo">Radio</button>
+    </div>
+</div>
+
+<div id="avisoGps" class="aviso-gps oculto">
+    <p>Para verte en el mapa, permití el acceso a la ubicación.</p>
+    <button type="button" id="btnActivarGps">Activar ubicación</button>
+</div>
+
+<main class="map-container">
+    <div id="map"></div>
+    <div class="habla-mapa">
+        <div id="destinoHabla" class="destino-habla">
+            <span id="destinoKicker">Walkie y mensajes van a</span>
+            <strong id="destinoNombre">RADIO · 5 km</strong>
+        </div>
+        <button type="button" id="btnPttMapa" class="btn-ptt-mapa">
+            <span class="ico" aria-hidden="true">🎙️</span>
+            Walkie a RADIO
+        </button>
+    </div>
+    <div id="avisoAudio" class="aviso-audio oculto"></div>
+</main>
+
+<aside class="comms-panel" id="commsPanel">
+    <header class="comms-header">
+        <div>
+            <h2>Radio del grupo</h2>
+            <p id="resumenRed">Todavía no hay nadie en el radio</p>
+        </div>
+        <button type="button" id="btnCerrarComms" class="btn-cerrar-comms">Cerrar</button>
+    </header>
+
+    <p class="usos-linea">RADIO · Tránsito · Asistencia · Operativo</p>
+
+    <section class="comms-contactos">
+        <div class="contactos-toolbar">
+            <h3>Quién está cerca</h3>
+            <label>
+                Escucha
+                <select id="radioFiltro" class="select-radio">
+                    <option value="1">1 km</option>
+                    <option value="5" selected>5 km</option>
+                    <option value="10">10 km</option>
+                    <option value="25">25 km</option>
+                    <option value="50">50 km</option>
+                </select>
+            </label>
+        </div>
+        <div id="listaContactos" class="lista-contactos">
+            <p class="vacio">Nadie en la RADIO todavía. Compartí el enlace.</p>
+        </div>
+    </section>
+
+    <section class="comms-chat">
+        <div class="chat-tabs" role="tablist">
+            <button type="button" class="tab activa" data-tab="general">Canal RADIO</button>
+            <button type="button" class="tab" data-tab="privado" id="tabPrivado">
+                Directo <span id="badgePrivado" class="badge oculto">0</span>
+            </button>
+        </div>
+
+        <div id="panelGeneral" class="chat-panel">
+            <div class="destino-chat" id="destinoConvoy">
+                <span>Enviás a RADIO</span>
+                <strong id="destinoConvoyDetalle">RADIO · 5 km</strong>
+            </div>
+            <div id="msgsV2V" class="chat-mensajes"></div>
+            <div class="chat-composer">
+                <input id="txtV2V" class="chat-input" placeholder="Aviso a RADIO…" maxlength="500">
+                <button type="button" id="btnEnviarV2V" class="btn-enviar">A RADIO</button>
+                <button type="button" id="btnPttV2V" class="btn-ptt" title="Walkie a RADIO">🎙️</button>
+                <button type="button" id="btnVozV2V" class="btn-voz" title="Dictar texto">Aa</button>
+            </div>
+        </div>
+
+        <div id="panelPrivado" class="chat-panel oculto">
+            <div class="destino-chat destino-directo" id="cajaDestinoPrivado">
+                <span>Enviás en directo a</span>
+                <strong id="contactoSeleccionado">Nadie todavía. Elegí un auto.</strong>
+            </div>
+            <div id="msgsPrivado" class="chat-mensajes"></div>
+            <div class="chat-composer">
+                <input id="txtPrivado" class="chat-input" placeholder="Mensaje a esa persona…" maxlength="500">
+                <button type="button" id="btnEnviarPrivado" class="btn-enviar">Enviar</button>
+                <button type="button" id="btnPttPrivado" class="btn-ptt" title="Walkie a esa persona">🎙️</button>
+                <button type="button" id="btnVozPrivado" class="btn-voz" title="Dictar texto">Aa</button>
+            </div>
+        </div>
+    </section>
+</aside>
+
+<div id="modalIcono" class="modal-icono oculto">
+    <div class="modal-icono-fondo" id="fondoModalIcono"></div>
+    <div class="modal-icono-card" role="dialog" aria-labelledby="tituloIcono" aria-modal="true">
+        <header>
+            <div>
+                <h3 id="tituloIcono">Elegí tu auto</h3>
+                <p id="mosaicoHint">Tocá una celda de 2 cm. Se guarda en este dispositivo.</p>
+            </div>
+            <button type="button" id="btnCerrarIcono">Cerrar</button>
+        </header>
+        <div id="mosaicoScroll" class="mosaico-scroll">
+            <div id="mosaicoMarco" class="mosaico-marco">
+                <img id="mosaicoFoto" alt="Mosaico de autos">
+                <div id="mosaicoGrid" class="mosaico-grid"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="js/main.js?v=20260820h"></script>
+</body>
+</html>

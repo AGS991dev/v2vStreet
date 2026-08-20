@@ -1,0 +1,83 @@
+/* =====================================================
+   Baliza – mobile
+   ===================================================== */
+
+@media (max-width: 480px) {
+
+    .portada-card {
+        padding: 16px 14px 18px;
+    }
+
+    .portada-card h1 {
+        font-size: 24px;
+    }
+
+    .portada-dibujo {
+        margin-bottom: 12px;
+    }
+
+    .portada-chips li {
+        font-size: 10px;
+        padding: 4px 8px 4px 6px;
+    }
+
+    .uso-ico {
+        flex: 0 0 34px;
+        width: 34px;
+        height: 34px;
+    }
+
+    .usos li {
+        font-size: 13px;
+        padding: 9px 0;
+        gap: 10px;
+    }
+
+    .hud-top {
+        top: 8px;
+        left: 8px;
+        right: 8px;
+    }
+
+    .hud-card {
+        width: min(280px, 84vw);
+    }
+
+    .perfil-resumen span {
+        font-size: 16px;
+    }
+
+    .perfil-avatar {
+        width: 50px;
+        height: 50px;
+        flex-basis: 50px;
+    }
+
+    .estado,
+    #btnQueEs,
+    .btn-toggle-comms,
+    .switch-popups {
+        padding: 7px 8px;
+        font-size: 10px;
+    }
+
+    .comms-header h2 {
+        font-size: 14px;
+    }
+
+    .chat-mensajes {
+        min-height: 110px;
+    }
+
+    .btn-ptt-mapa {
+        min-width: 0;
+        width: 100%;
+        padding: 10px 12px;
+        font-size: 11px;
+    }
+
+    .habla-mapa {
+        left: 10px;
+        bottom: 14px;
+    }
+}

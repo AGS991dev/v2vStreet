@@ -1,0 +1,48 @@
+/* =====================================================
+   Baliza – desktop
+   ===================================================== */
+
+@media (min-width: 1024px) {
+
+    .map-container {
+        right: 380px;
+    }
+
+    .comms-panel {
+        right: 0;
+        width: 380px;
+        background: var(--nieve);
+        transition: none;
+    }
+
+    .btn-toggle-comms,
+    .btn-cerrar-comms {
+        display: none;
+    }
+
+    .hud-top {
+        right: 400px;
+    }
+
+    .comms-contactos {
+        flex-basis: 42%;
+    }
+
+    .chat-mensajes {
+        min-height: 140px;
+    }
+
+    .btn-ptt-mapa {
+        bottom: auto;
+        left: auto;
+    }
+
+    .habla-mapa {
+        bottom: 24px;
+        left: 16px;
+    }
+
+    .portada-card h1 {
+        font-size: 34px;
+    }
+}
