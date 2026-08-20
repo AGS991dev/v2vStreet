@@ -2,15 +2,15 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>Baliza – Radio de ruta</title>
-<meta name="description" content="Baliza es radio de ruta: mapa en el tránsito, convoy, asistencia y operativos. Ves a otros y, si hace falta, los ayudás.">
+<title>RadioMap – Radio de ruta</title>
+<meta name="description" content="RadioMap es radio de ruta: mapa en el tránsito, convoy, asistencia y operativos. Ves a otros y, si hace falta, los ayudás.">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#f4f0e6">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="css/base.css?v=20260820i">
-<link rel="stylesheet" href="css/desktop.css?v=20260820i">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260820i">
+<link rel="stylesheet" href="css/base.css?v=20260820m">
+<link rel="stylesheet" href="css/desktop.css?v=20260820m">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260820m">
 </head>
 
 <body>
@@ -19,28 +19,28 @@
     <div class="portada-card portada-stepper">
         <p class="marca">
             <span class="marca-ico" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M12 3v4M8.5 5.5 12 8l3.5-2.5M12 8v13M7 21h10" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="8" r="2.2" fill="currentColor"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M12 21s-6.2-4.4-6.2-10.2a6.2 6.2 0 1 1 12.4 0C18.2 16.6 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="12" cy="10.8" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M3.5 7.6a10 10 0 0 1 0 8.8M20.5 7.6a10 10 0 0 0 0 8.8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
             </span>
-            Baliza
+            RadioMap
         </p>
 
         <div class="stepper-panel" id="step0" data-step="0">
-            <img class="stepper-foto" src="static/intro/paso-mapa.jpg" alt="Mapa de Baliza con autos cerca y walkie">
+            <img class="stepper-foto" src="static/intro/paso-mapa.jpg" alt="Mapa de RadioMap con autos cerca y walkie">
             <h1>Tu grupo, a la vista y al aire.</h1>
-            <p class="mision">Baliza es la radio de ruta: ves a otros en el mapa, hablás por walkie y, si hace falta, das una mano. En dos toques dejamos listos el GPS y el micrófono, así al entrar no te corta ningún cartel.</p>
+            <p class="mision">RadioMap es la radio de ruta: ves a otros en el mapa, hablás por walkie y, si hace falta, das una mano. En dos toques dejamos listos el GPS y el micrófono, así al entrar no te corta ningún cartel.</p>
         </div>
 
         <div class="stepper-panel oculto" id="step1" data-step="1">
             <img class="stepper-foto" src="static/intro/paso-gps.jpg" alt="Ubicación en el mapa para ver quién está cerca">
             <h1>Para verte en el mapa</h1>
-            <p class="mision">Con la ubicación te ponemos en la calle y ves quién está cerca. No es para seguirte a casa: es para no perderte del grupo y que el resto te encuentre.</p>
+            <p class="mision">Con la ubicación te ponemos en la calle y ves quién está cerca. El navegador pregunta arriba, junto a la dirección (candado o ícono de ubicación), no en un cartel grande en el medio.</p>
             <p class="stepper-estado" id="estadoGps"></p>
         </div>
 
         <div class="stepper-panel oculto" id="step2" data-step="2">
             <img class="stepper-foto" src="static/intro/paso-mic.jpg" alt="Walkie mantené para hablar">
             <h1>Para hablar por walkie</h1>
-            <p class="mision">El micrófono se usa solo mientras mantenés el botón. Así avisás “parada en 2 km” sin escribir. No grabamos nada hasta que vos hablás.</p>
+            <p class="mision">El micrófono se usa solo mientras mantenés el botón. El pedido también sale arriba, junto a la dirección. No grabamos nada hasta que vos hablás.</p>
             <p class="stepper-estado" id="estadoMic"></p>
         </div>
 
@@ -73,8 +73,8 @@
     <div class="hud-card" id="cardPerfil">
         <div class="marca-mini">
             <strong>
-                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6.5" cy="17" r="1.7" fill="currentColor"/><path d="M9.8 14.2a5.2 5.2 0 0 1 0 5.6M13.4 11a9.2 9.2 0 0 1 0 12M17 7.8a13.2 13.2 0 0 1 0 18.4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
-                Baliza
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.2-4.4-6.2-10.2a6.2 6.2 0 1 1 12.4 0C18.2 16.6 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="12" cy="10.8" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M3.5 7.6a10 10 0 0 1 0 8.8M20.5 7.6a10 10 0 0 0 0 8.8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                RadioMap
             </strong>
             <span><i class="punto-vivo" aria-hidden="true"></i>Radio de ruta</span>
         </div>
@@ -132,13 +132,23 @@
     </div>
 
     <div class="hud-acciones">
-        <div id="estadoConexion" class="estado estado-off">Conectando…</div>
-        <label class="switch-popups" title="Mostrar u ocultar las fichas de los demás">
+        <div id="estadoConexion" class="estado estado-off" title="Estado de conexión">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M5 12h2M17 12h2M12 5v2M12 17v2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+            Conectando…
+        </div>
+        <label class="switch-popups hud-btn" title="Mostrar u ocultar las fichas de los demás">
             <input type="checkbox" id="chkPopups" checked>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M8 9h8M8 13h5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
             <span>Fichas</span>
         </label>
-        <button type="button" id="btnQueEs" title="Para qué sirve Baliza">Qué es</button>
-        <button type="button" id="btnToggleComms" class="btn-toggle-comms" title="Radio del grupo">Radio</button>
+        <button type="button" id="btnQueEs" class="hud-btn" title="Qué es RadioMap">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M9.6 9.4a2.4 2.4 0 1 1 3.2 2.2c-.7.3-1.3.8-1.3 1.6V14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
+            <span>Qué es</span>
+        </button>
+        <button type="button" id="btnToggleComms" class="btn-toggle-comms hud-btn" title="Radio del grupo">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6.5" cy="17" r="1.6" fill="currentColor"/><path d="M9.6 14.4a5 5 0 0 1 0 5.2M13 11.4a8.8 8.8 0 0 1 0 11.2M16.4 8.4a12.4 12.4 0 0 1 0 17.2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+            <span>Radio</span>
+        </button>
     </div>
 </div>
 
@@ -154,9 +164,14 @@
             <span id="destinoKicker">Walkie y mensajes van a</span>
             <strong id="destinoNombre">RADIO · 5 km</strong>
         </div>
-        <button type="button" id="btnPttMapa" class="btn-ptt-mapa">
-            <span class="ico" aria-hidden="true">🎙️</span>
-            Walkie a RADIO
+        <button type="button" id="btnPttMapa" class="btn-ptt-mapa" title="Mantené para hablar a RADIO">
+            <span class="ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+            </span>
+            <span class="ptt-leyenda">
+                <strong>Mantené para hablar</strong>
+                <small>Walkie a RADIO</small>
+            </span>
         </button>
     </div>
     <div id="avisoAudio" class="aviso-audio oculto"></div>
@@ -165,19 +180,49 @@
 <aside class="comms-panel" id="commsPanel">
     <header class="comms-header">
         <div>
-            <h2>Radio del grupo</h2>
+            <h2>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6.5" cy="17" r="1.6" fill="currentColor"/><path d="M9.6 14.4a5 5 0 0 1 0 5.2M13 11.4a8.8 8.8 0 0 1 0 11.2M16.4 8.4a12.4 12.4 0 0 1 0 17.2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                Radio del grupo
+            </h2>
             <p id="resumenRed">Todavía no hay nadie en el radio</p>
         </div>
-        <button type="button" id="btnCerrarComms" class="btn-cerrar-comms">Cerrar</button>
+        <button type="button" id="btnCerrarComms" class="btn-cerrar-comms hud-btn" title="Cerrar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+            <span>Cerrar</span>
+        </button>
     </header>
 
-    <p class="usos-linea">RADIO · Tránsito · Asistencia · Operativo</p>
+    <ul class="usos-linea">
+        <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 5v2M12 17v2M5 12h2M17 12h2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+            Radio
+        </li>
+        <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16V9l3-3h8l3 3v7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="7.5" cy="16" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="16.5" cy="16" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
+            Tránsito
+        </li>
+        <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 5.6-7 10-7 10z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>
+            Asistencia
+        </li>
+        <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21V4h6l-.8 3H18l-1 4h-6.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/></svg>
+            Operativo
+        </li>
+    </ul>
 
     <section class="comms-contactos">
         <div class="contactos-toolbar">
-            <h3>Quién está cerca</h3>
+            <div class="contactos-titulo">
+                <h3>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.6-7-11a7 7 0 1 1 14 0c0 6.4-7 11-7 11z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.2" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
+                    Quién está cerca
+                </h3>
+                <p class="leyenda-cerca">Más cerca de vos, primero</p>
+            </div>
             <label>
-                Escucha
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
+                Alcance
                 <select id="radioFiltro" class="select-radio">
                     <option value="1">1 km</option>
                     <option value="5" selected>5 km</option>
@@ -193,9 +238,13 @@
     </section>
 
     <section class="comms-chat">
-        <div class="chat-tabs" role="tablist">
-            <button type="button" class="tab activa" data-tab="general">Canal RADIO</button>
+            <div class="chat-tabs" role="tablist">
+            <button type="button" class="tab activa" data-tab="general">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6.5" cy="17" r="1.6" fill="currentColor"/><path d="M9.6 14.4a5 5 0 0 1 0 5.2M13 11.4a8.8 8.8 0 0 1 0 11.2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                Canal RADIO
+            </button>
             <button type="button" class="tab" data-tab="privado" id="tabPrivado">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="10" r="2.4" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="16" cy="10" r="2.4" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M4 18c.6-2.4 2.2-3.6 4-3.6s3.4 1.2 4 3.6M12 18c.6-2.4 2.2-3.6 4-3.6s3.4 1.2 4 3.6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
                 Directo <span id="badgePrivado" class="badge oculto">0</span>
             </button>
         </div>
@@ -208,9 +257,18 @@
             <div id="msgsV2V" class="chat-mensajes"></div>
             <div class="chat-composer">
                 <input id="txtV2V" class="chat-input" placeholder="Aviso a RADIO…" maxlength="500">
-                <button type="button" id="btnEnviarV2V" class="btn-enviar">A RADIO</button>
-                <button type="button" id="btnPttV2V" class="btn-ptt" title="Walkie a RADIO">🎙️</button>
-                <button type="button" id="btnVozV2V" class="btn-voz" title="Dictar texto">Aa</button>
+                <button type="button" id="btnEnviarV2V" class="btn-enviar" title="Enviar a RADIO">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h12M12 6l8 6-8 6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    RADIO
+                </button>
+                <button type="button" id="btnPttV2V" class="btn-ptt" title="Mantené para hablar a RADIO">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                    <span>Mantené</span>
+                </button>
+                <button type="button" id="btnVozV2V" class="btn-voz" title="Dictar texto">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17V7h4l6-4v18l-6-4H5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M19 9v6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                    <span>Dictar</span>
+                </button>
             </div>
         </div>
 
@@ -222,9 +280,18 @@
             <div id="msgsPrivado" class="chat-mensajes"></div>
             <div class="chat-composer">
                 <input id="txtPrivado" class="chat-input" placeholder="Mensaje a esa persona…" maxlength="500">
-                <button type="button" id="btnEnviarPrivado" class="btn-enviar">Enviar</button>
-                <button type="button" id="btnPttPrivado" class="btn-ptt" title="Walkie a esa persona">🎙️</button>
-                <button type="button" id="btnVozPrivado" class="btn-voz" title="Dictar texto">Aa</button>
+                <button type="button" id="btnEnviarPrivado" class="btn-enviar" title="Enviar directo">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h12M12 6l8 6-8 6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <span id="lblEnviarPrivado">Enviar</span>
+                </button>
+                <button type="button" id="btnPttPrivado" class="btn-ptt" title="Mantené para hablarle">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                    <span>Mantené</span>
+                </button>
+                <button type="button" id="btnVozPrivado" class="btn-voz" title="Dictar texto">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17V7h4l6-4v18l-6-4H5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M19 9v6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                    <span>Dictar</span>
+                </button>
             </div>
         </div>
     </section>
@@ -251,6 +318,6 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/socket.io/socket.io.js"></script>
-<script src="js/main.js?v=20260820i"></script>
+<script src="js/main.js?v=20260820m"></script>
 </body>
 </html>

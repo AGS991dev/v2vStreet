@@ -1,5 +1,5 @@
 /* =====================================================
-   Baliza – Radio de ruta (tema claro)
+   RadioMap – Radio de ruta (tema claro)
    Archivo: base.css
    ===================================================== */
 
@@ -55,6 +55,12 @@ body {
     justify-content: center;
     padding: 20px;
     overflow: auto;
+}
+
+.portada.pidiendo-permiso {
+    align-items: flex-start;
+    padding-top: 96px;
+    background: rgba(244, 240, 230, 0.72);
 }
 
 .portada-card {
@@ -132,7 +138,7 @@ body {
     margin-top: 10px;
     font-size: 13px;
     line-height: 1.4;
-    color: var(--navy);
+    color: var(--tinta);
 }
 
 .stepper-pie {
@@ -274,8 +280,8 @@ body {
     width: min(300px, 78vw);
     background: #fff;
     border: 1px solid var(--linea);
-    border-radius: 20px;
-    box-shadow: 0 12px 28px rgba(40, 30, 10, 0.1);
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(40, 30, 10, 0.08);
     overflow: hidden;
 }
 
@@ -609,6 +615,46 @@ body {
     gap: 6px;
 }
 
+.hud-btn,
+.estado,
+.switch-popups,
+#btnQueEs,
+.btn-toggle-comms,
+.btn-cerrar-comms {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.hud-btn svg,
+.estado svg,
+.switch-popups svg,
+#btnQueEs svg,
+.btn-toggle-comms svg,
+.btn-cerrar-comms svg {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+    display: block;
+}
+
+.switch-popups {
+    position: relative;
+}
+
+.switch-popups input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.switch-popups:has(input:checked) {
+    border-color: var(--ambar);
+    color: var(--tinta);
+}
+
 .estado,
 .switch-popups,
 #btnQueEs,
@@ -722,6 +768,15 @@ body {
 .comms-header h2 {
     font-size: 16px;
     font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.comms-header h2 svg {
+    width: 16px;
+    height: 16px;
+    color: var(--navy);
 }
 
 .comms-header p {
@@ -731,12 +786,32 @@ body {
 }
 
 .usos-linea {
-    padding: 0 14px 10px;
-    font-size: 11px;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
-    color: var(--ambar);
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 8px 14px 10px;
     border-bottom: 1px solid var(--linea);
+}
+
+.usos-linea li {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    border: 1px solid var(--linea);
+    background: var(--papel);
+    font-size: 10px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--tinta);
+}
+
+.usos-linea svg {
+    width: 12px;
+    height: 12px;
+    color: var(--navy);
 }
 
 .comms-contactos,
@@ -758,7 +833,7 @@ body {
 .contactos-toolbar {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     padding: 10px 12px 6px;
 }
@@ -767,11 +842,35 @@ body {
     font-size: 12px;
     letter-spacing: 0.6px;
     text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.contactos-toolbar h3 svg {
+    width: 13px;
+    height: 13px;
+    color: var(--navy);
+}
+
+.leyenda-cerca {
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--ambar);
+    font-weight: 600;
 }
 
 .contactos-toolbar label {
     font-size: 11px;
     color: var(--suave);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.contactos-toolbar label svg {
+    width: 12px;
+    height: 12px;
 }
 
 .select-radio {
@@ -816,10 +915,34 @@ body {
     color: var(--suave);
 }
 
+.contacto.mas-cerca {
+    border-color: #e8c49a;
+    background: #fffaf3;
+}
+
+.tag-cerca {
+    display: block;
+    margin: 2px 0 1px;
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--ambar);
+}
+
 .contacto .dist {
     font-size: 12px;
     color: var(--navy);
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.contacto .dist svg {
+    width: 12px;
+    height: 12px;
 }
 
 .vacio {
@@ -843,6 +966,15 @@ body {
     font-size: 12px;
     letter-spacing: 0.4px;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.tab svg {
+    width: 14px;
+    height: 14px;
 }
 
 .tab.activa {
@@ -875,6 +1007,15 @@ body {
     color: #fff !important;
     border: 0 !important;
     min-width: 92px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.btn-enviar svg {
+    width: 14px;
+    height: 14px;
 }
 
 .destino-chat {
@@ -957,7 +1098,21 @@ body {
 
 .btn-voz,
 .btn-ptt {
-    min-width: 40px;
+    min-width: 52px;
+    padding: 6px 8px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-size: 9px;
+    letter-spacing: 0.3px;
+}
+
+.btn-voz svg,
+.btn-ptt svg {
+    width: 14px;
+    height: 14px;
 }
 
 .btn-ptt.grabando,
@@ -1002,7 +1157,7 @@ body {
 
 .btn-ptt-mapa {
     min-width: 180px;
-    padding: 12px 14px;
+    padding: 10px 14px;
     background: var(--tinta);
     color: #fff;
     border: 0;
@@ -1014,8 +1169,45 @@ body {
     user-select: none;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
+    justify-content: flex-start;
+    gap: 10px;
+}
+
+.btn-ptt-mapa .ico {
+    width: 28px;
+    height: 28px;
+    border: 1px solid rgba(255,255,255,0.35);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    flex: 0 0 28px;
+}
+
+.btn-ptt-mapa .ico svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
+
+.ptt-leyenda {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.15;
+}
+
+.ptt-leyenda strong {
+    font-size: 11px;
+    letter-spacing: 0.4px;
+}
+
+.ptt-leyenda small {
+    margin-top: 2px;
+    font-size: 10px;
+    letter-spacing: 0;
+    text-transform: none;
+    font-weight: 400;
+    opacity: 0.8;
 }
 
 .aviso-audio {
@@ -1083,7 +1275,7 @@ body.mosaico-listo .marker-otro .auto-cuerpo {
     background: #fff;
     color: var(--tinta);
     border: 1px solid var(--linea);
-    border-radius: 14px;
+    border-radius: 10px;
     box-shadow: 0 10px 24px rgba(40, 30, 10, 0.12);
     padding: 0;
     white-space: normal;
@@ -1291,11 +1483,30 @@ body.mosaico-listo .marker-otro .auto-cuerpo {
 .btn-icon-lista {
     border: 1px solid var(--linea);
     background: #fff;
-    width: 36px;
-    height: 36px;
-    flex: 0 0 36px;
+    min-width: 54px;
+    height: 42px;
+    flex: 0 0 auto;
+    padding: 4px 6px;
     cursor: pointer;
-    font-size: 16px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    color: var(--tinta);
+}
+
+.btn-icon-lista svg {
+    width: 14px;
+    height: 14px;
+}
+
+.btn-icon-lista em {
+    font-style: normal;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
 }
 
 .contacto .acciones-mini {

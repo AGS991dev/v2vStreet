@@ -16,7 +16,8 @@ const io = new Server(server, {
     pingInterval: 10000,
     pingTimeout: 20000,
     cors: { origin: true },
-    maxHttpBufferSize: 5e5
+    maxHttpBufferSize: 5e5,
+    perMessageDeflate: false
 });
 
 app.use(express.json());
@@ -168,10 +169,13 @@ io.on("connection", socket => {
         });
     });
 
-    socket.on("audioV2V", payload => {
+    socket.on("audioV2V", (payload, ack) => {
         const audio = payload && payload.audio;
         const bytes = tamanioAudio(audio);
-        if (bytes < 200 || bytes > 400000) return;
+        if (bytes < 200 || bytes > 400000) {
+            if (typeof ack === "function") ack({ ok: false });
+            return;
+        }
         const meta = metaEmisor(socket);
         socket.broadcast.emit("audioV2V", {
             de: meta.de,
@@ -181,15 +185,22 @@ io.on("connection", socket => {
             audio: audio,
             ts: Date.now()
         });
+        if (typeof ack === "function") ack({ ok: true });
     });
 
-    socket.on("audioPrivado", payload => {
+    socket.on("audioPrivado", (payload, ack) => {
         const destinoId = sanitizarTexto(payload && payload.id, 64);
         const audio = payload && payload.audio;
         const bytes = tamanioAudio(audio);
-        if (!destinoId || bytes < 200 || bytes > 400000) return;
+        if (!destinoId || bytes < 200 || bytes > 400000) {
+            if (typeof ack === "function") ack({ ok: false });
+            return;
+        }
         const dest = vehiculos[destinoId];
-        if (!dest || !dest.socketId) return;
+        if (!dest || !dest.socketId) {
+            if (typeof ack === "function") ack({ ok: false });
+            return;
+        }
         const meta = metaEmisor(socket);
         io.to(dest.socketId).emit("audioPrivado", {
             de: meta.de,
@@ -199,6 +210,7 @@ io.on("connection", socket => {
             audio: audio,
             ts: Date.now()
         });
+        if (typeof ack === "function") ack({ ok: true });
     });
 
     socket.on("disconnect", () => {
