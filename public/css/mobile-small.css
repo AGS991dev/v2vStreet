@@ -38,19 +38,29 @@
     }
 
     .perfil-resumen span {
-        font-size: 16px;
+        font-size: 15px;
     }
 
     .perfil-avatar {
-        width: 50px;
-        height: 50px;
-        flex-basis: 50px;
+        width: 36px;
+        height: 36px;
+        flex-basis: 36px;
     }
 
     .hud-ico {
         width: 36px;
         height: 36px;
         min-width: 36px;
+    }
+
+    .radio-cerca {
+        max-height: calc(100dvh - var(--dock-h) - 232px);
+        gap: 6px;
+    }
+
+    .radio-cerca-meta {
+        max-width: 86px;
+        padding: 3px 6px;
     }
 
     .estado {

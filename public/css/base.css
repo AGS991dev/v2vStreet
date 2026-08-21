@@ -358,16 +358,15 @@ body.modo-nav-gps .marker-propio {
 .perfil-cabeza {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 10px 12px;
+    gap: 8px;
+    padding: 6px 6px 6px 6px;
 }
 
 .perfil-avatar {
-    width: 56px;
-    height: 56px;
-    flex: 0 0 56px;
-    padding: 5px;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    padding: 3px;
     border-radius: 50%;
     background: #f8eedf;
     border: 1.5px solid #e8c49a;
@@ -398,6 +397,10 @@ body.modo-nav-gps .marker-propio {
 .perfil-resumen {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: baseline;
+    gap: 6px;
     text-align: left;
     background: transparent;
     border: 0;
@@ -407,55 +410,54 @@ body.modo-nav-gps .marker-propio {
 }
 
 .perfil-resumen span {
-    display: block;
-    font-size: 18px;
+    display: inline;
+    font-size: 16px;
     font-weight: 700;
     line-height: 1.15;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex: 0 1 auto;
 }
 
 .perfil-resumen small {
-    display: block;
-    margin-top: 3px;
-    font-size: 12px;
-    letter-spacing: 0.4px;
+    display: inline;
+    min-width: 0;
+    margin-top: 0;
+    font-size: 11px;
+    letter-spacing: 0.2px;
     color: var(--suave);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex: 1;
 }
 
 .perfil-badge {
-    display: inline-block;
-    margin-top: 7px;
-    padding: 3px 9px;
-    border-radius: 999px;
-    background: #e5f3df;
-    color: #2f6b22;
-    font-size: 11px;
-    font-weight: 600;
-    font-style: normal;
-    letter-spacing: 0.2px;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 .perfil-centrar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    width: 100%;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    flex: 0 0 32px;
     margin: 0;
-    padding: 9px 14px;
-    background: #fff;
-    color: var(--tinta);
+    padding: 0;
     border: 0;
-    border-top: 1px solid var(--linea);
-    border-radius: 0;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
+    border-radius: 50%;
+    background: transparent;
+    box-shadow: none;
+    color: var(--ambar);
+    justify-content: center;
 }
 
 .perfil-centrar svg {
@@ -465,8 +467,8 @@ body.modo-nav-gps .marker-propio {
 }
 
 .perfil-centrar:hover {
-    border-color: var(--ambar);
-    background: #f8eedf;
+    background: #fff8ee;
+    box-shadow: none;
 }
 
 .perfil-form {
@@ -702,6 +704,106 @@ body.modo-nav-gps .marker-propio {
     gap: 8px;
 }
 
+.radio-cerca {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    max-height: calc(100dvh - var(--dock-h) - 248px);
+    overflow-x: visible;
+    overflow-y: auto;
+    padding-left: 4px;
+    scrollbar-width: thin;
+}
+
+.radio-cerca-item {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.radio-cerca-item.ausente {
+    opacity: 0.55;
+}
+
+.radio-cerca-meta {
+    text-align: right;
+    background: rgba(255, 250, 244, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 4px 8px;
+    border-radius: 12px;
+    box-shadow: var(--sombra);
+    max-width: 108px;
+    pointer-events: none;
+}
+
+.radio-cerca-meta strong {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--tinta);
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.radio-cerca-meta small {
+    display: block;
+    margin-top: 1px;
+    font-size: 10px;
+    color: var(--suave);
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.radio-cerca-item.sos .radio-cerca-auto {
+    box-shadow: 0 0 0 2px #c0392b, var(--sombra);
+}
+
+.radio-cerca-item.activo .radio-cerca-auto {
+    background: #fff8ee;
+    box-shadow: 0 0 0 2px var(--ambar), var(--sombra);
+}
+
+.radio-cerca-auto {
+    overflow: hidden;
+    padding: 4px;
+}
+
+.radio-cerca-auto img {
+    width: 26px;
+    height: 26px;
+    object-fit: contain;
+    display: block;
+    position: relative;
+}
+
+.radio-cerca-mic.grabando {
+    background: var(--ambar);
+    color: #fff;
+    box-shadow: 0 0 0 2px var(--ambar), var(--sombra);
+}
+
+.radio-cerca-mic.grabando svg {
+    color: #fff;
+}
+
+.radio-cerca-mas strong {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ambar);
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.radio-cerca-mas.on {
+    background: #fff8ee;
+    box-shadow: 0 0 0 2px var(--ambar), var(--sombra);
+}
+
 .hud-btn,
 .estado,
 .switch-popups,
@@ -808,6 +910,18 @@ body.modo-nav-gps .marker-propio {
 #btnNavGps.on {
     background: #fff8ee;
     box-shadow: 0 0 0 2px var(--ambar), var(--sombra);
+}
+
+.hud-ico.perfil-centrar {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    background: transparent;
+    box-shadow: none;
+}
+
+.hud-ico.perfil-centrar:hover {
+    background: #fff8ee;
 }
 
 .punto-rec {
@@ -1549,36 +1663,40 @@ body.mosaico-listo .marker-otro .auto-cuerpo {
 }
 
 .leaflet-tooltip.ficha {
-    background: #fff;
+    background: rgba(255, 250, 244, 0.88);
     color: var(--tinta);
     border: 0;
-    border-radius: 16px;
-    box-shadow: var(--sombra);
+    border-radius: 22px;
+    box-shadow: 0 12px 32px rgba(28, 24, 16, 0.16);
     padding: 0;
     white-space: normal;
     pointer-events: auto;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .leaflet-tooltip.ficha::before {
-    border-top-color: #fff;
+    border-top-color: rgba(255, 250, 244, 0.88);
 }
 
 .leaflet-tooltip-bottom.ficha::before {
-    border-bottom-color: #fff;
+    border-bottom-color: rgba(255, 250, 244, 0.88);
     border-top-color: transparent;
 }
 
 .ficha-propia {
-    border-color: #e8c49a !important;
+    border-color: rgba(245, 166, 35, 0.35) !important;
 }
 
 .v2v-popup {
-    min-width: 214px;
-    padding: 12px 12px 11px;
+    min-width: 228px;
+    max-width: 268px;
+    padding: 14px 16px 16px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    gap: 8px;
+    gap: 6px;
+    text-align: center;
 }
 
 .v2v-popup-top {
@@ -1586,6 +1704,7 @@ body.mosaico-listo .marker-otro .auto-cuerpo {
     align-items: flex-start;
     justify-content: space-between;
     gap: 8px;
+    text-align: left;
 }
 
 .v2v-popup-top .para {
@@ -1600,7 +1719,7 @@ body.mosaico-listo .marker-otro .auto-cuerpo {
     padding: 0;
     border: 0;
     background: transparent;
-    color: var(--suave);
+    color: #3d3d3d;
     cursor: pointer;
     display: grid;
     place-items: center;
@@ -1618,22 +1737,51 @@ body.mosaico-listo .marker-otro .auto-cuerpo {
 
 .v2v-popup .para {
     font-size: 10px;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.7px;
     text-transform: uppercase;
     color: var(--ambar);
     margin-bottom: 0;
+    font-weight: 700;
 }
 
 .v2v-popup h4 {
-    font-size: 16px;
+    font-size: 22px;
     font-weight: 700;
-    margin-bottom: 2px;
-    line-height: 1.15;
+    margin: 2px 0 0;
+    line-height: 1.1;
+    color: var(--tinta);
 }
 
 .v2v-popup .ficha-vehiculo {
     font-size: 12px;
     color: var(--suave);
+    letter-spacing: 0.2px;
+}
+
+.ficha-estado {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--suave);
+    margin: 2px 0 4px;
+}
+
+.ficha-senal {
+    display: inline-flex;
+    color: var(--suave);
+}
+
+.ficha-senal svg {
+    width: 16px;
+    height: 12px;
+    display: block;
+}
+
+.ficha-estado.sos,
+.ficha-estado.sos .ficha-senal {
+    color: #c0392b;
 }
 
 .v2v-popup-datos {
@@ -1690,7 +1838,7 @@ body.mosaico-listo .marker-otro .auto-cuerpo {
 .v2v-popup .acciones-sec {
     display: flex;
     gap: 10px;
-    justify-content: space-between;
+    justify-content: center;
 }
 
 .v2v-popup .acciones-sec button,
@@ -1806,6 +1954,121 @@ body.mosaico-listo .marker-otro .auto-cuerpo {
 
 .btn-walkie.grabando small {
     color: rgba(255, 255, 255, 0.75);
+}
+
+.walkie-radio {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 2px 0 4px;
+}
+
+.btn-walkie-redondo {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    margin: 2px auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    touch-action: none;
+    display: grid;
+    place-items: center;
+}
+
+.walkie-mic-grande {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--ambar);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 0 0 3px rgba(255, 250, 244, 0.92), 0 0 0 6px var(--ambar);
+    position: relative;
+    z-index: 1;
+}
+
+.walkie-mic-grande svg {
+    width: 28px;
+    height: 28px;
+    display: block;
+}
+
+.walkie-ondas {
+    position: absolute;
+    inset: 6px;
+    pointer-events: none;
+}
+
+.walkie-ondas::before,
+.walkie-ondas::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 22px;
+    height: 42px;
+    margin-top: -21px;
+    border: 2px solid rgba(245, 166, 35, 0.4);
+    border-radius: 50%;
+}
+
+.walkie-ondas::before {
+    left: 2px;
+    border-color: transparent transparent transparent rgba(245, 166, 35, 0.42);
+}
+
+.walkie-ondas::after {
+    right: 2px;
+    border-color: transparent rgba(245, 166, 35, 0.42) transparent transparent;
+}
+
+.walkie-radio .walkie-idle,
+.walkie-radio .walkie-on {
+    margin: 4px 0 0;
+    text-align: center;
+}
+
+.walkie-radio .walkie-on {
+    display: none;
+}
+
+.walkie-radio.grabando .walkie-idle {
+    display: none;
+}
+
+.walkie-radio.grabando .walkie-on {
+    display: block;
+}
+
+.walkie-radio strong {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.45px;
+    text-transform: uppercase;
+    color: var(--tinta);
+}
+
+.walkie-radio small {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--suave);
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.btn-walkie-redondo.grabando .walkie-mic-grande {
+    background: #e8940f;
+    animation: pulso-mic 0.85s ease-in-out infinite;
+}
+
+@keyframes pulso-mic {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
 }
 
 .btn-icon-lista.grabando {
@@ -1936,27 +2199,6 @@ body.mosaico-listo .marker-otro .auto-cuerpo {
     box-shadow: var(--sombra);
 }
 
-.btn-cancelar-ruta {
-    display: inline-flex;
-    align-items: center;
-    padding: 10px 14px;
-    background: #fff;
-    color: var(--navy);
-    border: 0;
-    border-radius: 16px;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.3px;
-    text-transform: uppercase;
-    cursor: pointer;
-    box-shadow: var(--sombra);
-}
-
-.btn-cancelar-ruta:hover {
-    background: #fff4f2;
-    color: #c0392b;
-}
-
 .btn-sos-mapa svg {
     width: 16px;
     height: 16px;
@@ -2019,13 +2261,12 @@ body.modo-manejo .habla-mapa {
 body.modo-manejo .perfil-form,
 body.modo-manejo #btnQueEs,
 body.modo-manejo .switch-popups,
-body.modo-manejo .marca-mini span,
-body.modo-manejo .perfil-centrar {
+body.modo-manejo .marca-mini span {
     display: none !important;
 }
 
 body.modo-manejo .perfil-cabeza {
-    padding-bottom: 10px;
+    padding: 6px;
 }
 
 body.modo-manejo .btn-ptt-mapa {

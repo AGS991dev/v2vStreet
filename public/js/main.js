@@ -17,6 +17,7 @@
     const ICONO_KEY = "v2v_icono";
     const ICONO_CACHE = "20260821c";
     const ICO_MIC = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
+    const ICO_SENAL = '<svg viewBox="0 0 20 16" aria-hidden="true"><rect x="1" y="10" width="3" height="5" rx="0.6" fill="currentColor"/><rect x="6" y="7" width="3" height="8" rx="0.6" fill="currentColor"/><rect x="11" y="4" width="3" height="11" rx="0.6" fill="currentColor"/><rect x="16" y="1" width="3" height="14" rx="0.6" fill="currentColor"/></svg>';
     const ICO_PIN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.6-7-11a7 7 0 1 1 14 0c0 6.4-7 11-7 11z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.2" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>';
     const ICO_VEL = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 13l4-4M8 13h.01M16 13h.01M12 7h.01" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
     const ICO_RUMBO = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 4.5v3M12 16.5v3M4.5 12h3M16.5 12h3M12 12l3.2-4.4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
@@ -95,6 +96,8 @@
     let pttAckHecho = false;
     let popupsVisibles = true;
     let fichasForzadas = {};
+    let radioCercaAbierta = false;
+    const RADIO_CERCA_MAX = 9;
     let introPaso = 0;
     let introGpsResuelto = false;
     let permitirSalir = false;
@@ -127,7 +130,7 @@
         if (modoNavGps && id === miId) return false;
         if (fichasForzadas[id] === "cerrada") return false;
         if (fichasForzadas[id] === "abierta") return true;
-        if (id === miId) return true;
+        if (id === miId) return false;
         return popupsVisibles;
     }
 
@@ -136,6 +139,7 @@
         const marker = markers[id];
         if (!marker) return;
         marker.openTooltip();
+        silenciarHoverFicha(marker, id);
         requestAnimationFrame(function () { engancharFicha(marker, id); });
         if (id !== miId) pedirFicha(id);
     }
@@ -151,15 +155,28 @@
         marker._clickFicha = true;
         marker.on("click", function (ev) {
             L.DomEvent.stopPropagation(ev);
+            if (id === miId && fichasForzadas[id] === "abierta") {
+                cerrarFicha(id);
+                return;
+            }
             abrirFicha(id);
         });
     }
+
+    function silenciarHoverFicha(marker, id) {
+        if (!marker || id !== miId) return;
+        marker.off("mouseover");
+        marker.off("mouseout");
+        marker.off("mousemove");
+    }
+
     function fichaOpts(soyYo, a) {
         const sos = !!(a && a.asistencia && a.asistencia.activo);
         return Object.assign({}, FICHA_BASE, {
             direction: soyYo ? "bottom" : "top",
             offset: soyYo ? [0, 14] : [0, -16],
-            className: "ficha" + (soyYo ? " ficha-propia" : "") + (sos ? " ficha-sos" : "")
+            permanent: !soyYo,
+            className: "ficha" + (soyYo ? " ficha-propia" : " ficha-radio") + (sos ? " ficha-sos" : "")
         });
     }
 
@@ -369,6 +386,7 @@
                 if (marker) marker._iconoSrc = "";
                 aplicarIconoEnMarker(id, iconoDeAuto(a));
             });
+            renderizarContactos();
         };
         img.onerror = function () {
             probarMosaico(lista, i + 1);
@@ -1237,14 +1255,8 @@
         limpiarCapaRuta();
         navegacion = null;
         try { localStorage.removeItem(NAV_KEY); } catch (e) {}
-        pintarBotonCancelarRuta(false);
         const hud = $("hudRuta");
         if (hud) hud.classList.add("oculto");
-    }
-
-    function pintarBotonCancelarRuta(on) {
-        const btn = $("btnCancelarRutaMapa");
-        if (btn) btn.classList.toggle("oculto", !on);
     }
 
     function cartelLlegasteVisible() {
@@ -1327,10 +1339,8 @@
         if (!hud) return;
         if (!navegacion) {
             hud.classList.add("oculto");
-            pintarBotonCancelarRuta(false);
             return;
         }
-        pintarBotonCancelarRuta(true);
         if (!miPosicion) {
             hud.classList.add("oculto");
             return;
@@ -1356,7 +1366,6 @@
             etaEl.textContent = textoDuracion(seg) + " · Llegás " + textoEta(seg);
         }
         hud.classList.remove("oculto");
-        pintarBotonCancelarRuta(true);
     }
 
     function iniciarNavegacion(dest, opts) {
@@ -1379,7 +1388,6 @@
         const pasoEl = $("hudRutaPaso");
         const dist = $("hudRutaDist");
         if (hud) hud.classList.remove("oculto");
-        pintarBotonCancelarRuta(true);
         if (pasoEl) pasoEl.textContent = "Armando ruta…";
         if (dist) dist.textContent = "";
         if (navegacion) navegacion.ts = Date.now();
@@ -1974,25 +1982,33 @@
         const soyYo = a.id === miId;
         const det = datosFichaDe(a);
         const placa = det ? det.placa : "";
-        const seguro = det ? det.seguro : "";
         const telRaw = det ? det.contacto : "";
         const tel = (telRaw || "").replace(/[^\d+]/g, "");
-        const nombre = a.nombre || (soyYo ? "Vos" : "Sin nombre");
-        const destino = soyYo ? etiquetaCanal() : nombre;
+        const nombre = soyYo ? "YO" : (a.nombre || "Sin nombre");
         const sos = !!(a.asistencia && a.asistencia.activo) || (soyYo && asistenciaActiva);
         const ausente = !soyYo && !!a.ausente;
-        const walkie =
-            '<button type="button" class="btn-ficha btn-walkie" data-accion="walkie">' +
-                '<span class="walkie-mic" aria-hidden="true">' + ICO_MIC + "</span>" +
-                '<span class="walkie-idle">' +
-                    "<strong>Mantené para hablar</strong>" +
-                    "<small>Walkie a " + esc(destino) + "</small>" +
-                "</span>" +
-                '<span class="walkie-on">' +
-                    "<strong>Hablando</strong>" +
-                    "<small>Soltá para enviar</small>" +
-                "</span>" +
-            "</button>";
+        const vehiculo = a.vehiculo || "Vehículo";
+        const lineaVeh = placa ? (vehiculo + " · " + placa) : vehiculo;
+        let dist = "";
+        if (!soyYo && miPosicion && a.lat && a.lng) {
+            dist = textoDistancia(calcularDistanciaKm(miPosicion.lat, miPosicion.lng, a.lat, a.lng));
+        }
+        const estadoTxt = sos
+            ? "Pide ayuda"
+            : (ausente
+                ? "Sin señal" + (textoHace(a.ultimaActualizacion) ? " · " + textoHace(a.ultimaActualizacion) : "")
+                : "Conectado");
+        const estadoLinea = dist ? (estadoTxt + " · " + dist) : estadoTxt;
+        const walkie = soyYo ? "" : (
+            '<div class="walkie-radio">' +
+                '<button type="button" class="btn-walkie-redondo" data-accion="walkie" aria-label="Mantené para hablar">' +
+                    '<span class="walkie-ondas" aria-hidden="true"></span>' +
+                    '<span class="walkie-mic-grande">' + ICO_MIC + "</span>" +
+                "</button>" +
+                '<p class="walkie-idle"><strong>Mantené para hablar</strong><small>Soltá para escuchar</small></p>' +
+                '<p class="walkie-on"><strong>Hablando</strong><small>Soltá para enviar</small></p>' +
+            "</div>"
+        );
         let extra = "";
         if (soyYo) {
             extra = '<div class="acciones-sec">' +
@@ -2008,35 +2024,22 @@
                     : '<button type="button" class="btn-ficha" data-accion="ficha">' + ICO_SEGURO + " Ver datos</button>") +
                 "</div>";
         }
-        let datos = fichaDato(ICO_VEL, "Velocidad", Math.round(a.velocidad || 0) + " km/h");
-        datos += fichaDato(ICO_RUMBO, "Rumbo", textoRumbo(a.rumbo));
-        if (!soyYo && miPosicion && a.lat && a.lng) {
-            datos += fichaDato(ICO_PIN, "Distancia", textoDistancia(calcularDistanciaKm(miPosicion.lat, miPosicion.lng, a.lat, a.lng)));
-        }
-        if (det) {
-            if (placa) datos += fichaDato(ICO_PATENTE, "Patente", placa);
-            if (seguro) datos += fichaDato(ICO_SEGURO, "Seguro", seguro);
-            if (telRaw && !tel) datos += fichaDato(ICO_TEL, "Contacto", telRaw);
-        } else if (!soyYo) {
-            datos += '<p class="ficha-priv">Teléfono y seguro se piden al abrir.</p>';
-        }
 
         return (
-            '<div class="v2v-popup" data-id="' + esc(a.id) + '">' +
+            '<div class="v2v-popup' + (soyYo ? " v2v-popup-propia" : " v2v-popup-radio") + '" data-id="' + esc(a.id) + '">' +
                 '<div class="v2v-popup-top">' +
-                    '<p class="para">' +
-                        (sos ? "Pide ayuda" : (ausente
-                            ? "Sin señal · " + (textoHace(a.ultimaActualizacion) || "última vez hace un rato")
-                            : (soyYo ? "Tu radio · " + etiquetaCanal() + " te oye" : (a.enGrupo ? "Mismo grupo" : "Directo a esta persona")))) +
-                    "</p>" +
+                    '<p class="para">' + (sos ? "Pide ayuda" : "Radio en directo") + "</p>" +
                     '<button type="button" class="btn-cerrar-ficha" data-accion="cerrar" title="Cerrar" aria-label="Cerrar">' +
                         '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>' +
                     "</button>" +
                 "</div>" +
                 "<h4>" + esc(nombre) + "</h4>" +
-                '<p class="ficha-vehiculo">' + esc(a.vehiculo || "Vehículo") + "</p>" +
-                '<div class="v2v-popup-datos">' + datos + "</div>" +
-                '<div class="acciones">' + walkie + extra + "</div>" +
+                '<p class="ficha-vehiculo">' + esc(lineaVeh) + "</p>" +
+                '<p class="ficha-estado' + (ausente ? " ausente" : "") + (sos ? " sos" : "") + '">' +
+                    '<span class="ficha-senal" aria-hidden="true">' + ICO_SENAL + "</span>" +
+                    esc(estadoLinea) +
+                "</p>" +
+                walkie + extra +
             "</div>"
         );
     }
@@ -2059,15 +2062,18 @@
                         empezarPtt("privado");
                     }
                     btn.classList.add("grabando");
+                    if (btn.parentElement) btn.parentElement.classList.add("grabando");
                 };
                 btn.onpointerup = function (ev) {
                     ev.preventDefault();
                     ev.stopPropagation();
                     btn.classList.remove("grabando");
+                    if (btn.parentElement) btn.parentElement.classList.remove("grabando");
                     detenerPtt();
                 };
                 btn.onpointercancel = function () {
                     btn.classList.remove("grabando");
+                    if (btn.parentElement) btn.parentElement.classList.remove("grabando");
                     detenerPtt();
                 };
                 btn.oncontextmenu = function (ev) { ev.preventDefault(); };
@@ -2110,11 +2116,12 @@
             const marker = L.marker(latlng, {
                 icon: crearIcono(soyYo, iconoDeAuto(a)),
                 zIndexOffset: soyYo ? 1000 : 0,
-                title: a.nombre || (soyYo ? "Vos" : "Vehículo")
+                title: a.nombre || (soyYo ? "YO" : "Vehículo")
             }).addTo(map);
             marker.bindTooltip(fichaHtml(a), fichaOpts(soyYo, a));
             markers[a.id] = marker;
             engancharClickMarker(marker, a.id);
+            silenciarHoverFicha(marker, a.id);
             aplicarIconoEnMarker(a.id, iconoDeAuto(a));
             marcarSosMarker(a.id, !!(a.asistencia && a.asistencia.activo));
             marcarAusente(a.id, !!a.ausente);
@@ -2159,7 +2166,8 @@
             const abierta = m.isTooltipOpen && m.isTooltipOpen();
             m.unbindTooltip();
             m.bindTooltip(fichaHtml(a), opts);
-            if (debeMostrarFicha(id) || abierta) {
+            silenciarHoverFicha(m, id);
+            if (debeMostrarFicha(id) || (abierta && id !== miId)) {
                 m.openTooltip();
                 requestAnimationFrame(function () { engancharFicha(m, id); });
             } else {
@@ -2225,10 +2233,7 @@
     // ===================================================
     // Contactos (aside)
     // ===================================================
-    function renderizarContactos() {
-        const contenedor = $("listaContactos");
-        contenedor.innerHTML = "";
-
+    function obtenerListaCerca() {
         const lista = [];
         Object.keys(autos).forEach(function (id) {
             if (id === miId) return;
@@ -2245,7 +2250,6 @@
                 sos: !!(a.asistencia && a.asistencia.activo)
             });
         });
-
         lista.sort(function (x, y) {
             if (x.sos !== y.sos) return x.sos ? -1 : 1;
             if (x.enGrupo !== y.enGrupo) return x.enGrupo ? -1 : 1;
@@ -2253,6 +2257,139 @@
             const dy = y.dist == null ? 9999 : y.dist;
             return dx - dy;
         });
+        return lista;
+    }
+
+    function htmlAvatarCerca(a) {
+        const xy = iconoDeAuto(a);
+        const rec = recorteCelda(xy.x, xy.y);
+        if (rec && rec.url) {
+            return '<img alt="" src="' + rec.url + '">';
+        }
+        return ICO_PIN;
+    }
+
+    function engancharWalkieCerca(btn, id) {
+        if (!btn) return;
+        btn.addEventListener("pointerdown", function (ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            ctxPtt();
+            if (btn.setPointerCapture) btn.setPointerCapture(ev.pointerId);
+            seleccionarContacto(id, true);
+            empezarPtt("privado");
+            btn.classList.add("grabando");
+        });
+        btn.addEventListener("pointerup", function (ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            btn.classList.remove("grabando");
+            detenerPtt();
+        });
+        btn.addEventListener("pointercancel", function () {
+            btn.classList.remove("grabando");
+            detenerPtt();
+        });
+        btn.addEventListener("contextmenu", function (ev) { ev.preventDefault(); });
+    }
+
+    function crearFilaRadioCerca(item) {
+        const fila = document.createElement("div");
+        fila.className = "radio-cerca-item" +
+            (item.sos ? " sos" : "") +
+            (item.a.ausente ? " ausente" : "") +
+            (contactoActivo === item.id ? " activo" : "");
+        fila.setAttribute("data-id", item.id);
+        const nom = item.a.nombre || "Sin nombre";
+        const dist = item.dist == null ? "—" : textoDistancia(item.dist);
+        fila.innerHTML =
+            '<div class="radio-cerca-meta">' +
+                "<strong>" + esc(nom) + "</strong>" +
+                "<small>" + esc(dist) + "</small>" +
+            "</div>" +
+            '<button type="button" class="hud-btn hud-ico radio-cerca-mic" title="Mantené para hablarle a ' + esc(nom) + '">' +
+                ICO_MIC +
+                "<span>Walkie</span>" +
+            "</button>" +
+            '<button type="button" class="hud-btn hud-ico radio-cerca-auto" title="' + esc(nom) + '">' +
+                htmlAvatarCerca(item.a) +
+                "<span>" + esc(nom) + "</span>" +
+            "</button>";
+        const btnAuto = fila.querySelector(".radio-cerca-auto");
+        btnAuto.addEventListener("click", function (ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            seleccionarContacto(item.id);
+            abrirFicha(item.id);
+            const a = item.a;
+            if (a && Number.isFinite(Number(a.lat)) && Number.isFinite(Number(a.lng))) {
+                map.setView([a.lat, a.lng], Math.max(map.getZoom(), 16));
+            }
+        });
+        engancharWalkieCerca(fila.querySelector(".radio-cerca-mic"), item.id);
+        return fila;
+    }
+
+    function renderizarRadioCerca(lista) {
+        const el = $("radioCerca");
+        if (!el || pttActivo) return;
+        lista = lista || obtenerListaCerca();
+        const radio = radioKmActual();
+        const enRadio = lista.filter(function (item) {
+            if (item.enGrupo) return true;
+            if (item.dist == null) return true;
+            return item.dist <= radio;
+        });
+        el.innerHTML = "";
+        if (!enRadio.length) {
+            radioCercaAbierta = false;
+            el.classList.remove("abierta");
+            return;
+        }
+        if (enRadio.length <= RADIO_CERCA_MAX) radioCercaAbierta = false;
+        const hayExtra = enRadio.length > RADIO_CERCA_MAX;
+        const visibles = (!hayExtra || radioCercaAbierta)
+            ? enRadio
+            : enRadio.slice(0, RADIO_CERCA_MAX - 1);
+        visibles.forEach(function (item) {
+            el.appendChild(crearFilaRadioCerca(item));
+        });
+        if (hayExtra && !radioCercaAbierta) {
+            const n = enRadio.length - visibles.length;
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "hud-btn hud-ico radio-cerca-mas";
+            btn.title = "Ver " + n + " más en la radio";
+            btn.innerHTML = "<strong>+" + n + "</strong><span>Más</span>";
+            btn.addEventListener("click", function (ev) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                radioCercaAbierta = true;
+                renderizarRadioCerca(enRadio);
+            });
+            el.appendChild(btn);
+        } else if (hayExtra) {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "hud-btn hud-ico radio-cerca-mas on";
+            btn.title = "Ocultar";
+            btn.innerHTML = "<strong>×</strong><span>Cerrar</span>";
+            btn.addEventListener("click", function (ev) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                radioCercaAbierta = false;
+                renderizarRadioCerca(enRadio);
+            });
+            el.appendChild(btn);
+        }
+        el.classList.toggle("abierta", radioCercaAbierta);
+    }
+
+    function renderizarContactos() {
+        const contenedor = $("listaContactos");
+        const lista = obtenerListaCerca();
+        renderizarRadioCerca(lista);
+        contenedor.innerHTML = "";
 
         if (!miPosicion && !lista.length) {
             contenedor.innerHTML = '<p class="vacio">Activá la ubicación para armar la RADIO.</p>';
@@ -2376,7 +2513,7 @@
         if ($("lblEnviarPrivado")) $("lblEnviarPrivado").textContent = "A " + (a.nombre || "esa persona");
         if ($("txtPrivado")) $("txtPrivado").placeholder = "Mensaje a " + (a.nombre || "esa persona") + "…";
         pintarHistorialPrivado(id);
-        renderizarContactos();
+        if (!silencioso && !pttActivo) renderizarContactos();
         if (!silencioso && markers[id]) {
             if (debeMostrarFicha(id)) markers[id].openTooltip();
             map.setView([a.lat, a.lng], Math.max(map.getZoom(), 15));
@@ -2981,14 +3118,44 @@
             clearTimeout(pttTimer);
             pttTimer = null;
         }
-        document.querySelectorAll(".btn-ptt, .btn-ptt-mapa").forEach(function (b) {
+        document.querySelectorAll(".btn-ptt, .btn-ptt-mapa, .btn-walkie, .btn-walkie-redondo, .radio-cerca-mic").forEach(function (b) {
             b.classList.remove("grabando");
+            if (b.parentElement) b.parentElement.classList.remove("grabando");
         });
         if ($("destinoHabla")) $("destinoHabla").classList.remove("transmitiendo");
         setAvisoAudio("");
         actualizarDestinoUI();
         if (pttRecorder && pttRecorder.state === "recording") pttRecorder.stop();
         else if (!pttChunks.length) avisarEnvioPtt(false);
+    }
+
+    function apagarMicrofono() {
+        if (pttTimer) {
+            clearTimeout(pttTimer);
+            pttTimer = null;
+        }
+        pttActivo = false;
+        pttChunks = [];
+        detenerTranscripcionPtt();
+        if (pttRecorder) {
+            try { pttRecorder.onstop = null; } catch (e) {}
+            try {
+                if (pttRecorder.state === "recording") pttRecorder.stop();
+            } catch (e) {}
+            pttRecorder = null;
+        }
+        if (pttStream) {
+            pttStream.getTracks().forEach(function (t) {
+                try { t.stop(); } catch (e) {}
+            });
+            pttStream = null;
+        }
+        document.querySelectorAll(".btn-ptt, .btn-ptt-mapa, .btn-walkie, .btn-walkie-redondo, .radio-cerca-mic").forEach(function (b) {
+            b.classList.remove("grabando");
+            if (b.parentElement) b.parentElement.classList.remove("grabando");
+        });
+        if ($("destinoHabla")) $("destinoHabla").classList.remove("transmitiendo");
+        setAvisoAudio("");
     }
 
     function empezarTranscripcionPtt() {
@@ -3595,7 +3762,6 @@
             });
         }
         if ($("btnCancelarRuta")) $("btnCancelarRuta").addEventListener("click", cancelarNavegacion);
-        if ($("btnCancelarRutaMapa")) $("btnCancelarRutaMapa").addEventListener("click", cancelarNavegacion);
         if ($("cartelLlegaste")) $("cartelLlegaste").addEventListener("click", ocultarCartelLlegaste);
         if (yaEntroMapa()) pedirWakeLock();
         if (miGrupo) {
@@ -3712,6 +3878,7 @@
     }
 
     function salirDeLaApp() {
+        apagarMicrofono();
         permitirSalir = true;
         ocultarModalSalir();
         window.removeEventListener("popstate", onPopAtras);
