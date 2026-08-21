@@ -10,13 +10,32 @@
 
     .comms-panel {
         right: 0;
+        left: auto;
+        top: 0;
         width: 380px;
         height: 100%;
+        max-height: none;
         bottom: 0;
         background: var(--nieve);
         transition: none;
+        transform: none;
         padding-bottom: 0;
         border-left: 1px solid var(--linea);
+        border-radius: 0;
+        box-shadow: none;
+        overflow: hidden;
+    }
+
+    .comms-handle {
+        display: none;
+    }
+
+    .usos-linea {
+        display: flex;
+    }
+
+    .comms-contactos {
+        flex: 0 0 42%;
     }
 
     .btn-toggle-comms,
@@ -70,6 +89,12 @@
         left: 16px;
         transform: none;
         bottom: 92px;
+    }
+
+    .ack-walkie {
+        left: 16px;
+        transform: none;
+        bottom: 148px;
     }
 
     .aviso-gps {

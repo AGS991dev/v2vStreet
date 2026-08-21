@@ -859,22 +859,38 @@ body {
 
 .comms-panel {
     position: fixed;
-    top: 0;
-    right: -100%;
-    width: 100%;
-    height: auto;
+    left: 0;
+    right: 0;
+    top: auto;
     bottom: var(--dock-h);
+    width: 100%;
+    height: min(54vh, 500px);
+    max-height: calc(100% - var(--dock-h) - 64px);
     background: var(--nieve);
     border-left: 0;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -10px 32px rgba(28, 24, 16, 0.16);
     z-index: 2000;
     display: flex;
     flex-direction: column;
-    transition: right 0.28s ease;
+    transform: translateY(110%);
+    transition: transform 0.28s ease;
     padding-bottom: 0;
+    overflow: hidden;
 }
 
 .comms-panel.open {
-    right: 0;
+    transform: translateY(0);
+}
+
+.comms-handle {
+    display: block;
+    width: 42px;
+    height: 4px;
+    border-radius: 4px;
+    background: var(--linea);
+    margin: 8px auto 0;
+    flex: 0 0 auto;
 }
 
 .comms-header {
@@ -882,7 +898,7 @@ body {
     justify-content: space-between;
     align-items: flex-start;
     gap: 8px;
-    padding: 16px 14px 8px;
+    padding: 8px 14px 8px;
 }
 
 .comms-header h2 {
@@ -943,8 +959,12 @@ body {
 }
 
 .comms-contactos {
-    flex: 0 0 36%;
+    flex: 1 1 52%;
     border-bottom: 1px solid var(--linea);
+}
+
+.usos-linea {
+    display: none;
 }
 
 .comms-chat {
@@ -1022,6 +1042,10 @@ body {
 .contacto.activo {
     border-color: var(--ambar);
     background: #fff8ee;
+}
+
+.contacto.contacto-ausente {
+    opacity: 0.72;
 }
 
 .contacto strong {
@@ -1403,11 +1427,53 @@ body {
     white-space: nowrap;
 }
 
+.ack-walkie {
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--dock-h) + 86px);
+    transform: translateX(-50%);
+    z-index: 1700;
+    padding: 12px 22px;
+    border-radius: 14px;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    box-shadow: var(--sombra);
+    pointer-events: none;
+}
+
+.ack-walkie.ok {
+    background: #1f7a4d;
+    color: #fff;
+}
+
+.ack-walkie.fail {
+    background: #c0392b;
+    color: #fff;
+}
+
+.destino-habla.transmitiendo {
+    box-shadow: 0 0 0 3px var(--ambar), var(--sombra);
+}
+
+.destino-habla.ack-ok {
+    box-shadow: 0 0 0 3px #1f7a4d, var(--sombra);
+}
+
+.destino-habla.ack-fail {
+    box-shadow: 0 0 0 3px #c0392b, var(--sombra);
+}
+
 /* ================= MARKERS Y POPUPS ================= */
 
 .marker-auto {
     background: transparent !important;
     border: 0 !important;
+}
+
+.marker-auto.ausente {
+    opacity: 0.48;
+    filter: grayscale(0.85);
 }
 
 .auto-rot {
@@ -1937,6 +2003,35 @@ body.modo-manejo .btn-sos-mapa {
     font-size: 12px;
 }
 
+body.modo-manejo .destino-habla {
+    max-width: min(340px, 78%);
+    padding: 14px 16px;
+}
+
+body.modo-manejo .destino-habla span {
+    font-size: 12px;
+    letter-spacing: 0.5px;
+}
+
+body.modo-manejo .destino-habla strong {
+    font-size: 20px;
+    line-height: 1.2;
+}
+
+body.modo-manejo .aviso-audio {
+    font-size: 16px;
+    padding: 12px 16px;
+}
+
+body.modo-manejo .ack-walkie {
+    font-size: 22px;
+    padding: 14px 26px;
+}
+
+body.modo-manejo .hud-ruta-txt p {
+    font-size: 18px;
+}
+
 @keyframes pulso-sos {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.06); }
@@ -1955,17 +2050,37 @@ body.modo-manejo .btn-sos-mapa {
     background: #fff;
     border: 0;
     border-radius: 14px;
-    padding: 8px 10px 8px 12px;
+    padding: 10px 10px 10px 14px;
     box-shadow: var(--sombra);
     max-width: 100%;
 }
 
-.hud-ruta strong {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--navy);
+.hud-ruta-txt {
     flex: 1;
     min-width: 0;
+}
+
+.hud-ruta-txt p {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--navy);
+    line-height: 1.2;
+}
+
+.hud-ruta-txt strong {
+    display: block;
+    margin-top: 2px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tinta);
+}
+
+.hud-ruta-txt span {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--suave);
 }
 
 .hud-ruta button {

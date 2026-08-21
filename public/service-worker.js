@@ -1,4 +1,4 @@
-const CACHE = "radiomap-20260821c";
+const CACHE = "radiomap-20260821d";
 
 self.addEventListener("install", event => {
     self.skipWaiting();

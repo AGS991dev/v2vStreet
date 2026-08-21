@@ -106,6 +106,7 @@
     let encuentros = {};
     let llegasteTimer = null;
     const ENC_KEY = "radiomap_encuentros";
+    let ackWalkieTimer = null;
 
     function debeMostrarFicha(id) {
         if (fichasForzadas[id] === "cerrada") return false;
@@ -768,6 +769,89 @@
         return best;
     }
 
+    function extraerPasos(ruta) {
+        const out = [];
+        ((ruta && ruta.legs) || []).forEach(function (leg) {
+            (leg.steps || []).forEach(function (s) { out.push(s); });
+        });
+        return out;
+    }
+
+    function textoModificador(mod) {
+        const m = String(mod || "").toLowerCase();
+        if (m.indexOf("sharp right") >= 0) return "cerrado a la derecha";
+        if (m.indexOf("sharp left") >= 0) return "cerrado a la izquierda";
+        if (m.indexOf("slight right") >= 0) return "levemente a la derecha";
+        if (m.indexOf("slight left") >= 0) return "levemente a la izquierda";
+        if (m === "right") return "a la derecha";
+        if (m === "left") return "a la izquierda";
+        if (m === "straight") return "derecho";
+        if (m === "uturn") return "giro en U";
+        return "";
+    }
+
+    function textoManiobra(step) {
+        if (!step) return "Seguí derecho";
+        const man = step.maneuver || {};
+        const tipo = String(man.type || "");
+        const mod = textoModificador(man.modifier);
+        const calle = String(step.name || "").trim();
+        if (tipo === "arrive") return "llegás";
+        if (tipo === "depart") return calle ? "salí por " + calle : "salí";
+        if (tipo === "roundabout" || tipo === "rotary") return "entrá a la rotonda";
+        if (tipo === "exit roundabout" || tipo === "exit rotary") {
+            return mod ? "salí " + mod : "salí de la rotonda";
+        }
+        if (tipo === "merge") return mod ? "incorporate " + mod : "incorporate";
+        if (tipo === "fork") return mod ? "tomá el ramal " + mod : "tomá el ramal";
+        if (tipo === "end of road") return mod ? "al final, " + mod : "al final de la calle";
+        if (tipo === "on ramp") return "tomá la rampa";
+        if (tipo === "off ramp" || tipo === "exit") return "tomá la salida";
+        if (tipo === "uturn" || man.modifier === "uturn") return "giro en U";
+        if (tipo === "turn" && mod) return mod;
+        if (tipo === "continue" || tipo === "new name") {
+            return mod && mod !== "derecho" ? mod : "seguí derecho";
+        }
+        return mod || "seguí derecho";
+    }
+
+    function textoEnMetros(m) {
+        if (m < 28) return "Ahora";
+        if (m < 1000) return "En " + Math.max(10, Math.round(m / 10) * 10) + " m";
+        return "En " + (m / 1000).toFixed(1).replace(".", ",") + " km";
+    }
+
+    function pasoVigente(steps, yo, dest) {
+        if (!steps || !steps.length) return null;
+        for (let i = 0; i < steps.length; i++) {
+            const man = steps[i].maneuver || {};
+            const loc = man.location;
+            if (!loc) continue;
+            const p = [loc[1], loc[0]];
+            const d = metrosEntre(yo, p);
+            const tipo = String(man.type || "");
+            if (tipo === "depart" && d < 40) continue;
+            if (d > 18) return { step: steps[i], metros: d };
+        }
+        if (dest) {
+            return {
+                step: { maneuver: { type: "arrive" }, name: "" },
+                metros: metrosEntre(yo, dest)
+            };
+        }
+        return null;
+    }
+
+    function distAPath(yo, path) {
+        if (!path || !path.length) return Infinity;
+        let min = Infinity;
+        for (let i = 0; i < path.length; i++) {
+            const d = metrosEntre(yo, path[i]);
+            if (d < min) min = d;
+        }
+        return min;
+    }
+
     function rutaPorCalle(desde, hasta, nav) {
         const clave = clavePunto(desde[0], desde[1]) + ">" + clavePunto(hasta[0], hasta[1]) + (nav ? ":n" : "");
         if (cacheRuta[clave]) return Promise.resolve(cacheRuta[clave]);
@@ -788,8 +872,16 @@
                 if (Object.keys(cacheRuta).length > 200) {
                     delete cacheRuta[Object.keys(cacheRuta)[0]];
                 }
-                cacheRuta[clave] = path;
-                return path;
+                const res = nav
+                    ? {
+                        path: path,
+                        steps: extraerPasos(ruta),
+                        distance: ruta.distance,
+                        duration: ruta.duration
+                    }
+                    : path;
+                cacheRuta[clave] = res;
+                return res;
             })
             .catch(function () { return nav ? null : [desde, hasta]; });
     }
@@ -996,13 +1088,29 @@
     function actualizarHudRuta() {
         const hud = $("hudRuta");
         const dist = $("hudRutaDist");
-        if (!hud || !dist) return;
+        const pasoEl = $("hudRutaPaso");
+        const calleEl = $("hudRutaCalle");
+        if (!hud) return;
         if (!navegacion || !miPosicion) {
             hud.classList.add("oculto");
             return;
         }
-        const m = metrosEntre([miPosicion.lat, miPosicion.lng], navegacion.dest);
-        dist.textContent = "Ruta · " + textoDistancia(m / 1000);
+        const yo = [miPosicion.lat, miPosicion.lng];
+        const m = metrosEntre(yo, navegacion.dest);
+        const vigente = pasoVigente(navegacion.steps, yo, navegacion.dest);
+        if (pasoEl) {
+            if (vigente) {
+                pasoEl.textContent = textoEnMetros(vigente.metros) + ", " + textoManiobra(vigente.step);
+            } else {
+                pasoEl.textContent = "Seguí la ruta";
+            }
+        }
+        if (calleEl) {
+            const nom = vigente && vigente.step && vigente.step.name ? String(vigente.step.name).trim() : "";
+            calleEl.textContent = nom;
+            calleEl.classList.toggle("oculto", !nom);
+        }
+        if (dist) dist.textContent = "Quedan " + textoDistancia(m / 1000);
         hud.classList.remove("oculto");
     }
 
@@ -1020,14 +1128,17 @@
             return;
         }
         const hud = $("hudRuta");
+        const pasoEl = $("hudRutaPaso");
         const dist = $("hudRutaDist");
         if (hud) hud.classList.remove("oculto");
-        if (dist) dist.textContent = "Armando ruta…";
+        if (pasoEl) pasoEl.textContent = "Armando ruta…";
+        if (dist) dist.textContent = "";
         if (navegacion) navegacion.ts = Date.now();
         const seq = ++navSeq;
         const primera = !navegacion || opts.ajustarVista !== false;
-        rutaPorCalle(yo, hasta, true).then(function (path) {
+        rutaPorCalle(yo, hasta, true).then(function (res) {
             if (seq !== navSeq) return;
+            const path = res && res.path ? res.path : null;
             if (!path || path.length < 2) {
                 if (!navegacion) {
                     alert("No pudimos armar la ruta por las calles. Probá de nuevo.");
@@ -1042,6 +1153,7 @@
                 dest: hasta,
                 origen: yo,
                 path: path,
+                steps: (res && res.steps) || [],
                 ts: Date.now(),
                 sinMarker: !!opts.sinMarker,
                 capaFondo: previa && previa.capaFondo,
@@ -1049,7 +1161,7 @@
                 markerDest: previa && previa.markerDest
             };
             dibujarRuta(path, hasta, !!opts.sinMarker, primera);
-            seguirMe = true;
+            if (primera) seguirMe = true;
             actualizarHudRuta();
         });
     }
@@ -1063,8 +1175,8 @@
             return;
         }
         actualizarHudRuta();
-        const dOrigen = metrosEntre(yo, navegacion.origen);
-        if (dOrigen > 140 && Date.now() - navegacion.ts > 8000) {
+        const dPath = distAPath(yo, navegacion.path);
+        if (dPath > 80 && Date.now() - navegacion.ts > 6000) {
             iniciarNavegacion(navegacion.dest, {
                 sinMarker: !!navegacion.sinMarker,
                 ajustarVista: false
@@ -1083,12 +1195,15 @@
 
     function htmlEncuentro(p) {
         const horario = p.horario ? formatearFechaHora(new Date(p.horario).getTime()) : "";
+        const mio = !p.de || p.de === miId;
         return (
             '<div class="popup-encuentro-cuerpo" data-enc="' + esc(p.id) + '">' +
                 "<h4>" + esc(p.nombre || "Encuentro") + "</h4>" +
                 (horario ? '<p class="enc-horario">' + esc(horario) + "</p>" : "") +
                 (p.descripcion ? "<p>" + esc(p.descripcion) + "</p>" : "") +
-                '<button type="button" data-accion="quitar-enc">Quitar</button>' +
+                (mio
+                    ? '<button type="button" data-accion="quitar-enc">Quitar</button>'
+                    : '<p class="enc-horario">Compartido en la radio</p>') +
             "</div>"
         );
     }
@@ -1131,6 +1246,39 @@
         return marker;
     }
 
+    function aplicarEncuentro(raw, abrir) {
+        if (!raw || !Number.isFinite(Number(raw.lat)) || !Number.isFinite(Number(raw.lng))) return;
+        const p = {
+            id: raw.id || ("enc" + Date.now().toString(36)),
+            lat: Number(raw.lat),
+            lng: Number(raw.lng),
+            nombre: String(raw.nombre || "Encuentro").slice(0, 40),
+            horario: raw.horario || "",
+            descripcion: String(raw.descripcion || "").slice(0, 200),
+            de: raw.de || "",
+            grupo: raw.grupo || "",
+            pendiente: !!raw.pendiente,
+            ts: raw.ts || Date.now()
+        };
+        const prev = encuentros[p.id];
+        if (prev && prev.marker) {
+            prev.lat = p.lat;
+            prev.lng = p.lng;
+            prev.nombre = p.nombre;
+            prev.horario = p.horario;
+            prev.descripcion = p.descripcion;
+            prev.de = p.de || prev.de;
+            prev.grupo = p.grupo;
+            prev.pendiente = false;
+            prev.marker.setLatLng([p.lat, p.lng]);
+            prev.marker.setPopupContent(htmlEncuentro(prev));
+            encuentros[p.id] = prev;
+            if (abrir) prev.marker.openPopup();
+            return prev;
+        }
+        return ponerBanderaEncuentro(p, abrir);
+    }
+
     function guardarEncuentros() {
         const lista = [];
         Object.keys(encuentros).forEach(function (id) {
@@ -1141,7 +1289,10 @@
                 lng: p.lng,
                 nombre: p.nombre || "",
                 horario: p.horario || "",
-                descripcion: p.descripcion || ""
+                descripcion: p.descripcion || "",
+                de: p.de || "",
+                grupo: p.grupo || "",
+                ts: p.ts || Date.now()
             });
         });
         try {
@@ -1157,20 +1308,27 @@
             lista = [];
         }
         if (!Array.isArray(lista)) return;
-        lista.forEach(function (p) {
-            if (!p || !Number.isFinite(Number(p.lat)) || !Number.isFinite(Number(p.lng))) return;
-            ponerBanderaEncuentro({
-                id: p.id || ("enc" + Date.now() + Math.random().toString(36).slice(2, 6)),
-                lat: Number(p.lat),
-                lng: Number(p.lng),
-                nombre: String(p.nombre || "Encuentro").slice(0, 40),
-                horario: p.horario || "",
-                descripcion: String(p.descripcion || "").slice(0, 200)
-            }, false);
-        });
+        lista.forEach(function (p) { aplicarEncuentro(p, false); });
     }
 
-    function quitarEncuentro(id) {
+    function sincronizarEncuentros(lista) {
+        if (!Array.isArray(lista)) return;
+        const vistos = {};
+        lista.forEach(function (p) {
+            if (!p || !p.id) return;
+            vistos[p.id] = true;
+            aplicarEncuentro(p, false);
+        });
+        Object.keys(encuentros).forEach(function (id) {
+            if (vistos[id]) return;
+            const e = encuentros[id];
+            if (e && ((!e.de || e.de === miId) || (e.pendiente && Date.now() - (e.ts || 0) < 20000))) return;
+            quitarEncuentro(id, true);
+        });
+        guardarEncuentros();
+    }
+
+    function quitarEncuentro(id, remoto) {
         const p = encuentros[id];
         if (!p) return;
         if (p.marker) map.removeLayer(p.marker);
@@ -1178,6 +1336,9 @@
         guardarEncuentros();
         if (navegacion && metrosEntre(navegacion.dest, [p.lat, p.lng]) < 8) {
             cancelarNavegacion();
+        }
+        if (!remoto && (!p.de || p.de === miId) && socket.connected) {
+            socket.emit("encuentroQuitar", { id: id });
         }
     }
 
@@ -1200,13 +1361,28 @@
             lng: p.lng,
             nombre: nombre.slice(0, 40),
             horario: horario,
-            descripcion: descripcion.slice(0, 200)
+            descripcion: descripcion.slice(0, 200),
+            de: miId,
+            grupo: miGrupo || "",
+            pendiente: true,
+            ts: Date.now()
         };
         anclarACalle(p.lat, p.lng).then(function (snap) {
             punto.lat = snap[0];
             punto.lng = snap[1];
-            ponerBanderaEncuentro(punto, true);
+            aplicarEncuentro(punto, true);
             guardarEncuentros();
+            socket.emit("encuentroCrear", {
+                id: punto.id,
+                lat: punto.lat,
+                lng: punto.lng,
+                nombre: punto.nombre,
+                horario: punto.horario,
+                descripcion: punto.descripcion
+            }, function (res) {
+                if (res && res.ok && res.encuentro) aplicarEncuentro(res.encuentro, false);
+                guardarEncuentros();
+            });
         });
     }
 
@@ -1417,6 +1593,7 @@
         const nombre = a.nombre || (soyYo ? "Vos" : "Sin nombre");
         const destino = soyYo ? etiquetaCanal() : nombre;
         const sos = !!(a.asistencia && a.asistencia.activo) || (soyYo && asistenciaActiva);
+        const ausente = !soyYo && !!a.ausente;
         const walkie =
             '<button type="button" class="btn-ficha btn-walkie" data-accion="walkie">' +
                 '<span class="walkie-mic" aria-hidden="true">' + ICO_MIC + "</span>" +
@@ -1461,7 +1638,9 @@
             '<div class="v2v-popup" data-id="' + esc(a.id) + '">' +
                 '<div class="v2v-popup-top">' +
                     '<p class="para">' +
-                        (sos ? "Pide ayuda" : (soyYo ? "Tu radio · " + etiquetaCanal() + " te oye" : (a.enGrupo ? "Mismo grupo" : "Directo a esta persona"))) +
+                        (sos ? "Pide ayuda" : (ausente
+                            ? "Sin señal · " + (textoHace(a.ultimaActualizacion) || "última vez hace un rato")
+                            : (soyYo ? "Tu radio · " + etiquetaCanal() + " te oye" : (a.enGrupo ? "Mismo grupo" : "Directo a esta persona")))) +
                     "</p>" +
                     '<button type="button" class="btn-cerrar-ficha" data-accion="cerrar" title="Cerrar" aria-label="Cerrar">' +
                         '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>' +
@@ -1551,9 +1730,11 @@
             engancharClickMarker(marker, a.id);
             aplicarIconoEnMarker(a.id, iconoDeAuto(a));
             marcarSosMarker(a.id, !!(a.asistencia && a.asistencia.activo));
+            marcarAusente(a.id, !!a.ausente);
             requestAnimationFrame(function () {
                 aplicarRumbo(a.id, a.rumbo);
                 aplicarIconoEnMarker(a.id, iconoDeAuto(a));
+                marcarAusente(a.id, !!a.ausente);
                 if (debeMostrarFicha(a.id)) {
                     marker.openTooltip();
                     engancharFicha(marker, a.id);
@@ -1577,6 +1758,7 @@
         aplicarRumbo(a.id, a.rumbo);
         aplicarIconoEnMarker(a.id, iconoDeAuto(a));
         marcarSosMarker(a.id, !!(a.asistencia && a.asistencia.activo));
+        marcarAusente(a.id, !!a.ausente);
         refrescarFicha(a.id, a);
     }
 
@@ -1706,11 +1888,13 @@
                 (contactoActivo === item.id ? " activo" : "") +
                 (primero ? " mas-cerca" : "") +
                 (item.sos ? " contacto-sos" : "") +
-                (item.enGrupo ? " contacto-grupo" : "");
+                (item.enGrupo ? " contacto-grupo" : "") +
+                (item.a.ausente ? " contacto-ausente" : "");
             const tags =
                 (item.sos ? '<em class="tag-cerca tag-sos">Pide ayuda</em>' : "") +
+                (item.a.ausente ? '<em class="tag-cerca">' + esc(textoHace(item.a.ultimaActualizacion) || "Sin señal") + "</em>" : "") +
                 (item.enGrupo ? '<em class="tag-cerca">Grupo</em>' : "") +
-                (primero && !item.enGrupo ? '<em class="tag-cerca">Más cerca de vos</em>' : "");
+                (primero && !item.enGrupo && !item.a.ausente ? '<em class="tag-cerca">Más cerca de vos</em>' : "");
             div.innerHTML =
                 "<div><strong>" + esc(item.a.nombre || "Sin nombre") + "</strong>" +
                 tags +
@@ -1918,6 +2102,12 @@
         const el = marker && marker.getElement();
         if (el) el.classList.toggle("sos", !!on);
         if (marker) marker.setZIndexOffset(id === miId ? 1000 : (on ? 800 : 0));
+    }
+
+    function marcarAusente(id, on) {
+        const marker = markers[id];
+        const el = marker && marker.getElement();
+        if (el) el.classList.toggle("ausente", !!on);
     }
 
     function pintarEstadoGrupo() {
@@ -2143,6 +2333,27 @@
         if (pttAckHecho) return;
         pttAckHecho = true;
         sonidoPtt(ok);
+        mostrarAckWalkie(ok);
+    }
+
+    function mostrarAckWalkie(ok) {
+        const el = $("ackWalkie");
+        const dest = $("destinoHabla");
+        if (dest) {
+            dest.classList.remove("transmitiendo", "ack-ok", "ack-fail");
+            dest.classList.add(ok ? "ack-ok" : "ack-fail");
+            setTimeout(function () {
+                dest.classList.remove("ack-ok", "ack-fail");
+            }, 1800);
+        }
+        if (!el) return;
+        el.textContent = ok ? "Enviado" : "No salió";
+        el.className = "ack-walkie " + (ok ? "ok" : "fail");
+        el.classList.remove("oculto");
+        if (ackWalkieTimer) clearTimeout(ackWalkieTimer);
+        ackWalkieTimer = setTimeout(function () {
+            el.classList.add("oculto");
+        }, 2200);
     }
 
     function emitirAudioConAck(evento, payload) {
@@ -2239,6 +2450,7 @@
         document.querySelectorAll(".btn-ptt, .btn-ptt-mapa").forEach(function (b) {
             b.classList.add("grabando");
         });
+        if ($("destinoHabla")) $("destinoHabla").classList.add("transmitiendo");
         if (canal === "privado") {
             const dest = autos[contactoActivo];
             const nom = (dest && dest.nombre) || "esa persona";
@@ -2246,7 +2458,8 @@
             if ($("destinoKicker")) $("destinoKicker").textContent = "Transmitiendo en directo a";
             if ($("destinoNombre")) $("destinoNombre").textContent = nom;
         } else {
-            setAvisoAudio("Mantené para hablar a RADIO — soltá para enviar");
+            const canalTxt = etiquetaCanal();
+            setAvisoAudio("Mantené para hablar a " + canalTxt + " — soltá para enviar");
             actualizarDestinoUI();
             if ($("destinoKicker")) $("destinoKicker").textContent = "Transmitiendo a";
         }
@@ -2276,6 +2489,7 @@
                 document.querySelectorAll(".btn-ptt, .btn-ptt-mapa").forEach(function (b) {
                     b.classList.remove("grabando");
                 });
+                if ($("destinoHabla")) $("destinoHabla").classList.remove("transmitiendo");
                 setAvisoAudio("");
                 avisarEnvioPtt(false);
                 alert("No se pudo usar el micrófono.");
@@ -2293,6 +2507,7 @@
         document.querySelectorAll(".btn-ptt, .btn-ptt-mapa").forEach(function (b) {
             b.classList.remove("grabando");
         });
+        if ($("destinoHabla")) $("destinoHabla").classList.remove("transmitiendo");
         setAvisoAudio("");
         actualizarDestinoUI();
         if (pttRecorder && pttRecorder.state === "recording") pttRecorder.stop();
@@ -2423,6 +2638,20 @@
     socket.on("vehiculo_desconectado", function (id) {
         if (!id || id === miId) return;
         quitarVehiculo(id);
+    });
+
+    socket.on("encuentrosLista", function (lista) {
+        sincronizarEncuentros(lista);
+    });
+
+    socket.on("encuentroNuevo", function (p) {
+        aplicarEncuentro(p, false);
+        guardarEncuentros();
+    });
+
+    socket.on("encuentroQuitar", function (data) {
+        const id = data && (data.id || data);
+        if (id) quitarEncuentro(id, true);
     });
 
     socket.on("mensajeV2V", function (msg) {
@@ -3005,6 +3234,18 @@
     document.addEventListener("visibilitychange", function () {
         if (document.visibilityState === "visible") pedirWakeLock();
     });
+
+    setInterval(function () {
+        let hay = false;
+        Object.keys(autos).forEach(function (id) {
+            if (autos[id] && autos[id].ausente) hay = true;
+        });
+        if (!hay) return;
+        Object.keys(autos).forEach(function (id) {
+            if (autos[id] && autos[id].ausente) refrescarFicha(id, autos[id]);
+        });
+        renderizarContactos();
+    }, 8000);
 
     if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("/service-worker.js").catch(function () {});

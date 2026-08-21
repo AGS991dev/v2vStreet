@@ -59,12 +59,16 @@ app.get("/api/osrm/ruta", (req, res) => {
     if (!from || !to) return res.status(400).json({ code: "Error" });
     const nav = req.query.nav === "1";
     const extra = nav
-        ? "&alternatives=true"
+        ? "&alternatives=true&steps=true"
         : "&continue_straight=true";
     proxyOsrm(res, "/route/v1/driving/" + from + ";" + to + "?overview=full&geometries=geojson" + extra);
 });
 
 const PORT = process.env.PORT || 3000;
+
+const AUSENTE_MS = 18000;
+const BORRAR_MS = 90000;
+const ENC_TTL_MS = 12 * 60 * 60 * 1000;
 
 // vehiculoId persistente -> datos
 const vehiculos = {};
@@ -72,6 +76,7 @@ const vehiculos = {};
 const socketAVehiculo = {};
 const ultimoAudioTs = {};
 const ultimoMsgTs = {};
+const encuentros = {};
 
 function sanitizarTexto(valor, max) {
     return String(valor || "").trim().slice(0, max);
@@ -137,8 +142,53 @@ function publicoDe(v) {
         precision: v.precision,
         ultimaActualizacion: v.ultimaActualizacion,
         grupo: v.grupo || "",
-        asistencia: v.asistencia || null
+        asistencia: v.asistencia || null,
+        ausente: !!v.ausente
     };
+}
+
+function publicoEncuentro(e) {
+    if (!e) return null;
+    return {
+        id: e.id,
+        lat: e.lat,
+        lng: e.lng,
+        nombre: e.nombre,
+        horario: e.horario || "",
+        descripcion: e.descripcion || "",
+        de: e.de,
+        grupo: e.grupo || ""
+    };
+}
+
+function puedeVerEncuentro(oyente, e) {
+    if (!oyente || !e) return false;
+    if (e.de && e.de === oyente.id) return true;
+    if (e.grupo && oyente.grupo && e.grupo === oyente.grupo) return true;
+    return kmEntre(oyente, e) <= radioDe(oyente);
+}
+
+function encuentrosPara(oyente) {
+    const lista = [];
+    Object.keys(encuentros).forEach(id => {
+        const e = encuentros[id];
+        if (puedeVerEncuentro(oyente, e)) lista.push(publicoEncuentro(e));
+    });
+    return lista;
+}
+
+function destinosEncuentro(e) {
+    const r = [];
+    Object.keys(vehiculos).forEach(id => {
+        const o = vehiculos[id];
+        if (o && o.socketId && puedeVerEncuentro(o, e)) r.push(o.socketId);
+    });
+    return r;
+}
+
+function emitirEncuentrosA(oyente) {
+    if (!oyente || !oyente.socketId) return;
+    io.to(oyente.socketId).emit("encuentrosLista", encuentrosPara(oyente));
 }
 
 function oyentePorSocket(socketId) {
@@ -302,6 +352,7 @@ io.on("connection", socket => {
         const radioAntes = prev ? prev.radioKm : null;
         const grupoAntes = prev ? prev.grupo : "";
         const eraNuevo = !prev;
+        const socketCambio = !prev || prev.socketId !== socket.id;
 
         const grupo = normalizarGrupo(raw.grupo);
         const radioKm = sanitizarEntero(raw.radioKm, RADIO_MIN, RADIO_MAX, RADIO_DEF);
@@ -325,13 +376,15 @@ io.on("connection", socket => {
             grupo: grupo,
             asistencia: prev && prev.asistencia ? prev.asistencia : null,
             vistoPor: prevSockets,
-            ultimaActualizacion: Date.now()
+            ultimaActualizacion: Date.now(),
+            ausente: false
         };
 
         aplicarVisibilidad(vehiculos[id], prevSockets);
-        if (eraNuevo || radioAntes !== radioKm || grupoAntes !== grupo) {
+        if (eraNuevo || radioAntes !== radioKm || grupoAntes !== grupo || socketCambio) {
             socket.emit("telemetria_global", snapshotPara(vehiculos[id]));
             socket.emit("grupoEstado", { codigo: grupo });
+            emitirEncuentrosA(vehiculos[id]);
         }
     });
 
@@ -365,6 +418,7 @@ io.on("connection", socket => {
         const res = { ok: true, codigo: codigo };
         if (typeof ack === "function") ack(res);
         socket.emit("grupoEstado", { codigo: codigo });
+        if (yo) emitirEncuentrosA(vehiculos[yo.id] || yo);
     });
 
     socket.on("grupoUnirse", (payload, ack) => {
@@ -380,6 +434,7 @@ io.on("connection", socket => {
         aplicarVisibilidad(yo, prev);
         if (typeof ack === "function") ack({ ok: true, codigo: codigo });
         socket.emit("grupoEstado", { codigo: codigo });
+        emitirEncuentrosA(yo);
     });
 
     socket.on("grupoSalir", (_payload, ack) => {
@@ -389,9 +444,55 @@ io.on("connection", socket => {
             yo.grupo = "";
             socket.emit("telemetria_global", snapshotPara(yo));
             aplicarVisibilidad(yo, prev);
+            emitirEncuentrosA(yo);
         }
         if (typeof ack === "function") ack({ ok: true, codigo: "" });
         socket.emit("grupoEstado", { codigo: "" });
+    });
+
+    socket.on("encuentroCrear", (payload, ack) => {
+        const yo = vehiculoDeSocket(socket);
+        const raw = payload && typeof payload === "object" ? payload : {};
+        const lat = Number(raw.lat);
+        const lng = Number(raw.lng);
+        if (!yo || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+            if (typeof ack === "function") ack({ ok: false });
+            return;
+        }
+        const id = sanitizarTexto(raw.id, 40) || ("enc" + Date.now().toString(36));
+        const e = {
+            id: id,
+            lat: lat,
+            lng: lng,
+            nombre: sanitizarTexto(raw.nombre, 40) || "Encuentro",
+            horario: sanitizarTexto(raw.horario, 40),
+            descripcion: sanitizarTexto(raw.descripcion, 200),
+            de: yo.id,
+            grupo: yo.grupo || "",
+            ts: Date.now()
+        };
+        encuentros[id] = e;
+        const pub = publicoEncuentro(e);
+        emitirA(destinosEncuentro(e), "encuentroNuevo", pub);
+        if (typeof ack === "function") ack({ ok: true, encuentro: pub });
+    });
+
+    socket.on("encuentroQuitar", (payload, ack) => {
+        const yo = vehiculoDeSocket(socket);
+        const id = sanitizarTexto(payload && (payload.id || payload), 40);
+        const e = id ? encuentros[id] : null;
+        if (!yo || !e || e.de !== yo.id) {
+            if (typeof ack === "function") ack({ ok: false });
+            return;
+        }
+        const dest = destinosEncuentro(e);
+        delete encuentros[id];
+        emitirA(dest, "encuentroQuitar", { id: id });
+        if (typeof ack === "function") ack({ ok: true, id: id });
+    });
+
+    socket.on("encuentrosPedir", () => {
+        emitirEncuentrosA(vehiculoDeSocket(socket));
     });
 
     socket.on("asistencia", (payload, ack) => {
@@ -521,27 +622,35 @@ io.on("connection", socket => {
         delete ultimoMsgTs[socket.id];
         if (!id || !vehiculos[id]) return;
 
-        const socketQueSeFue = socket.id;
-        setTimeout(() => {
-            if (vehiculos[id] && vehiculos[id].socketId === socketQueSeFue) {
-                const vistos = vehiculos[id].vistoPor || [];
-                emitirA(vistos, "vehiculo_desconectado", id);
-                delete vehiculos[id];
-            }
-        }, 4000);
+        const v = vehiculos[id];
+        if (v.socketId !== socket.id) return;
+        v.socketId = null;
+        v.ausente = true;
+        aplicarVisibilidad(v, v.vistoPor ? v.vistoPor.slice() : []);
     });
 });
 
 setInterval(() => {
     const ahora = Date.now();
     Object.keys(vehiculos).forEach(id => {
-        if (ahora - vehiculos[id].ultimaActualizacion > 25000) {
-            const vistos = vehiculos[id].vistoPor || [];
-            emitirA(vistos, "vehiculo_desconectado", id);
+        const v = vehiculos[id];
+        if (!v) return;
+        const age = ahora - v.ultimaActualizacion;
+        if (age > BORRAR_MS) {
+            emitirA(v.vistoPor || [], "vehiculo_desconectado", id);
             delete vehiculos[id];
+            return;
+        }
+        if (age > AUSENTE_MS && !v.ausente) {
+            v.ausente = true;
+            aplicarVisibilidad(v, v.vistoPor ? v.vistoPor.slice() : []);
         }
     });
-}, 8000);
+    Object.keys(encuentros).forEach(id => {
+        const e = encuentros[id];
+        if (e && ahora - e.ts > ENC_TTL_MS) delete encuentros[id];
+    });
+}, 5000);
 
 server.listen(PORT, () => {
     console.log("Servidor V2V corriendo en puerto:", PORT);

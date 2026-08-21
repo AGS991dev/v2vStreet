@@ -14,9 +14,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="css/base.css?v=20260821c">
-<link rel="stylesheet" href="css/desktop.css?v=20260821c">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260821c">
+<link rel="stylesheet" href="css/base.css?v=20260821d">
+<link rel="stylesheet" href="css/desktop.css?v=20260821d">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260821d">
 </head>
 
 <body>
@@ -163,7 +163,11 @@
     <div id="map"></div>
     <div class="habla-mapa">
         <div id="hudRuta" class="hud-ruta oculto">
-            <strong id="hudRutaDist">Ruta</strong>
+            <div class="hud-ruta-txt">
+                <p id="hudRutaPaso">Armando ruta…</p>
+                <strong id="hudRutaCalle"></strong>
+                <span id="hudRutaDist">Ruta</span>
+            </div>
             <button type="button" id="btnCancelarRuta">Cancelar</button>
         </div>
         <div id="destinoHabla" class="destino-habla">
@@ -176,9 +180,11 @@
         </button>
     </div>
     <div id="avisoAudio" class="aviso-audio oculto"></div>
+    <div id="ackWalkie" class="ack-walkie oculto" role="status"></div>
 </main>
 
 <aside class="comms-panel" id="commsPanel">
+    <div class="comms-handle" aria-hidden="true"></div>
     <header class="comms-header">
         <div>
             <h2>
@@ -409,6 +415,6 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/socket.io/socket.io.js"></script>
-<script src="js/main.js?v=20260821c"></script>
+<script src="js/main.js?v=20260821d"></script>
 </body>
 </html>
