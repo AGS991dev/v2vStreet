@@ -8,6 +8,8 @@
 const express = require("express");
 const http = require("http");
 const https = require("https");
+const fs = require("fs");
+const path = require("path");
 const { Server } = require("socket.io");
 
 const app = express();
@@ -78,10 +80,11 @@ app.get("/api/geo/buscar", (req, res) => {
     const params = new URLSearchParams({
         q: q,
         format: "jsonv2",
-        limit: "6",
+        limit: "20",
         addressdetails: "0",
         countrycodes: "ar",
-        "accept-language": "es"
+        "accept-language": "es",
+        dedupe: "1"
     });
     const lat = Number(req.query.lat);
     const lng = Number(req.query.lng);
@@ -109,13 +112,25 @@ app.get("/api/geo/buscar", (req, res) => {
             let lista = [];
             try { lista = JSON.parse(buf); } catch (e) { lista = []; }
             if (!Array.isArray(lista)) lista = [];
-            res.json({
-                ok: true,
-                resultados: lista.slice(0, 6).map(x => ({
+            const yo = Number.isFinite(lat) && Number.isFinite(lng)
+                ? { lat: lat, lng: lng }
+                : null;
+            const resultados = lista.map(x => {
+                const item = {
                     nombre: String(x.display_name || "").slice(0, 160),
                     lat: Number(x.lat),
                     lng: Number(x.lon)
-                })).filter(x => x.nombre && Number.isFinite(x.lat) && Number.isFinite(x.lng))
+                };
+                if (!item.nombre || !Number.isFinite(item.lat) || !Number.isFinite(item.lng)) return null;
+                item.km = yo ? kmEntre(yo, item) : null;
+                return item;
+            }).filter(Boolean);
+            if (yo) {
+                resultados.sort((a, b) => (a.km == null ? 1 : a.km) - (b.km == null ? 1 : b.km));
+            }
+            res.json({
+                ok: true,
+                resultados: resultados.slice(0, 8)
             });
         });
     });
@@ -129,7 +144,7 @@ const PORT = process.env.PORT || 3000;
 
 const AUSENTE_MS = 18000;
 const BORRAR_MS = 90000;
-const ENC_TTL_MS = 12 * 60 * 60 * 1000;
+const ENC_FILE = path.join(__dirname, "data", "encuentros.json");
 
 // vehiculoId persistente -> datos
 const vehiculos = {};
@@ -138,6 +153,63 @@ const socketAVehiculo = {};
 const ultimoAudioTs = {};
 const ultimoMsgTs = {};
 const encuentros = {};
+
+function listaEncuentrosDisco() {
+    return Object.keys(encuentros).map(id => {
+        const e = encuentros[id];
+        if (!e) return null;
+        return {
+            id: e.id,
+            lat: e.lat,
+            lng: e.lng,
+            nombre: e.nombre || "",
+            horario: e.horario || "",
+            descripcion: e.descripcion || "",
+            de: e.de || "",
+            grupo: e.grupo || "",
+            ts: e.ts || Date.now()
+        };
+    }).filter(Boolean);
+}
+
+function cargarEncuentrosDisco() {
+    try {
+        const raw = fs.readFileSync(ENC_FILE, "utf8");
+        const lista = JSON.parse(raw);
+        const arr = Array.isArray(lista) ? lista : [];
+        arr.forEach(e => {
+            if (!e || !e.id || !Number.isFinite(Number(e.lat)) || !Number.isFinite(Number(e.lng))) return;
+            encuentros[e.id] = {
+                id: String(e.id).slice(0, 40),
+                lat: Number(e.lat),
+                lng: Number(e.lng),
+                nombre: sanitizarTexto(e.nombre, 40) || "Encuentro",
+                horario: sanitizarTexto(e.horario, 40),
+                descripcion: sanitizarTexto(e.descripcion, 200),
+                de: sanitizarTexto(e.de, 64),
+                grupo: sanitizarTexto(e.grupo, 8),
+                ts: Number(e.ts) || Date.now()
+            };
+        });
+    } catch (err) {
+        if (err && err.code !== "ENOENT") console.error("No se pudieron leer los encuentros:", err.message);
+    }
+}
+
+let guardarEncTimer = null;
+function guardarEncuentrosDisco() {
+    if (guardarEncTimer) clearTimeout(guardarEncTimer);
+    guardarEncTimer = setTimeout(() => {
+        try {
+            fs.mkdirSync(path.dirname(ENC_FILE), { recursive: true });
+            fs.writeFileSync(ENC_FILE, JSON.stringify(listaEncuentrosDisco(), null, 2), "utf8");
+        } catch (err) {
+            console.error("No se pudieron guardar los encuentros:", err.message);
+        }
+    }, 120);
+}
+
+cargarEncuentrosDisco();
 
 function sanitizarTexto(valor, max) {
     return String(valor || "").trim().slice(0, max);
@@ -533,6 +605,7 @@ io.on("connection", socket => {
             ts: Date.now()
         };
         encuentros[id] = e;
+        guardarEncuentrosDisco();
         const pub = publicoEncuentro(e);
         emitirA(destinosEncuentro(e), "encuentroNuevo", pub);
         if (typeof ack === "function") ack({ ok: true, encuentro: pub });
@@ -548,6 +621,7 @@ io.on("connection", socket => {
         }
         const dest = destinosEncuentro(e);
         delete encuentros[id];
+        guardarEncuentrosDisco();
         emitirA(dest, "encuentroQuitar", { id: id });
         if (typeof ack === "function") ack({ ok: true, id: id });
     });
@@ -706,10 +780,6 @@ setInterval(() => {
             v.ausente = true;
             aplicarVisibilidad(v, v.vistoPor ? v.vistoPor.slice() : []);
         }
-    });
-    Object.keys(encuentros).forEach(id => {
-        const e = encuentros[id];
-        if (e && ahora - e.ts > ENC_TTL_MS) delete encuentros[id];
     });
 }, 5000);
 

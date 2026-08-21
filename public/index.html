@@ -14,9 +14,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="css/base.css?v=20260821f">
-<link rel="stylesheet" href="css/desktop.css?v=20260821f">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260821f">
+<link rel="stylesheet" href="css/base.css?v=20260821h">
+<link rel="stylesheet" href="css/desktop.css?v=20260821h">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260821h">
 </head>
 
 <body>
@@ -179,12 +179,13 @@
                 <span id="hudRutaDist">Ruta</span>
                 <em id="hudRutaEta"></em>
             </div>
-            <button type="button" id="btnCancelarRuta">Cancelar</button>
+            <button type="button" id="btnCancelarRuta">Cancelar ruta</button>
         </div>
         <div id="destinoHabla" class="destino-habla">
             <span id="destinoKicker">Walkie y mensajes van a</span>
             <strong id="destinoNombre">RADIO · 5 km</strong>
         </div>
+        <button type="button" id="btnCancelarRutaMapa" class="btn-cancelar-ruta oculto">Cancelar ruta</button>
         <button type="button" id="btnSosMapa" class="btn-sos-mapa" title="Avisar a quien está cerca que necesitás ayuda">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 3.8 19h16.4L12 4z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M12 10v4.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="12" cy="17.2" r="1" fill="currentColor"/></svg>
             <span>Necesito ayuda</span>
@@ -442,6 +443,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
 <script src="/socket.io/socket.io.js"></script>
-<script src="js/main.js?v=20260821f"></script>
+<script src="js/main.js?v=20260821h"></script>
 </body>
 </html>

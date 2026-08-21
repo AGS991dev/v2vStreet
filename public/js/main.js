@@ -1237,8 +1237,14 @@
         limpiarCapaRuta();
         navegacion = null;
         try { localStorage.removeItem(NAV_KEY); } catch (e) {}
+        pintarBotonCancelarRuta(false);
         const hud = $("hudRuta");
         if (hud) hud.classList.add("oculto");
+    }
+
+    function pintarBotonCancelarRuta(on) {
+        const btn = $("btnCancelarRutaMapa");
+        if (btn) btn.classList.toggle("oculto", !on);
     }
 
     function cartelLlegasteVisible() {
@@ -1319,7 +1325,13 @@
         const calleEl = $("hudRutaCalle");
         const etaEl = $("hudRutaEta");
         if (!hud) return;
-        if (!navegacion || !miPosicion) {
+        if (!navegacion) {
+            hud.classList.add("oculto");
+            pintarBotonCancelarRuta(false);
+            return;
+        }
+        pintarBotonCancelarRuta(true);
+        if (!miPosicion) {
             hud.classList.add("oculto");
             return;
         }
@@ -1344,6 +1356,7 @@
             etaEl.textContent = textoDuracion(seg) + " · Llegás " + textoEta(seg);
         }
         hud.classList.remove("oculto");
+        pintarBotonCancelarRuta(true);
     }
 
     function iniciarNavegacion(dest, opts) {
@@ -1366,6 +1379,7 @@
         const pasoEl = $("hudRutaPaso");
         const dist = $("hudRutaDist");
         if (hud) hud.classList.remove("oculto");
+        pintarBotonCancelarRuta(true);
         if (pasoEl) pasoEl.textContent = "Armando ruta…";
         if (dist) dist.textContent = "";
         if (navegacion) navegacion.ts = Date.now();
@@ -1475,7 +1489,10 @@
         lista.forEach(function (item) {
             const btn = document.createElement("button");
             btn.type = "button";
-            btn.textContent = item.nombre;
+            const dist = Number.isFinite(Number(item.km))
+                ? '<em>' + esc(textoDistancia(item.km)) + "</em>"
+                : "";
+            btn.innerHTML = dist + "<span>" + esc(item.nombre) + "</span>";
             btn.addEventListener("click", function () {
                 cerrarModalBuscar();
                 iniciarNavegacion([item.lat, item.lng], { sinMarker: false, ajustarVista: !modoNavGps });
@@ -1508,7 +1525,15 @@
                     if (estado) estado.textContent = (j && j.error) || "No pudimos buscar. Probá de nuevo.";
                     return;
                 }
-                pintarResultadosBuscar(j.resultados);
+                let lista = j.resultados || [];
+                if (miPosicion) {
+                    lista = lista.slice().sort(function (a, b) {
+                        const da = Number.isFinite(Number(a.km)) ? a.km : Infinity;
+                        const db = Number.isFinite(Number(b.km)) ? b.km : Infinity;
+                        return da - db;
+                    });
+                }
+                pintarResultadosBuscar(lista);
             })
             .catch(function () {
                 if (estado) estado.textContent = "No pudimos buscar. Mirá si hay internet.";
@@ -3570,6 +3595,7 @@
             });
         }
         if ($("btnCancelarRuta")) $("btnCancelarRuta").addEventListener("click", cancelarNavegacion);
+        if ($("btnCancelarRutaMapa")) $("btnCancelarRutaMapa").addEventListener("click", cancelarNavegacion);
         if ($("cartelLlegaste")) $("cartelLlegaste").addEventListener("click", ocultarCartelLlegaste);
         if (yaEntroMapa()) pedirWakeLock();
         if (miGrupo) {
