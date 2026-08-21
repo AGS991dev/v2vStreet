@@ -14,9 +14,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="css/base.css?v=20260821l">
-<link rel="stylesheet" href="css/desktop.css?v=20260821l">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260821l">
+<link rel="stylesheet" href="css/base.css?v=20260821o">
+<link rel="stylesheet" href="css/desktop.css?v=20260821o">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260821o">
 </head>
 
 <body>
@@ -154,9 +154,20 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16V9l3-3h8l3 3v7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="8" cy="16" r="1.7" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="16" cy="16" r="1.7" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
                 <span>Manejo</span>
             </button>
+            <button type="button" id="btnModoTransito" class="hud-btn hud-ico" title="Modo auto: la ruta respeta las manos de las calles" aria-pressed="false">
+                <span class="switch-transito-ico" aria-hidden="true">
+                    <svg class="ico-transito-auto" viewBox="0 0 24 24"><path d="M5 16V9l3-3h8l3 3v7" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><circle cx="8" cy="16" r="1.6" fill="none" stroke="currentColor" stroke-width="1.9"/><circle cx="16" cy="16" r="1.6" fill="none" stroke="currentColor" stroke-width="1.9"/></svg>
+                    <svg class="ico-transito-pie" viewBox="0 0 24 24"><circle cx="13" cy="4.2" r="1.7" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M8.5 21l1.8-6.2 2.2 2.1 1.7 4.1M10.4 14.8l2.8-3.2 2.6.7 2.2 3.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                <span>Modo</span>
+            </button>
             <button type="button" id="btnNavGps" class="hud-btn hud-ico" title="Navegación GPS: tu auto queda fijo al centro y el mapa gira con el rumbo">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l3.2 7.2L22 12l-6.8 1.8L12 21l-3.2-7.2L2 12l6.8-1.8L12 3z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>
                 <span>Navegar</span>
+            </button>
+            <button type="button" id="btnTestFantasma" class="hud-btn hud-ico" title="TEST: crear usuario fantasma AutoTest">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6L6.2 17.2A3.2 3.2 0 0 0 9 21h6a3.2 3.2 0 0 0 2.8-3.8L14 9V3" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M9.2 14h5.6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                <span>Test</span>
             </button>
         </div>
         <div id="radioCerca" class="radio-cerca" aria-label="Quién está en la radio"></div>
@@ -443,6 +454,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
 <script src="/socket.io/socket.io.js"></script>
-<script src="js/main.js?v=20260821l"></script>
+<script src="js/main.js?v=20260821o"></script>
 </body>
 </html>

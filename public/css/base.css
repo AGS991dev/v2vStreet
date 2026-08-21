@@ -902,12 +902,53 @@ body.modo-nav-gps .marker-propio {
     border: 0;
 }
 
+.hud-ico > span.switch-transito-ico {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+}
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    line-height: 0;
+}
+
+.switch-transito-ico svg {
+    width: 13px;
+    height: 13px;
+    flex: 0 0 13px;
+}
+
+.switch-transito-ico .ico-transito-pie {
+    opacity: 0.28;
+}
+
+body.modo-a-pie .switch-transito-ico .ico-transito-auto {
+    opacity: 0.28;
+}
+
+body.modo-a-pie .switch-transito-ico .ico-transito-pie {
+    opacity: 1;
+}
+
+#btnModoTransito.on {
+    background: #fff8ee;
+    box-shadow: 0 0 0 2px var(--ambar), var(--sombra);
+}
+
 .switch-popups:has(input:checked) {
     background: #fff8ee;
 }
 
 #btnManejo.on,
-#btnNavGps.on {
+#btnNavGps.on,
+#btnTestFantasma.on {
     background: #fff8ee;
     box-shadow: 0 0 0 2px var(--ambar), var(--sombra);
 }
@@ -2245,7 +2286,8 @@ body.mosaico-listo .marker-otro .auto-cuerpo {
 }
 
 #btnManejo.on,
-#btnNavGps.on {
+#btnNavGps.on,
+#btnTestFantasma.on {
     background: #fff8ee;
     box-shadow: 0 0 0 2px var(--ambar), var(--sombra);
 }

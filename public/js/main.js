@@ -42,7 +42,7 @@
     });
 
     const map = L.map("map", {
-        zoomControl: true,
+        zoomControl: false,
         closePopupOnClick: false,
         rotate: true,
         bearing: 0,
@@ -98,6 +98,11 @@
     let fichasForzadas = {};
     let radioCercaAbierta = false;
     const RADIO_CERCA_MAX = 9;
+    const FANTASMA_ID = "autotest-fantasma";
+    const FANTASMA_RADIO_M = 200;
+    let fantasmaActivo = false;
+    let fantasmaAngulo = 0;
+    let fantasmaTimer = null;
     let introPaso = 0;
     let introGpsResuelto = false;
     let permitirSalir = false;
@@ -109,6 +114,7 @@
     let miGrupo = localStorage.getItem("radiomap_grupo") || "";
     let modoManejo = localStorage.getItem("radiomap_manejo") === "1";
     let modoNavGps = false;
+    let modoTransito = localStorage.getItem("radiomap_transito") === "pie" ? "pie" : "auto";
     let rumboNavSuave = 0;
     let navGpsRaf = null;
     let navGpsZoomPendiente = false;
@@ -1028,6 +1034,7 @@
                 distance: navegacion.distance || 0,
                 duration: navegacion.duration || 0,
                 sinMarker: !!navegacion.sinMarker,
+                modo: modoTransito,
                 ts: Date.now()
             }));
         } catch (e) {}
@@ -1088,12 +1095,17 @@
         }
     }
 
+    function perfilRutaNav() {
+        return modoTransito === "pie" ? "walking" : "driving";
+    }
+
     function rutaPorCalle(desde, hasta, nav) {
-        const clave = clavePunto(desde[0], desde[1]) + ">" + clavePunto(hasta[0], hasta[1]) + (nav ? ":n" : "");
+        const perfil = nav ? perfilRutaNav() : "driving";
+        const clave = clavePunto(desde[0], desde[1]) + ">" + clavePunto(hasta[0], hasta[1]) + (nav ? ":n" : "") + ":" + perfil;
         if (cacheRuta[clave]) return Promise.resolve(cacheRuta[clave]);
         const from = Number(desde[1]) + "," + Number(desde[0]);
         const to = Number(hasta[1]) + "," + Number(hasta[0]);
-        const extra = nav ? "&nav=1" : "";
+        const extra = (nav ? "&nav=1" : "") + "&perfil=" + encodeURIComponent(perfil);
         return fetch("/api/osrm/ruta?from=" + encodeURIComponent(from) + "&to=" + encodeURIComponent(to) + extra)
             .then(function (r) {
                 if (!r.ok) throw new Error("osrm");
@@ -1586,6 +1598,9 @@
         };
         dibujarRuta(raw.path, raw.dest, !!raw.sinMarker, false);
         actualizarHudRuta();
+        if (raw.modo && raw.modo !== modoTransito && raw.dest) {
+            iniciarNavegacion(raw.dest, { sinMarker: !!raw.sinMarker, ajustarVista: false });
+        }
     }
 
     function htmlEncuentro(p) {
@@ -2056,6 +2071,10 @@
                     ev.stopPropagation();
                     ctxPtt();
                     if (btn.setPointerCapture) btn.setPointerCapture(ev.pointerId);
+                    if (esFantasma(id)) {
+                        mostrarMensajeFantasma();
+                        return;
+                    }
                     if (id === miId) empezarPtt("general");
                     else {
                         seleccionarContacto(id, true);
@@ -2136,19 +2155,25 @@
                     marker.closeTooltip();
                 }
             });
-            anclarACalle(latlng[0], latlng[1]).then(function (snap) {
-                if (markers[a.id]) {
-                    markers[a.id].setLatLng(snap);
-                    if (debeMostrarFicha(a.id)) {
-                        markers[a.id].openTooltip();
-                        engancharFicha(markers[a.id], a.id);
+            if (a.id !== FANTASMA_ID) {
+                anclarACalle(latlng[0], latlng[1]).then(function (snap) {
+                    if (markers[a.id]) {
+                        markers[a.id].setLatLng(snap);
+                        if (debeMostrarFicha(a.id)) {
+                            markers[a.id].openTooltip();
+                            engancharFicha(markers[a.id], a.id);
+                        }
                     }
-                }
-            });
+                });
+            }
             return;
         }
 
-        moverPorCalle(a.id, markers[a.id], latlng);
+        if (a.id === FANTASMA_ID) {
+            markers[a.id].setLatLng(latlng);
+        } else {
+            moverPorCalle(a.id, markers[a.id], latlng);
+        }
         aplicarRumbo(a.id, a.rumbo);
         aplicarIconoEnMarker(a.id, iconoDeAuto(a));
         marcarSosMarker(a.id, !!(a.asistencia && a.asistencia.activo));
@@ -2219,11 +2244,14 @@
     }
 
     function aplicarEstadoGlobal(estado) {
+        const fantasma = fantasmaActivo ? autos[FANTASMA_ID] : null;
         autos = estado && typeof estado === "object" ? estado : {};
+        if (fantasma) autos[FANTASMA_ID] = fantasma;
         Object.keys(markers).forEach(function (id) {
-            if (id !== miId && !autos[id]) quitarVehiculo(id);
+            if (id !== miId && id !== FANTASMA_ID && !autos[id]) quitarVehiculo(id);
         });
         Object.keys(autos).forEach(function (id) {
+            if (id === FANTASMA_ID) return;
             actualizarMarker(autos[id]);
         });
         renderizarContactos();
@@ -2274,6 +2302,10 @@
         btn.addEventListener("pointerdown", function (ev) {
             ev.preventDefault();
             ev.stopPropagation();
+            if (esFantasma(id)) {
+                mostrarMensajeFantasma();
+                return;
+            }
             ctxPtt();
             if (btn.setPointerCapture) btn.setPointerCapture(ev.pointerId);
             seleccionarContacto(id, true);
@@ -2604,6 +2636,12 @@
 
     function pedirFicha(id) {
         if (!id || id === miId) return;
+        if (esFantasma(id)) {
+            cacheFichas[id] = { placa: "TST 000", seguro: "AutoTest", contacto: "" };
+            const a = autos[id];
+            if (a) refrescarFicha(id, a);
+            return;
+        }
         socket.emit("pedirFicha", { id: id }, function (res) {
             if (!res || !res.ok) return;
             cacheFichas[id] = {
@@ -2897,6 +2935,30 @@
         aplicarModoNavGps();
     }
 
+    function aplicarModoTransito() {
+        document.body.classList.toggle("modo-a-pie", modoTransito === "pie");
+        const btn = $("btnModoTransito");
+        if (btn) {
+            btn.classList.toggle("on", modoTransito === "pie");
+            btn.setAttribute("aria-pressed", modoTransito === "pie" ? "true" : "false");
+            btn.title = modoTransito === "pie"
+                ? "Modo a pie: la ruta no respeta el sentido de las calles"
+                : "Modo auto: la ruta respeta las manos de las calles";
+        }
+    }
+
+    function alternarModoTransito() {
+        modoTransito = modoTransito === "pie" ? "auto" : "pie";
+        try { localStorage.setItem("radiomap_transito", modoTransito); } catch (e) {}
+        aplicarModoTransito();
+        if (navegacion && navegacion.dest) {
+            iniciarNavegacion(navegacion.dest, {
+                sinMarker: !!navegacion.sinMarker,
+                ajustarVista: false
+            });
+        }
+    }
+
     // ===================================================
     // Walkie-talkie (PTT)
     // ===================================================
@@ -3045,6 +3107,10 @@
     }
 
     function empezarPtt(modo) {
+        if (resolverModoPtt(modo) === "privado" && esFantasma(contactoActivo)) {
+            mostrarMensajeFantasma();
+            return;
+        }
         if (pttActivo) return;
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === "undefined") {
             alert("Este navegador no permite walkie-talkie.");
@@ -3280,7 +3346,7 @@
     });
 
     socket.on("vehiculo_desconectado", function (id) {
-        if (!id || id === miId) return;
+        if (!id || id === miId || id === FANTASMA_ID) return;
         quitarVehiculo(id);
     });
 
@@ -3580,6 +3646,114 @@
         setTimeout(function () { map.invalidateSize(); }, 80);
     }
 
+    function esFantasma(id) {
+        return id === FANTASMA_ID;
+    }
+
+    function puntoOrbitando(lat, lng, distM, anguloDeg) {
+        const rad = anguloDeg * Math.PI / 180;
+        const dLat = (distM / 111320) * Math.cos(rad);
+        const cosLat = Math.cos(lat * Math.PI / 180);
+        const dLng = cosLat ? (distM / (111320 * cosLat)) * Math.sin(rad) : 0;
+        return {
+            lat: lat + dLat,
+            lng: lng + dLng,
+            rumbo: (anguloDeg + 90) % 360
+        };
+    }
+
+    function mostrarMensajeFantasma() {
+        const el = $("ackWalkie");
+        if (el) {
+            el.textContent = "Mensaje recibido";
+            el.className = "ack-walkie ok";
+            el.classList.remove("oculto");
+            if (ackWalkieTimer) clearTimeout(ackWalkieTimer);
+            ackWalkieTimer = setTimeout(function () {
+                el.classList.add("oculto");
+            }, 2200);
+        }
+        historialPrivado[FANTASMA_ID] = historialPrivado[FANTASMA_ID] || [];
+        historialPrivado[FANTASMA_ID].push({
+            nombre: "AutoTest",
+            texto: "Mensaje recibido",
+            propio: false,
+            ts: Date.now()
+        });
+        if (autos[FANTASMA_ID]) seleccionarContacto(FANTASMA_ID, true);
+    }
+
+    function autoFantasma(p) {
+        return {
+            id: FANTASMA_ID,
+            nombre: "AutoTest",
+            vehiculo: "AUTOTEST",
+            iconoX: 3,
+            iconoY: 1,
+            lat: p.lat,
+            lng: p.lng,
+            velocidad: 32,
+            rumbo: p.rumbo,
+            precision: 8,
+            ultimaActualizacion: Date.now(),
+            grupo: miGrupo || "",
+            enGrupo: !!miGrupo,
+            asistencia: null,
+            ausente: false
+        };
+    }
+
+    function tickFantasma() {
+        if (!fantasmaActivo) return;
+        const yo = miPosicion || (markers[miId] && markers[miId].getLatLng());
+        if (!yo || !Number.isFinite(Number(yo.lat)) || !Number.isFinite(Number(yo.lng))) return;
+        fantasmaAngulo = (fantasmaAngulo + 0.8) % 360;
+        const p = puntoOrbitando(Number(yo.lat), Number(yo.lng), FANTASMA_RADIO_M, fantasmaAngulo);
+        const auto = autoFantasma(p);
+        autos[FANTASMA_ID] = auto;
+        const m = markers[FANTASMA_ID];
+        if (!m) actualizarMarker(auto);
+        else {
+            m.setLatLng([p.lat, p.lng]);
+            aplicarRumbo(FANTASMA_ID, p.rumbo);
+        }
+    }
+
+    function detenerFantasma() {
+        fantasmaActivo = false;
+        if (fantasmaTimer) {
+            clearInterval(fantasmaTimer);
+            fantasmaTimer = null;
+        }
+        if (contactoActivo === FANTASMA_ID) contactoActivo = null;
+        quitarVehiculo(FANTASMA_ID);
+        const btn = $("btnTestFantasma");
+        if (btn) btn.classList.remove("on");
+    }
+
+    function iniciarFantasma() {
+        const yo = miPosicion || (markers[miId] && markers[miId].getLatLng());
+        if (!yo || !Number.isFinite(Number(yo.lat)) || !Number.isFinite(Number(yo.lng))) {
+            alert("Activá la ubicación para crear el usuario de prueba.");
+            iniciarGps();
+            return;
+        }
+        fantasmaActivo = true;
+        fantasmaAngulo = 0;
+        cacheFichas[FANTASMA_ID] = { placa: "TST 000", seguro: "AutoTest", contacto: "" };
+        tickFantasma();
+        if (fantasmaTimer) clearInterval(fantasmaTimer);
+        fantasmaTimer = setInterval(tickFantasma, 120);
+        const btn = $("btnTestFantasma");
+        if (btn) btn.classList.add("on");
+        renderizarContactos();
+    }
+
+    function alternarFantasma() {
+        if (fantasmaActivo) detenerFantasma();
+        else iniciarFantasma();
+    }
+
     // ===================================================
     // UI
     // ===================================================
@@ -3610,6 +3784,7 @@
             $("portada").classList.remove("oculto");
             mostrarPasoIntro(0);
         });
+        aplicarModoTransito();
         $("chkPopups").addEventListener("change", function () {
             popupsVisibles = $("chkPopups").checked;
             aplicarVisibilidadPopups();
@@ -3678,6 +3853,8 @@
         if ($("btnSosMapa")) $("btnSosMapa").addEventListener("click", alternarAsistencia);
         if ($("btnManejo")) $("btnManejo").addEventListener("click", alternarModoManejo);
         if ($("btnNavGps")) $("btnNavGps").addEventListener("click", alternarModoNavGps);
+        if ($("btnModoTransito")) $("btnModoTransito").addEventListener("click", alternarModoTransito);
+        if ($("btnTestFantasma")) $("btnTestFantasma").addEventListener("click", alternarFantasma);
         if ($("btnBuscar")) $("btnBuscar").addEventListener("click", abrirModalBuscar);
         if ($("btnCerrarBuscar")) $("btnCerrarBuscar").addEventListener("click", cerrarModalBuscar);
         if ($("fondoModalBuscar")) $("fondoModalBuscar").addEventListener("click", cerrarModalBuscar);

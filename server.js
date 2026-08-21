@@ -49,10 +49,17 @@ function proxyOsrm(res, ruta) {
     });
 }
 
+function perfilOsrm(raw) {
+    const p = String(raw || "driving").toLowerCase();
+    if (p === "foot" || p === "walking" || p === "pie") return "walking";
+    return "driving";
+}
+
 app.get("/api/osrm/nearest", (req, res) => {
     const par = parLngLat(req.query.lnglat);
     if (!par) return res.status(400).json({ code: "Error" });
-    proxyOsrm(res, "/nearest/v1/driving/" + par + "?number=1");
+    const perfil = perfilOsrm(req.query.perfil);
+    proxyOsrm(res, "/nearest/v1/" + perfil + "/" + par + "?number=1");
 });
 
 app.get("/api/osrm/ruta", (req, res) => {
@@ -60,10 +67,11 @@ app.get("/api/osrm/ruta", (req, res) => {
     const to = parLngLat(req.query.to);
     if (!from || !to) return res.status(400).json({ code: "Error" });
     const nav = req.query.nav === "1";
+    const perfil = perfilOsrm(req.query.perfil);
     const extra = nav
         ? "&alternatives=true&steps=true"
         : "&continue_straight=true";
-    proxyOsrm(res, "/route/v1/driving/" + from + ";" + to + "?overview=full&geometries=geojson" + extra);
+    proxyOsrm(res, "/route/v1/" + perfil + "/" + from + ";" + to + "?overview=full&geometries=geojson" + extra);
 });
 
 let ultimoGeoTs = 0;
