@@ -14,9 +14,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="css/base.css?v=20260821e">
-<link rel="stylesheet" href="css/desktop.css?v=20260821e">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260821e">
+<link rel="stylesheet" href="css/base.css?v=20260821f">
+<link rel="stylesheet" href="css/desktop.css?v=20260821f">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260821f">
 </head>
 
 <body>
@@ -137,6 +137,10 @@
             Conectando…
         </div>
         <div class="hud-iconos">
+            <button type="button" id="btnBuscar" class="hud-btn hud-ico" title="Buscar un lugar o una dirección">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M16 16l4.2 4.2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                <span>Buscar</span>
+            </button>
             <label class="switch-popups hud-btn hud-ico" title="Mostrar u ocultar las fichas de los demás">
                 <input type="checkbox" id="chkPopups" checked>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M8 9h8M8 13h5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
@@ -158,6 +162,8 @@
     </div>
 </div>
 
+<div id="avisoOffline" class="aviso-offline oculto">Sin señal. El mapa y la ruta que ya tenías siguen.</div>
+
 <div id="avisoGps" class="aviso-gps oculto">
     <p>Para verte en el mapa, permití el acceso a la ubicación.</p>
     <button type="button" id="btnActivarGps">Activar ubicación</button>
@@ -171,6 +177,7 @@
                 <p id="hudRutaPaso">Armando ruta…</p>
                 <strong id="hudRutaCalle"></strong>
                 <span id="hudRutaDist">Ruta</span>
+                <em id="hudRutaEta"></em>
             </div>
             <button type="button" id="btnCancelarRuta">Cancelar</button>
         </div>
@@ -371,6 +378,21 @@
     </div>
 </div>
 
+<div id="modalBuscar" class="modal-salir oculto" role="dialog" aria-labelledby="tituloBuscar" aria-modal="true">
+    <div class="modal-salir-fondo" id="fondoModalBuscar"></div>
+    <div class="modal-salir-card">
+        <h2 id="tituloBuscar">¿Adónde vas?</h2>
+        <p class="mision">Calle, localidad o un lugar. Te arma la ruta hasta ahí.</p>
+        <label class="label-buscar">
+            Buscar
+            <input id="txtBuscarLugar" maxlength="80" placeholder="Ej. Av. Corrientes 1200, CABA" autocomplete="off" spellcheck="false">
+        </label>
+        <p id="buscarEstado" class="buscar-estado"></p>
+        <div id="listaBuscar" class="lista-buscar"></div>
+        <button type="button" class="btn-portada-sec" id="btnCerrarBuscar">Cerrar</button>
+    </div>
+</div>
+
 <div id="modalEncuentro" class="modal-salir oculto" role="dialog" aria-labelledby="tituloEncuentro" aria-modal="true">
     <div class="modal-salir-fondo" id="fondoModalEncuentro"></div>
     <div class="modal-salir-card">
@@ -420,6 +442,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
 <script src="/socket.io/socket.io.js"></script>
-<script src="js/main.js?v=20260821e"></script>
+<script src="js/main.js?v=20260821f"></script>
 </body>
 </html>

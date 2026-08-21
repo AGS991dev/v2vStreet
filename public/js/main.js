@@ -50,9 +50,12 @@
         shiftKeyRotate: false,
         compassBearing: false
     }).setView([-34.6037, -58.3816], 13);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+    const capaTiles = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
         attribution: "&copy; OpenStreetMap &copy; CARTO",
-        maxZoom: 19
+        maxZoom: 19,
+        keepBuffer: 8,
+        updateWhenIdle: false,
+        crossOrigin: true
     }).addTo(map);
 
     const FICHA_BASE = {
@@ -116,7 +119,9 @@
     let encuentros = {};
     let llegasteTimer = null;
     const ENC_KEY = "radiomap_encuentros";
+    const NAV_KEY = "radiomap_ruta_activa";
     let ackWalkieTimer = null;
+    let busquedaTimer = null;
 
     function debeMostrarFicha(id) {
         if (modoNavGps && id === miId) return false;
@@ -569,7 +574,7 @@
             precision: pos.coords.accuracy || null
         };
 
-        if (navegacion && metrosEntre([cruda.lat, cruda.lng], navegacion.dest) <= 45) {
+        if (navegacion && llegoDestino([cruda.lat, cruda.lng])) {
             finalizarLlegada();
         }
 
@@ -661,7 +666,7 @@
         if (modoNavGps) seguirMe = true;
         if (navGpsZoomPendiente && modoNavGps) {
             navGpsZoomPendiente = false;
-            map.setView([lat, lng], Math.max(map.getZoom(), 17), { animate: false });
+            setVistaSeguir([lat, lng], Math.max(map.getZoom(), 17));
         }
         if (debeEmitir(lat, lng)) emitirTelemetria(false);
         renderizarContactos();
@@ -870,13 +875,199 @@
     }
 
     function distAPath(yo, path) {
-        if (!path || !path.length) return Infinity;
+        return infoSobreRuta(yo, path).dist;
+    }
+
+    function infoSobreRuta(yo, path) {
+        const vacio = { dist: Infinity, idx: 0, rumboPath: null, resto: Infinity };
+        if (!path || !path.length) return vacio;
         let min = Infinity;
+        let idx = 0;
         for (let i = 0; i < path.length; i++) {
             const d = metrosEntre(yo, path[i]);
-            if (d < min) min = d;
+            if (d < min) {
+                min = d;
+                idx = i;
+            }
         }
-        return min;
+        let rumboPath = null;
+        if (idx < path.length - 1) rumboPath = rumboEntre(path[idx], path[idx + 1]);
+        else if (idx > 0) rumboPath = rumboEntre(path[idx - 1], path[idx]);
+        let resto = 0;
+        for (let i = idx + 1; i < path.length; i++) resto += metrosEntre(path[i - 1], path[i]);
+        resto += metrosEntre(yo, path[idx]);
+        return { dist: min, idx: idx, rumboPath: rumboPath, resto: resto };
+    }
+
+    function anguloDiff(a, b) {
+        let d = Math.abs(Number(a) - Number(b)) % 360;
+        if (d > 180) d = 360 - d;
+        return d;
+    }
+
+    function llegoDestino(yo) {
+        if (!navegacion || !navegacion.dest) return false;
+        const crow = metrosEntre(yo, navegacion.dest);
+        const resto = navegacion.path ? infoSobreRuta(yo, navegacion.path).resto : crow;
+        const vel = (miPosicion && miPosicion.velocidad) || 0;
+        if (resto > 40 && crow > 25) return false;
+        if (crow <= 14) return true;
+        if (resto <= 22 && crow <= 30) return true;
+        if (crow <= 22 && vel < 10) return true;
+        return false;
+    }
+
+    function restoRutaMetros(yo) {
+        if (!navegacion || !navegacion.path) {
+            return navegacion && navegacion.dest ? metrosEntre(yo, navegacion.dest) : 0;
+        }
+        return infoSobreRuta(yo, navegacion.path).resto;
+    }
+
+    function segundosRestantesRuta(yo) {
+        const restoM = restoRutaMetros(yo);
+        const dist = Number(navegacion && navegacion.distance) || 0;
+        const dur = Number(navegacion && navegacion.duration) || 0;
+        if (dist > 30 && dur > 0) return Math.max(0, dur * (restoM / dist));
+        const velMs = Math.max(((miPosicion && miPosicion.velocidad) || 28) / 3.6, 4);
+        return restoM / velMs;
+    }
+
+    function textoEta(seg) {
+        const t = new Date(Date.now() + Math.max(0, seg) * 1000);
+        const p = function (n) { return (n < 10 ? "0" : "") + n; };
+        return p(t.getHours()) + ":" + p(t.getMinutes());
+    }
+
+    function textoDuracion(seg) {
+        if (seg < 45) return "menos de 1 min";
+        if (seg < 3600) return Math.round(seg / 60) + " min";
+        const h = Math.floor(seg / 3600);
+        const m = Math.round((seg % 3600) / 60);
+        return h + " h " + (m ? m + " min" : "");
+    }
+
+    function puntoHacia(lat, lng, headingDeg, metros) {
+        const R = 6371000;
+        const brng = Number(headingDeg) * Math.PI / 180;
+        const lat1 = Number(lat) * Math.PI / 180;
+        const lng1 = Number(lng) * Math.PI / 180;
+        const ang = metros / R;
+        const lat2 = Math.asin(Math.sin(lat1) * Math.cos(ang) + Math.cos(lat1) * Math.sin(ang) * Math.cos(brng));
+        const lng2 = lng1 + Math.atan2(
+            Math.sin(brng) * Math.sin(ang) * Math.cos(lat1),
+            Math.cos(ang) - Math.sin(lat1) * Math.sin(lat2)
+        );
+        return [lat2 * 180 / Math.PI, ((lng2 * 180 / Math.PI + 540) % 360) - 180];
+    }
+
+    function metrosCamaraAdelante() {
+        const z = map.getZoom();
+        if (z >= 18) return 38;
+        if (z >= 17) return 68;
+        if (z >= 16) return 105;
+        return 150;
+    }
+
+    function debeCamaraAdelante() {
+        return !!(modoNavGps || (navegacion && seguirMe));
+    }
+
+    function rumboCamara() {
+        if (Number.isFinite(rumboNavSuave) && (modoNavGps || rumboNavSuave)) return rumboNavSuave;
+        if (miPosicion && Number.isFinite(miPosicion.rumbo)) return miPosicion.rumbo;
+        return 0;
+    }
+
+    function centroCamaraNav(lat, lng) {
+        const h = rumboCamara();
+        if (!Number.isFinite(h)) return [lat, lng];
+        return puntoHacia(lat, lng, h, metrosCamaraAdelante());
+    }
+
+    function setVistaSeguir(latlng, zoom) {
+        const lat = latlng.lat != null ? latlng.lat : latlng[0];
+        const lng = latlng.lng != null ? latlng.lng : latlng[1];
+        const z = zoom != null ? zoom : map.getZoom();
+        if (debeCamaraAdelante()) {
+            map.setView(centroCamaraNav(lat, lng), z, { animate: false });
+        } else {
+            map.setView([lat, lng], z, { animate: false });
+        }
+    }
+
+    function persistirRuta() {
+        if (!navegacion || !navegacion.path) {
+            try { localStorage.removeItem(NAV_KEY); } catch (e) {}
+            return;
+        }
+        try {
+            localStorage.setItem(NAV_KEY, JSON.stringify({
+                dest: navegacion.dest,
+                origen: navegacion.origen,
+                path: navegacion.path,
+                steps: navegacion.steps || [],
+                distance: navegacion.distance || 0,
+                duration: navegacion.duration || 0,
+                sinMarker: !!navegacion.sinMarker,
+                ts: Date.now()
+            }));
+        } catch (e) {}
+    }
+
+    function leerRutaGuardada(hasta) {
+        try {
+            const raw = JSON.parse(localStorage.getItem(NAV_KEY) || "null");
+            if (!raw || !raw.path || raw.path.length < 2) return null;
+            if (Date.now() - (raw.ts || 0) > 2 * 3600 * 1000) {
+                localStorage.removeItem(NAV_KEY);
+                return null;
+            }
+            if (hasta && metrosEntre(raw.dest, hasta) > 40) return null;
+            return {
+                path: raw.path,
+                steps: raw.steps || [],
+                distance: raw.distance || 0,
+                duration: raw.duration || 0,
+                dest: raw.dest,
+                sinMarker: !!raw.sinMarker
+            };
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function rutaCachePorDestino(hasta) {
+        const suf = ">" + clavePunto(hasta[0], hasta[1]) + ":n";
+        const keys = Object.keys(cacheRuta);
+        for (let i = keys.length - 1; i >= 0; i--) {
+            if (keys[i].indexOf(suf) === keys[i].length - suf.length) return cacheRuta[keys[i]];
+        }
+        return null;
+    }
+
+    function latLngATile(lat, lng, zoom) {
+        const n = Math.pow(2, zoom);
+        const x = Math.floor((lng + 180) / 360 * n);
+        const latRad = lat * Math.PI / 180;
+        const y = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n);
+        return { x: x, y: y };
+    }
+
+    function prefetchTilesRuta(path) {
+        if (!path || path.length < 2 || !navigator.onLine) return;
+        const z = Math.max(14, Math.min(18, map.getZoom() || 16));
+        const retina = (window.devicePixelRatio || 1) >= 1.5 ? "@2x" : "";
+        const step = Math.max(1, Math.floor(path.length / 36));
+        const vistos = {};
+        for (let i = 0; i < path.length; i += step) {
+            const t = latLngATile(path[i][0], path[i][1], z);
+            const clave = z + "/" + t.x + "/" + t.y;
+            if (vistos[clave]) continue;
+            vistos[clave] = true;
+            const url = "https://a.basemaps.cartocdn.com/light_all/" + clave + retina + ".png";
+            fetch(url, { mode: "cors", credentials: "omit", cache: "force-cache" }).catch(function () {});
+        }
     }
 
     function rutaPorCalle(desde, hasta, nav) {
@@ -886,7 +1077,10 @@
         const to = Number(hasta[1]) + "," + Number(hasta[0]);
         const extra = nav ? "&nav=1" : "";
         return fetch("/api/osrm/ruta?from=" + encodeURIComponent(from) + "&to=" + encodeURIComponent(to) + extra)
-            .then(function (r) { return r.json(); })
+            .then(function (r) {
+                if (!r.ok) throw new Error("osrm");
+                return r.json();
+            })
             .then(function (j) {
                 const ruta = elegirMejorRuta(j);
                 if (!ruta || !ruta.geometry || !ruta.geometry.coordinates) {
@@ -910,7 +1104,10 @@
                 cacheRuta[clave] = res;
                 return res;
             })
-            .catch(function () { return nav ? null : [desde, hasta]; });
+            .catch(function () {
+                if (!nav) return [desde, hasta];
+                return rutaCachePorDestino(hasta) || leerRutaGuardada(hasta);
+            });
     }
 
     function clickSobreUiMapa(ev) {
@@ -923,7 +1120,7 @@
 
     function onClickMapa(ev) {
         if (clickSobreUiMapa(ev)) return;
-        if (modalMapaClickVisible() || modalEncuentroVisible()) return;
+        if (modalMapaClickVisible() || modalEncuentroVisible() || modalBuscarVisible()) return;
         const lat = ev.latlng && ev.latlng.lat;
         const lng = ev.latlng && ev.latlng.lng;
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
@@ -1039,6 +1236,7 @@
         navSeq += 1;
         limpiarCapaRuta();
         navegacion = null;
+        try { localStorage.removeItem(NAV_KEY); } catch (e) {}
         const hud = $("hudRuta");
         if (hud) hud.classList.add("oculto");
     }
@@ -1110,6 +1308,8 @@
                 });
             } catch (e) {}
         }
+        prefetchTilesRuta(path);
+        persistirRuta();
     }
 
     function actualizarHudRuta() {
@@ -1117,13 +1317,14 @@
         const dist = $("hudRutaDist");
         const pasoEl = $("hudRutaPaso");
         const calleEl = $("hudRutaCalle");
+        const etaEl = $("hudRutaEta");
         if (!hud) return;
         if (!navegacion || !miPosicion) {
             hud.classList.add("oculto");
             return;
         }
         const yo = [miPosicion.lat, miPosicion.lng];
-        const m = metrosEntre(yo, navegacion.dest);
+        const restoM = restoRutaMetros(yo);
         const vigente = pasoVigente(navegacion.steps, yo, navegacion.dest);
         if (pasoEl) {
             if (vigente) {
@@ -1137,7 +1338,11 @@
             calleEl.textContent = nom;
             calleEl.classList.toggle("oculto", !nom);
         }
-        if (dist) dist.textContent = "Quedan " + textoDistancia(m / 1000);
+        if (dist) dist.textContent = "Quedan " + textoDistancia(restoM / 1000);
+        if (etaEl) {
+            const seg = segundosRestantesRuta(yo);
+            etaEl.textContent = textoDuracion(seg) + " · Llegás " + textoEta(seg);
+        }
         hud.classList.remove("oculto");
     }
 
@@ -1150,8 +1355,11 @@
         }
         const yo = [miPosicion.lat, miPosicion.lng];
         const hasta = [Number(dest[0]), Number(dest[1])];
-        if (metrosEntre(yo, hasta) <= 45) {
-            finalizarLlegada();
+        if (llegoDestino(yo) || (metrosEntre(yo, hasta) <= 16 && (miPosicion.velocidad || 0) < 8)) {
+            if (navegacion) finalizarLlegada();
+            else {
+                alert("Ya estás en ese punto.");
+            }
             return;
         }
         const hud = $("hudRuta");
@@ -1181,6 +1389,8 @@
                 origen: yo,
                 path: path,
                 steps: (res && res.steps) || [],
+                distance: Number(res && res.distance) || longitudPath(path),
+                duration: Number(res && res.duration) || 0,
                 ts: Date.now(),
                 sinMarker: !!opts.sinMarker,
                 capaFondo: previa && previa.capaFondo,
@@ -1190,20 +1400,27 @@
             dibujarRuta(path, hasta, !!opts.sinMarker, primera && !modoNavGps);
             if (primera || modoNavGps) seguirMe = true;
             actualizarHudRuta();
+            persistirRuta();
         });
     }
 
     function actualizarNavegacion() {
         if (!navegacion || !miPosicion) return;
         const yo = [miPosicion.lat, miPosicion.lng];
-        const dDest = metrosEntre(yo, navegacion.dest);
-        if (dDest <= 45) {
+        if (llegoDestino(yo)) {
             finalizarLlegada();
             return;
         }
         actualizarHudRuta();
-        const dPath = distAPath(yo, navegacion.path);
-        if (dPath > 80 && Date.now() - navegacion.ts > 6000) {
+        const info = infoSobreRuta(yo, navegacion.path);
+        const vel = miPosicion.velocidad || 0;
+        const umbral = vel > 55 ? 46 : (vel > 28 ? 36 : 26);
+        const cooldown = vel > 40 ? 1100 : 1600;
+        const rumbo = Number.isFinite(miPosicion.rumbo) ? miPosicion.rumbo : null;
+        const contra = rumbo != null && info.rumboPath != null &&
+            anguloDiff(rumbo, info.rumboPath) > 50 && info.dist > 16;
+        const fuera = info.dist > umbral;
+        if ((fuera || contra) && Date.now() - navegacion.ts > cooldown) {
             iniciarNavegacion(navegacion.dest, {
                 sinMarker: !!navegacion.sinMarker,
                 ajustarVista: false
@@ -1218,6 +1435,124 @@
         if (!p) return;
         iniciarNavegacion([p.lat, p.lng], { sinMarker: false, ajustarVista: true });
         clickPendiente = null;
+    }
+
+    function modalBuscarVisible() {
+        const el = $("modalBuscar");
+        return !!(el && !el.classList.contains("oculto"));
+    }
+
+    function abrirModalBuscar() {
+        $("modalBuscar").classList.remove("oculto");
+        const lista = $("listaBuscar");
+        const estado = $("buscarEstado");
+        if (lista) lista.innerHTML = "";
+        if (estado) estado.textContent = "";
+        setTimeout(function () {
+            const el = $("txtBuscarLugar");
+            if (el) el.focus();
+        }, 50);
+    }
+
+    function cerrarModalBuscar() {
+        $("modalBuscar").classList.add("oculto");
+        if (busquedaTimer) {
+            clearTimeout(busquedaTimer);
+            busquedaTimer = null;
+        }
+    }
+
+    function pintarResultadosBuscar(lista) {
+        const caja = $("listaBuscar");
+        const estado = $("buscarEstado");
+        if (!caja) return;
+        caja.innerHTML = "";
+        if (!lista || !lista.length) {
+            if (estado) estado.textContent = "No encontramos ese lugar. Probá con la calle y la localidad.";
+            return;
+        }
+        if (estado) estado.textContent = "";
+        lista.forEach(function (item) {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.textContent = item.nombre;
+            btn.addEventListener("click", function () {
+                cerrarModalBuscar();
+                iniciarNavegacion([item.lat, item.lng], { sinMarker: false, ajustarVista: !modoNavGps });
+                if (modoNavGps) seguirMe = true;
+            });
+            caja.appendChild(btn);
+        });
+    }
+
+    function buscarLugar(q) {
+        const estado = $("buscarEstado");
+        const texto = String(q || "").trim();
+        if (texto.length < 3) {
+            if (estado) estado.textContent = "Escribí al menos 3 letras.";
+            return;
+        }
+        if (!navigator.onLine) {
+            if (estado) estado.textContent = "Sin señal. No se puede buscar ahora.";
+            return;
+        }
+        if (estado) estado.textContent = "Buscando…";
+        let url = "/api/geo/buscar?q=" + encodeURIComponent(texto);
+        if (miPosicion) {
+            url += "&lat=" + encodeURIComponent(miPosicion.lat) + "&lng=" + encodeURIComponent(miPosicion.lng);
+        }
+        fetch(url)
+            .then(function (r) { return r.json(); })
+            .then(function (j) {
+                if (!j || !j.ok) {
+                    if (estado) estado.textContent = (j && j.error) || "No pudimos buscar. Probá de nuevo.";
+                    return;
+                }
+                pintarResultadosBuscar(j.resultados);
+            })
+            .catch(function () {
+                if (estado) estado.textContent = "No pudimos buscar. Mirá si hay internet.";
+            });
+    }
+
+    function onInputBuscar() {
+        const el = $("txtBuscarLugar");
+        const q = el ? el.value.trim() : "";
+        if (busquedaTimer) clearTimeout(busquedaTimer);
+        if (q.length < 3) {
+            const estado = $("buscarEstado");
+            const lista = $("listaBuscar");
+            if (estado) estado.textContent = "";
+            if (lista) lista.innerHTML = "";
+            return;
+        }
+        busquedaTimer = setTimeout(function () { buscarLugar(q); }, 450);
+    }
+
+    function pintarAvisoOffline() {
+        const el = $("avisoOffline");
+        if (!el) return;
+        el.classList.toggle("oculto", navigator.onLine);
+    }
+
+    function restaurarRutaGuardada() {
+        const raw = leerRutaGuardada(null);
+        if (!raw || !raw.path) return;
+        navegacion = {
+            dest: raw.dest,
+            origen: raw.path[0],
+            path: raw.path,
+            steps: raw.steps || [],
+            distance: raw.distance || 0,
+            duration: raw.duration || 0,
+            ts: Date.now(),
+            sinMarker: !!raw.sinMarker,
+            capaFondo: null,
+            capa: null,
+            markerDest: null
+        };
+        dibujarRuta(raw.path, raw.dest, !!raw.sinMarker, false);
+        actualizarHudRuta();
     }
 
     function htmlEncuentro(p) {
@@ -1468,7 +1803,7 @@
             marker.setLatLng(p);
             if (soyYo && circuloRadio) circuloRadio.setLatLng(p);
             if (debeMostrarFicha(id) && !marker.isTooltipOpen()) marker.openTooltip();
-            if (soyYo && (seguirMe || modoNavGps)) map.setView(p, map.getZoom(), { animate: false });
+            if (soyYo && (seguirMe || modoNavGps)) setVistaSeguir(p);
             if (t < 1) {
                 est.raf = requestAnimationFrame(frame);
             } else {
@@ -2343,7 +2678,7 @@
             ? m.getLatLng()
             : (miPosicion ? L.latLng(miPosicion.lat, miPosicion.lng) : null);
         if (pos && !map._animatingZoom && !(map.touchGestures && map.touchGestures._zooming)) {
-            map.setView(pos, map.getZoom(), { animate: false });
+            setVistaSeguir(pos);
         }
         const destino = Number.isFinite(miPosicion && miPosicion.rumbo)
             ? miPosicion.rumbo
@@ -2371,7 +2706,7 @@
             if (miPosicion) {
                 navGpsZoomPendiente = false;
                 if (Number.isFinite(miPosicion.rumbo)) rumboNavSuave = miPosicion.rumbo;
-                map.setView([miPosicion.lat, miPosicion.lng], Math.max(map.getZoom(), 17), { animate: false });
+                setVistaSeguir([miPosicion.lat, miPosicion.lng], Math.max(map.getZoom(), 17));
                 setMapaBearing(rumboNavSuave);
             } else {
                 navGpsZoomPendiente = true;
@@ -3107,6 +3442,10 @@
                 cerrarModalEncuentro();
                 return;
             }
+            if (modalBuscarVisible()) {
+                cerrarModalBuscar();
+                return;
+            }
             if (modalMapaClickVisible()) {
                 cerrarModalMapaClick();
                 return;
@@ -3116,9 +3455,7 @@
         $("btnCentrar").addEventListener("click", function () {
             vistaRadio = false;
             seguirMe = true;
-            if (modoNavGps && miPosicion) {
-                map.setView([miPosicion.lat, miPosicion.lng], map.getZoom(), { animate: false });
-            } else if (miPosicion) map.setView([miPosicion.lat, miPosicion.lng], 16);
+            if (miPosicion) setVistaSeguir([miPosicion.lat, miPosicion.lng], modoNavGps ? map.getZoom() : 16);
             else iniciarGps();
         });
         $("btnToggleComms").addEventListener("click", toggleComms);
@@ -3149,6 +3486,18 @@
         if ($("btnSosMapa")) $("btnSosMapa").addEventListener("click", alternarAsistencia);
         if ($("btnManejo")) $("btnManejo").addEventListener("click", alternarModoManejo);
         if ($("btnNavGps")) $("btnNavGps").addEventListener("click", alternarModoNavGps);
+        if ($("btnBuscar")) $("btnBuscar").addEventListener("click", abrirModalBuscar);
+        if ($("btnCerrarBuscar")) $("btnCerrarBuscar").addEventListener("click", cerrarModalBuscar);
+        if ($("fondoModalBuscar")) $("fondoModalBuscar").addEventListener("click", cerrarModalBuscar);
+        if ($("txtBuscarLugar")) {
+            $("txtBuscarLugar").addEventListener("input", onInputBuscar);
+            $("txtBuscarLugar").addEventListener("keydown", function (e) {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    buscarLugar($("txtBuscarLugar").value);
+                }
+            });
+        }
         $("btnEnviarV2V").addEventListener("click", enviarV2V);
         $("btnEnviarPrivado").addEventListener("click", enviarPrivado);
         $("txtV2V").addEventListener("keydown", function (e) {
@@ -3197,6 +3546,8 @@
         aplicarModoManejo();
         actualizarDestinoUI();
         restaurarEncuentros();
+        restaurarRutaGuardada();
+        pintarAvisoOffline();
         if ($("btnIrHastaAhi")) $("btnIrHastaAhi").addEventListener("click", irHastaClick);
         if ($("btnPuntoEncuentro")) $("btnPuntoEncuentro").addEventListener("click", abrirModalEncuentro);
         if ($("btnCancelarMapaClick")) $("btnCancelarMapaClick").addEventListener("click", function () {
@@ -3304,6 +3655,10 @@
             cerrarModalEncuentro();
             return true;
         }
+        if (modalBuscarVisible()) {
+            cerrarModalBuscar();
+            return true;
+        }
         if (modalMapaClickVisible()) {
             cerrarModalMapaClick();
             return true;
@@ -3350,6 +3705,9 @@
     window.addEventListener("resize", function () {
         map.invalidateSize();
     });
+
+    window.addEventListener("online", pintarAvisoOffline);
+    window.addEventListener("offline", pintarAvisoOffline);
 
     document.addEventListener("visibilitychange", function () {
         if (document.visibilityState === "visible") pedirWakeLock();

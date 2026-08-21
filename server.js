@@ -64,6 +64,67 @@ app.get("/api/osrm/ruta", (req, res) => {
     proxyOsrm(res, "/route/v1/driving/" + from + ";" + to + "?overview=full&geometries=geojson" + extra);
 });
 
+let ultimoGeoTs = 0;
+
+app.get("/api/geo/buscar", (req, res) => {
+    const q = String(req.query.q || "").trim().slice(0, 80);
+    if (q.length < 3) return res.status(400).json({ ok: false });
+    const ahora = Date.now();
+    if (ahora - ultimoGeoTs < 1100) {
+        return res.status(429).json({ ok: false, error: "Esperá un segundo." });
+    }
+    ultimoGeoTs = ahora;
+
+    const params = new URLSearchParams({
+        q: q,
+        format: "jsonv2",
+        limit: "6",
+        addressdetails: "0",
+        countrycodes: "ar",
+        "accept-language": "es"
+    });
+    const lat = Number(req.query.lat);
+    const lng = Number(req.query.lng);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        params.set(
+            "viewbox",
+            (lng - 0.4) + "," + (lat + 0.3) + "," + (lng + 0.4) + "," + (lat - 0.3)
+        );
+        params.set("bounded", "0");
+    }
+
+    const reqUp = https.get("https://nominatim.openstreetmap.org/search?" + params.toString(), {
+        headers: {
+            "User-Agent": "RadioMap/1.0",
+            Accept: "application/json"
+        },
+        timeout: 8000
+    }, up => {
+        let buf = "";
+        up.on("data", c => {
+            buf += c;
+            if (buf.length > 250000) reqUp.destroy();
+        });
+        up.on("end", () => {
+            let lista = [];
+            try { lista = JSON.parse(buf); } catch (e) { lista = []; }
+            if (!Array.isArray(lista)) lista = [];
+            res.json({
+                ok: true,
+                resultados: lista.slice(0, 6).map(x => ({
+                    nombre: String(x.display_name || "").slice(0, 160),
+                    lat: Number(x.lat),
+                    lng: Number(x.lon)
+                })).filter(x => x.nombre && Number.isFinite(x.lat) && Number.isFinite(x.lng))
+            });
+        });
+    });
+    reqUp.on("timeout", () => reqUp.destroy());
+    reqUp.on("error", () => {
+        if (!res.headersSent) res.status(502).json({ ok: false });
+    });
+});
+
 const PORT = process.env.PORT || 3000;
 
 const AUSENTE_MS = 18000;
