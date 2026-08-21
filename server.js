@@ -57,7 +57,11 @@ app.get("/api/osrm/ruta", (req, res) => {
     const from = parLngLat(req.query.from);
     const to = parLngLat(req.query.to);
     if (!from || !to) return res.status(400).json({ code: "Error" });
-    proxyOsrm(res, "/route/v1/driving/" + from + ";" + to + "?overview=full&geometries=geojson&continue_straight=true");
+    const nav = req.query.nav === "1";
+    const extra = nav
+        ? "&alternatives=true"
+        : "&continue_straight=true";
+    proxyOsrm(res, "/route/v1/driving/" + from + ";" + to + "?overview=full&geometries=geojson" + extra);
 });
 
 const PORT = process.env.PORT || 3000;

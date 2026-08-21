@@ -5,7 +5,7 @@
 <title>RadioMap – Radio de ruta</title>
 <meta name="description" content="RadioMap es radio de ruta: mapa en el tránsito, convoy, asistencia y operativos. Ves a otros y, si hace falta, los ayudás.">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f4f0e6">
+<meta name="theme-color" content="#f5a623">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="RadioMap">
@@ -14,9 +14,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="css/base.css?v=20260820p">
-<link rel="stylesheet" href="css/desktop.css?v=20260820p">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260820p">
+<link rel="stylesheet" href="css/base.css?v=20260821c">
+<link rel="stylesheet" href="css/desktop.css?v=20260821c">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260821c">
 </head>
 
 <body>
@@ -77,13 +77,6 @@
 
 <div class="hud-top">
     <div class="hud-card" id="cardPerfil">
-        <div class="marca-mini">
-            <strong>
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.2-4.4-6.2-10.2a6.2 6.2 0 1 1 12.4 0C18.2 16.6 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="12" cy="10.8" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M3.5 7.6a10 10 0 0 1 0 8.8M20.5 7.6a10 10 0 0 0 0 8.8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
-                RadioMap
-            </strong>
-            <span><i class="punto-vivo" aria-hidden="true"></i>Radio de ruta</span>
-        </div>
         <div class="perfil-cabeza">
             <button type="button" id="btnElegirIcono" class="perfil-avatar" title="Elegir el icono de tu auto">
                 <span id="iconoPreview" class="icono-preview" aria-hidden="true"></span>
@@ -143,23 +136,21 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M5 12h2M17 12h2M12 5v2M12 17v2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
             Conectando…
         </div>
-        <label class="switch-popups hud-btn" title="Mostrar u ocultar las fichas de los demás">
-            <input type="checkbox" id="chkPopups" checked>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M8 9h8M8 13h5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
-            <span>Fichas</span>
-        </label>
-        <button type="button" id="btnQueEs" class="hud-btn" title="Qué es RadioMap">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M9.6 9.4a2.4 2.4 0 1 1 3.2 2.2c-.7.3-1.3.8-1.3 1.6V14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
-            <span>Qué es</span>
-        </button>
-        <button type="button" id="btnManejo" class="hud-btn" title="Modo manejo: pantalla grande y no se apaga">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16V9l3-3h8l3 3v7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="8" cy="16" r="1.7" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="16" cy="16" r="1.7" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
-            <span>Manejo</span>
-        </button>
-        <button type="button" id="btnToggleComms" class="btn-toggle-comms hud-btn" title="Radio del grupo">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6.5" cy="17" r="1.6" fill="currentColor"/><path d="M9.6 14.4a5 5 0 0 1 0 5.2M13 11.4a8.8 8.8 0 0 1 0 11.2M16.4 8.4a12.4 12.4 0 0 1 0 17.2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
-            <span>Radio</span>
-        </button>
+        <div class="hud-iconos">
+            <label class="switch-popups hud-btn hud-ico" title="Mostrar u ocultar las fichas de los demás">
+                <input type="checkbox" id="chkPopups" checked>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M8 9h8M8 13h5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                <span>Fichas</span>
+            </label>
+            <button type="button" id="btnQueEs" class="hud-btn hud-ico" title="Qué es RadioMap">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M9.6 9.4a2.4 2.4 0 1 1 3.2 2.2c-.7.3-1.3.8-1.3 1.6V14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
+                <span>Qué es</span>
+            </button>
+            <button type="button" id="btnManejo" class="hud-btn hud-ico" title="Modo manejo: pantalla grande y no se apaga">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16V9l3-3h8l3 3v7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="8" cy="16" r="1.7" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="16" cy="16" r="1.7" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
+                <span>Manejo</span>
+            </button>
+        </div>
     </div>
 </div>
 
@@ -171,19 +162,14 @@
 <main class="map-container">
     <div id="map"></div>
     <div class="habla-mapa">
+        <div id="hudRuta" class="hud-ruta oculto">
+            <strong id="hudRutaDist">Ruta</strong>
+            <button type="button" id="btnCancelarRuta">Cancelar</button>
+        </div>
         <div id="destinoHabla" class="destino-habla">
             <span id="destinoKicker">Walkie y mensajes van a</span>
             <strong id="destinoNombre">RADIO · 5 km</strong>
         </div>
-        <button type="button" id="btnPttMapa" class="btn-ptt-mapa" title="Mantené para hablar a RADIO">
-            <span class="ico" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
-            </span>
-            <span class="ptt-leyenda">
-                <strong>Mantené para hablar</strong>
-                <small>Walkie a RADIO</small>
-            </span>
-        </button>
         <button type="button" id="btnSosMapa" class="btn-sos-mapa" title="Avisar a quien está cerca que necesitás ayuda">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 3.8 19h16.4L12 4z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M12 10v4.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="12" cy="17.2" r="1" fill="currentColor"/></svg>
             <span>Necesito ayuda</span>
@@ -325,6 +311,26 @@
     </section>
 </aside>
 
+<nav class="dock-mapa" aria-label="Mapa y radio">
+    <button type="button" id="btnDockMapa" class="dock-item on" title="Mapa">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5 9.5 4 14.5 6.5 20 4v13.5L14.5 20 9.5 17.5 4 20V6.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M9.5 4v13.5M14.5 6.5V20" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
+        <span>Mapa</span>
+    </button>
+    <button type="button" id="btnPttMapa" class="btn-ptt-mapa" title="Mantené para hablar a RADIO">
+        <span class="ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+        </span>
+        <span class="ptt-leyenda">
+            <strong>Mantené para hablar</strong>
+            <small>Walkie a RADIO</small>
+        </span>
+    </button>
+    <button type="button" id="btnToggleComms" class="btn-toggle-comms dock-item" title="Radio del grupo">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6.5" cy="17" r="1.6" fill="currentColor"/><path d="M9.6 14.4a5 5 0 0 1 0 5.2M13 11.4a8.8 8.8 0 0 1 0 11.2M16.4 8.4a12.4 12.4 0 0 1 0 17.2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+        <span>Radio</span>
+    </button>
+</nav>
+
 <div id="modalIcono" class="modal-icono oculto">
     <div class="modal-icono-fondo" id="fondoModalIcono"></div>
     <div class="modal-icono-card" role="dialog" aria-labelledby="tituloIcono" aria-modal="true">
@@ -341,6 +347,47 @@
                 <div id="mosaicoGrid" class="mosaico-grid"></div>
             </div>
         </div>
+    </div>
+</div>
+
+<div id="modalMapaClick" class="modal-salir oculto" role="dialog" aria-labelledby="tituloMapaClick" aria-modal="true">
+    <div class="modal-salir-fondo" id="fondoModalMapaClick"></div>
+    <div class="modal-salir-card">
+        <h2 id="tituloMapaClick">¿Qué querés hacer?</h2>
+        <p class="mision">¿Querés ir hasta ahí o poner un punto de encuentro?</p>
+        <button type="button" class="btn-portada" id="btnIrHastaAhi">Ir hasta ahí</button>
+        <button type="button" class="btn-portada alt" id="btnPuntoEncuentro">Punto de encuentro</button>
+        <button type="button" class="btn-portada-sec" id="btnCancelarMapaClick">Cancelar</button>
+    </div>
+</div>
+
+<div id="modalEncuentro" class="modal-salir oculto" role="dialog" aria-labelledby="tituloEncuentro" aria-modal="true">
+    <div class="modal-salir-fondo" id="fondoModalEncuentro"></div>
+    <div class="modal-salir-card">
+        <h2 id="tituloEncuentro">Punto de encuentro</h2>
+        <p class="mision">La bandera queda en el mapa. Si le tocás, te arma la ruta hasta ahí.</p>
+        <form id="formEncuentro" class="form-encuentro">
+            <label>
+                Nombre
+                <input id="encNombre" maxlength="40" placeholder="Ej. Estación de servicio" autocomplete="off">
+            </label>
+            <label>
+                Horario
+                <input id="encHorario" type="datetime-local">
+            </label>
+            <label>
+                Descripción
+                <textarea id="encDesc" maxlength="200" rows="3" placeholder="Dónde se paran, qué llevan, etc."></textarea>
+            </label>
+        </form>
+        <button type="button" class="btn-portada" id="btnGuardarEncuentro">Dejar bandera</button>
+        <button type="button" class="btn-portada-sec" id="btnCancelarEncuentro">Cancelar</button>
+    </div>
+</div>
+
+<div id="cartelLlegaste" class="cartel-llegaste oculto" role="dialog" aria-labelledby="txtLlegaste">
+    <div class="placa">
+        <strong id="txtLlegaste">Llegaste</strong>
     </div>
 </div>
 
@@ -362,6 +409,6 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/socket.io/socket.io.js"></script>
-<script src="js/main.js?v=20260820p"></script>
+<script src="js/main.js?v=20260821c"></script>
 </body>
 </html>

@@ -15,9 +15,16 @@
     const RUTA_MIN_M = 40;
     const MIC_OPTS = { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } };
     const ICONO_KEY = "v2v_icono";
-    const ICONO_CACHE = "20260820d";
+    const ICONO_CACHE = "20260821c";
     const ICO_MIC = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
     const ICO_PIN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.6-7-11a7 7 0 1 1 14 0c0 6.4-7 11-7 11z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.2" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>';
+    const ICO_VEL = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 13l4-4M8 13h.01M16 13h.01M12 7h.01" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
+    const ICO_RUMBO = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 4.5v3M12 16.5v3M4.5 12h3M16.5 12h3M12 12l3.2-4.4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
+    const ICO_PATENTE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h12l4 4v7H4V8z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="8.5" cy="13.5" r="1.2" fill="currentColor"/></svg>';
+    const ICO_SEGURO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9l8-5 8 5v11H4z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M10 20v-6h4v6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>';
+    const ICO_TEL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.8h3.4l1.2 4.6-2.4 1.4c.8 1.8 2.2 3.2 4 4l1.4-2.4 4.6 1.2V20h-2.2C9.4 20 4 14.6 4 6V3.8H7z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>';
+    const ICO_MSG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v10H8l-3 3V6z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>';
+    const ICO_SOS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 3.8 19h16.4L12 4z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M12 10v4.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="12" cy="17.2" r="1" fill="currentColor"/></svg>';
 
     function yaEntroMapa() {
         return localStorage.getItem("radiomap_entro") === "1" || localStorage.getItem("baliza_entro") === "1";
@@ -92,6 +99,13 @@
     let asistenciaActiva = false;
     let wakeLock = null;
     const cacheFichas = {};
+    let clickPendiente = null;
+    let previewClick = null;
+    let navSeq = 0;
+    let navegacion = null;
+    let encuentros = {};
+    let llegasteTimer = null;
+    const ENC_KEY = "radiomap_encuentros";
 
     function debeMostrarFicha(id) {
         if (fichasForzadas[id] === "cerrada") return false;
@@ -153,6 +167,8 @@
     map.on("dragstart", function () {
         seguirMe = false;
     });
+
+    map.on("click", onClickMapa);
 
     // ===================================================
     // Identidad persistente (sobrevive reconexiones)
@@ -537,6 +553,10 @@
             precision: pos.coords.accuracy || null
         };
 
+        if (navegacion && metrosEntre([cruda.lat, cruda.lng], navegacion.dest) <= 45) {
+            finalizarLlegada();
+        }
+
         if (!forzarCentro && !aceptarGps(cruda)) return;
 
         ultimoGpsCrudo = cruda;
@@ -625,6 +645,7 @@
         if (debeEmitir(lat, lng)) emitirTelemetria(false);
         renderizarContactos();
         aplicarRumbo(miId, rumbo);
+        actualizarNavegacion();
     }
 
     function aKmh(ms) {
@@ -732,25 +753,461 @@
             .catch(function () { return [lat, lng]; });
     }
 
-    function rutaPorCalle(desde, hasta) {
-        const clave = clavePunto(desde[0], desde[1]) + ">" + clavePunto(hasta[0], hasta[1]);
+    function elegirMejorRuta(j) {
+        if (!j || j.code !== "Ok" || !j.routes || !j.routes[0]) return null;
+        let best = j.routes[0];
+        for (let i = 1; i < j.routes.length; i++) {
+            const r = j.routes[i];
+            const t = Number(r.duration) || 0;
+            const d = Number(r.distance) || 0;
+            const bt = Number(best.duration) || 0;
+            const bd = Number(best.distance) || 0;
+            if (t < bt - 5) best = r;
+            else if (Math.abs(t - bt) <= 5 && d < bd) best = r;
+        }
+        return best;
+    }
+
+    function rutaPorCalle(desde, hasta, nav) {
+        const clave = clavePunto(desde[0], desde[1]) + ">" + clavePunto(hasta[0], hasta[1]) + (nav ? ":n" : "");
         if (cacheRuta[clave]) return Promise.resolve(cacheRuta[clave]);
         const from = Number(desde[1]) + "," + Number(desde[0]);
         const to = Number(hasta[1]) + "," + Number(hasta[0]);
-        return fetch("/api/osrm/ruta?from=" + encodeURIComponent(from) + "&to=" + encodeURIComponent(to))
+        const extra = nav ? "&nav=1" : "";
+        return fetch("/api/osrm/ruta?from=" + encodeURIComponent(from) + "&to=" + encodeURIComponent(to) + extra)
             .then(function (r) { return r.json(); })
             .then(function (j) {
-                if (!j || j.code !== "Ok" || !j.routes || !j.routes[0]) {
-                    return [desde, hasta];
+                const ruta = elegirMejorRuta(j);
+                if (!ruta || !ruta.geometry || !ruta.geometry.coordinates) {
+                    return nav ? null : [desde, hasta];
                 }
-                const path = j.routes[0].geometry.coordinates.map(function (c) {
+                const path = ruta.geometry.coordinates.map(function (c) {
                     return [c[1], c[0]];
                 });
-                if (path.length < 2) return [desde, hasta];
+                if (path.length < 2) return nav ? null : [desde, hasta];
+                if (Object.keys(cacheRuta).length > 200) {
+                    delete cacheRuta[Object.keys(cacheRuta)[0]];
+                }
                 cacheRuta[clave] = path;
                 return path;
             })
-            .catch(function () { return [desde, hasta]; });
+            .catch(function () { return nav ? null : [desde, hasta]; });
+    }
+
+    function clickSobreUiMapa(ev) {
+        const t = ev.originalEvent && ev.originalEvent.target;
+        if (!t || !t.closest) return false;
+        return !!(t.closest(".leaflet-tooltip") || t.closest(".leaflet-popup") ||
+            t.closest(".leaflet-control") || t.closest(".marker-auto") ||
+            t.closest(".marker-bandera") || t.closest(".marker-destino"));
+    }
+
+    function onClickMapa(ev) {
+        if (clickSobreUiMapa(ev)) return;
+        if (modalMapaClickVisible() || modalEncuentroVisible()) return;
+        const lat = ev.latlng && ev.latlng.lat;
+        const lng = ev.latlng && ev.latlng.lng;
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+        clickPendiente = { lat: lat, lng: lng };
+        ponerPreview([lat, lng]);
+        mostrarModalMapaClick();
+    }
+
+    function ponerPreview(latlng) {
+        quitarPreview();
+        previewClick = L.circleMarker(latlng, {
+            radius: 8,
+            color: "#d97706",
+            weight: 2,
+            fillColor: "#f8eedf",
+            fillOpacity: 0.95,
+            interactive: false
+        }).addTo(map);
+    }
+
+    function quitarPreview() {
+        if (previewClick) {
+            map.removeLayer(previewClick);
+            previewClick = null;
+        }
+    }
+
+    function modalMapaClickVisible() {
+        const el = $("modalMapaClick");
+        return !!(el && !el.classList.contains("oculto"));
+    }
+
+    function mostrarModalMapaClick() {
+        $("modalMapaClick").classList.remove("oculto");
+    }
+
+    function cerrarModalMapaClick(mantenerPreview) {
+        $("modalMapaClick").classList.add("oculto");
+        if (!mantenerPreview) {
+            clickPendiente = null;
+            quitarPreview();
+        }
+    }
+
+    function modalEncuentroVisible() {
+        const el = $("modalEncuentro");
+        return !!(el && !el.classList.contains("oculto"));
+    }
+
+    function valorDatetimeLocal(d) {
+        const p = function (n) { return (n < 10 ? "0" : "") + n; };
+        return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) +
+            "T" + p(d.getHours()) + ":" + p(d.getMinutes());
+    }
+
+    function abrirModalEncuentro() {
+        cerrarModalMapaClick(true);
+        const ahora = new Date(Date.now() + 30 * 60 * 1000);
+        if ($("encNombre")) $("encNombre").value = "";
+        if ($("encHorario")) $("encHorario").value = valorDatetimeLocal(ahora);
+        if ($("encDesc")) $("encDesc").value = "";
+        $("modalEncuentro").classList.remove("oculto");
+        setTimeout(function () {
+            const el = $("encNombre");
+            if (el) el.focus();
+        }, 50);
+    }
+
+    function cerrarModalEncuentro(mantenerPunto) {
+        $("modalEncuentro").classList.add("oculto");
+        if (!mantenerPunto) {
+            clickPendiente = null;
+            quitarPreview();
+        }
+    }
+
+    function iconoDestino() {
+        return L.divIcon({
+            className: "marker-destino",
+            html: '<div class="pin-destino" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.6-7-11a7 7 0 1 1 14 0c0 6.4-7 11-7 11z" fill="#1e4b7b"/><circle cx="12" cy="10" r="2.4" fill="#fffcf7"/></svg></div>',
+            iconSize: [28, 36],
+            iconAnchor: [14, 34]
+        });
+    }
+
+    function iconoBandera() {
+        return L.divIcon({
+            className: "marker-bandera",
+            html: '<div class="bandera" aria-hidden="true"><svg viewBox="0 0 32 40"><path d="M7 38V6" fill="none" stroke="#1f2430" stroke-width="2.2" stroke-linecap="round"/><path d="M8 6h18l-5 7 5 7H8z" fill="#d97706" stroke="#1f2430" stroke-width="1.4" stroke-linejoin="round"/></svg></div>',
+            iconSize: [32, 40],
+            iconAnchor: [8, 38],
+            popupAnchor: [8, -36]
+        });
+    }
+
+    function limpiarCapaRuta() {
+        if (!navegacion) return;
+        if (navegacion.capaFondo) {
+            map.removeLayer(navegacion.capaFondo);
+            navegacion.capaFondo = null;
+        }
+        if (navegacion.capa) {
+            map.removeLayer(navegacion.capa);
+            navegacion.capa = null;
+        }
+        if (navegacion.markerDest) {
+            map.removeLayer(navegacion.markerDest);
+            navegacion.markerDest = null;
+        }
+    }
+
+    function cancelarNavegacion() {
+        navSeq += 1;
+        limpiarCapaRuta();
+        navegacion = null;
+        const hud = $("hudRuta");
+        if (hud) hud.classList.add("oculto");
+    }
+
+    function cartelLlegasteVisible() {
+        const el = $("cartelLlegaste");
+        return !!(el && !el.classList.contains("oculto"));
+    }
+
+    function ocultarCartelLlegaste() {
+        const el = $("cartelLlegaste");
+        if (el) el.classList.add("oculto");
+        if (llegasteTimer) {
+            clearTimeout(llegasteTimer);
+            llegasteTimer = null;
+        }
+    }
+
+    function mostrarCartelLlegaste() {
+        const el = $("cartelLlegaste");
+        if (!el) return;
+        el.classList.remove("oculto");
+        if (llegasteTimer) clearTimeout(llegasteTimer);
+        llegasteTimer = setTimeout(ocultarCartelLlegaste, 5000);
+    }
+
+    function finalizarLlegada() {
+        cancelarNavegacion();
+        mostrarCartelLlegaste();
+    }
+
+    function dibujarRuta(path, dest, sinMarker, ajustarVista) {
+        if (!navegacion) return;
+        if (navegacion.capaFondo) map.removeLayer(navegacion.capaFondo);
+        if (navegacion.capa) map.removeLayer(navegacion.capa);
+        navegacion.capaFondo = L.polyline(path, {
+            color: "#fff",
+            weight: 8,
+            opacity: 0.9,
+            interactive: false
+        }).addTo(map);
+        navegacion.capa = L.polyline(path, {
+            color: "#1e4b7b",
+            weight: 5,
+            opacity: 0.95,
+            interactive: false
+        }).addTo(map);
+        if (!sinMarker) {
+            if (!navegacion.markerDest) {
+                navegacion.markerDest = L.marker(dest, {
+                    icon: iconoDestino(),
+                    zIndexOffset: 700,
+                    keyboard: false,
+                    title: "Destino"
+                }).addTo(map);
+            } else {
+                navegacion.markerDest.setLatLng(dest);
+            }
+        } else if (navegacion.markerDest) {
+            map.removeLayer(navegacion.markerDest);
+            navegacion.markerDest = null;
+        }
+        if (ajustarVista) {
+            try {
+                map.fitBounds(navegacion.capa.getBounds(), {
+                    padding: [56, 56],
+                    maxZoom: 16,
+                    animate: true
+                });
+            } catch (e) {}
+        }
+    }
+
+    function actualizarHudRuta() {
+        const hud = $("hudRuta");
+        const dist = $("hudRutaDist");
+        if (!hud || !dist) return;
+        if (!navegacion || !miPosicion) {
+            hud.classList.add("oculto");
+            return;
+        }
+        const m = metrosEntre([miPosicion.lat, miPosicion.lng], navegacion.dest);
+        dist.textContent = "Ruta · " + textoDistancia(m / 1000);
+        hud.classList.remove("oculto");
+    }
+
+    function iniciarNavegacion(dest, opts) {
+        opts = opts || {};
+        if (!miPosicion) {
+            alert("Activá la ubicación para trazar el camino.");
+            iniciarGps();
+            return;
+        }
+        const yo = [miPosicion.lat, miPosicion.lng];
+        const hasta = [Number(dest[0]), Number(dest[1])];
+        if (metrosEntre(yo, hasta) <= 45) {
+            finalizarLlegada();
+            return;
+        }
+        const hud = $("hudRuta");
+        const dist = $("hudRutaDist");
+        if (hud) hud.classList.remove("oculto");
+        if (dist) dist.textContent = "Armando ruta…";
+        if (navegacion) navegacion.ts = Date.now();
+        const seq = ++navSeq;
+        const primera = !navegacion || opts.ajustarVista !== false;
+        rutaPorCalle(yo, hasta, true).then(function (path) {
+            if (seq !== navSeq) return;
+            if (!path || path.length < 2) {
+                if (!navegacion) {
+                    alert("No pudimos armar la ruta por las calles. Probá de nuevo.");
+                    cancelarNavegacion();
+                } else {
+                    actualizarHudRuta();
+                }
+                return;
+            }
+            const previa = navegacion;
+            navegacion = {
+                dest: hasta,
+                origen: yo,
+                path: path,
+                ts: Date.now(),
+                sinMarker: !!opts.sinMarker,
+                capaFondo: previa && previa.capaFondo,
+                capa: previa && previa.capa,
+                markerDest: previa && previa.markerDest
+            };
+            dibujarRuta(path, hasta, !!opts.sinMarker, primera);
+            seguirMe = true;
+            actualizarHudRuta();
+        });
+    }
+
+    function actualizarNavegacion() {
+        if (!navegacion || !miPosicion) return;
+        const yo = [miPosicion.lat, miPosicion.lng];
+        const dDest = metrosEntre(yo, navegacion.dest);
+        if (dDest <= 45) {
+            finalizarLlegada();
+            return;
+        }
+        actualizarHudRuta();
+        const dOrigen = metrosEntre(yo, navegacion.origen);
+        if (dOrigen > 140 && Date.now() - navegacion.ts > 8000) {
+            iniciarNavegacion(navegacion.dest, {
+                sinMarker: !!navegacion.sinMarker,
+                ajustarVista: false
+            });
+        }
+    }
+
+    function irHastaClick() {
+        const p = clickPendiente;
+        cerrarModalMapaClick(true);
+        quitarPreview();
+        if (!p) return;
+        iniciarNavegacion([p.lat, p.lng], { sinMarker: false, ajustarVista: true });
+        clickPendiente = null;
+    }
+
+    function htmlEncuentro(p) {
+        const horario = p.horario ? formatearFechaHora(new Date(p.horario).getTime()) : "";
+        return (
+            '<div class="popup-encuentro-cuerpo" data-enc="' + esc(p.id) + '">' +
+                "<h4>" + esc(p.nombre || "Encuentro") + "</h4>" +
+                (horario ? '<p class="enc-horario">' + esc(horario) + "</p>" : "") +
+                (p.descripcion ? "<p>" + esc(p.descripcion) + "</p>" : "") +
+                '<button type="button" data-accion="quitar-enc">Quitar</button>' +
+            "</div>"
+        );
+    }
+
+    function engancharPopupEncuentro(marker, id) {
+        marker.on("popupopen", function () {
+            const root = marker.getPopup() && marker.getPopup().getElement();
+            if (!root) return;
+            const btn = root.querySelector("[data-accion='quitar-enc']");
+            if (btn) {
+                btn.onclick = function (ev) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    quitarEncuentro(id);
+                };
+            }
+        });
+    }
+
+    function ponerBanderaEncuentro(p, abrir) {
+        const marker = L.marker([p.lat, p.lng], {
+            icon: iconoBandera(),
+            zIndexOffset: 650,
+            title: p.nombre || "Punto de encuentro",
+            riseOnHover: true
+        }).addTo(map);
+        marker.bindPopup(htmlEncuentro(p), {
+            className: "popup-encuentro",
+            closeButton: true,
+            autoPan: true
+        });
+        marker.on("click", function (ev) {
+            L.DomEvent.stopPropagation(ev);
+            iniciarNavegacion([p.lat, p.lng], { sinMarker: true, ajustarVista: true });
+        });
+        engancharPopupEncuentro(marker, p.id);
+        p.marker = marker;
+        encuentros[p.id] = p;
+        if (abrir) marker.openPopup();
+        return marker;
+    }
+
+    function guardarEncuentros() {
+        const lista = [];
+        Object.keys(encuentros).forEach(function (id) {
+            const p = encuentros[id];
+            lista.push({
+                id: p.id,
+                lat: p.lat,
+                lng: p.lng,
+                nombre: p.nombre || "",
+                horario: p.horario || "",
+                descripcion: p.descripcion || ""
+            });
+        });
+        try {
+            localStorage.setItem(ENC_KEY, JSON.stringify(lista));
+        } catch (e) {}
+    }
+
+    function restaurarEncuentros() {
+        let lista = [];
+        try {
+            lista = JSON.parse(localStorage.getItem(ENC_KEY) || "[]");
+        } catch (e) {
+            lista = [];
+        }
+        if (!Array.isArray(lista)) return;
+        lista.forEach(function (p) {
+            if (!p || !Number.isFinite(Number(p.lat)) || !Number.isFinite(Number(p.lng))) return;
+            ponerBanderaEncuentro({
+                id: p.id || ("enc" + Date.now() + Math.random().toString(36).slice(2, 6)),
+                lat: Number(p.lat),
+                lng: Number(p.lng),
+                nombre: String(p.nombre || "Encuentro").slice(0, 40),
+                horario: p.horario || "",
+                descripcion: String(p.descripcion || "").slice(0, 200)
+            }, false);
+        });
+    }
+
+    function quitarEncuentro(id) {
+        const p = encuentros[id];
+        if (!p) return;
+        if (p.marker) map.removeLayer(p.marker);
+        delete encuentros[id];
+        guardarEncuentros();
+        if (navegacion && metrosEntre(navegacion.dest, [p.lat, p.lng]) < 8) {
+            cancelarNavegacion();
+        }
+    }
+
+    function guardarEncuentroDesdeForm() {
+        const p = clickPendiente;
+        if (!p) {
+            cerrarModalEncuentro();
+            return;
+        }
+        const nombre = ($("encNombre") && $("encNombre").value.trim()) || "Encuentro";
+        const horario = $("encHorario") ? $("encHorario").value : "";
+        const descripcion = $("encDesc") ? $("encDesc").value.trim() : "";
+        const id = "enc" + Date.now().toString(36);
+        cerrarModalEncuentro(true);
+        quitarPreview();
+        clickPendiente = null;
+        const punto = {
+            id: id,
+            lat: p.lat,
+            lng: p.lng,
+            nombre: nombre.slice(0, 40),
+            horario: horario,
+            descripcion: descripcion.slice(0, 200)
+        };
+        anclarACalle(p.lat, p.lng).then(function (snap) {
+            punto.lat = snap[0];
+            punto.lng = snap[1];
+            ponerBanderaEncuentro(punto, true);
+            guardarEncuentros();
+        });
     }
 
     function longitudPath(pts) {
@@ -945,12 +1402,13 @@
         return cacheFichas[a.id] || null;
     }
 
+    function fichaDato(ico, lab, val) {
+        if (val == null || val === "") return "";
+        return '<div class="ficha-dato"><span class="ficha-dato-lab">' + ico + " " + esc(lab) + "</span><strong>" + esc(val) + "</strong></div>";
+    }
+
     function fichaHtml(a) {
         const soyYo = a.id === miId;
-        let distHtml = "";
-        if (!soyYo && miPosicion && a.lat && a.lng) {
-            distHtml = "<p>" + esc(textoDistancia(calcularDistanciaKm(miPosicion.lat, miPosicion.lng, a.lat, a.lng))) + "</p>";
-        }
         const det = datosFichaDe(a);
         const placa = det ? det.placa : "";
         const seguro = det ? det.seguro : "";
@@ -961,9 +1419,7 @@
         const sos = !!(a.asistencia && a.asistencia.activo) || (soyYo && asistenciaActiva);
         const walkie =
             '<button type="button" class="btn-ficha btn-walkie" data-accion="walkie">' +
-                '<span class="walkie-mic" aria-hidden="true">' +
-                    '<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>' +
-                "</span>" +
+                '<span class="walkie-mic" aria-hidden="true">' + ICO_MIC + "</span>" +
                 '<span class="walkie-idle">' +
                     "<strong>Mantené para hablar</strong>" +
                     "<small>Walkie a " + esc(destino) + "</small>" +
@@ -977,22 +1433,28 @@
         if (soyYo) {
             extra = '<div class="acciones-sec">' +
                 '<button type="button" class="btn-ficha" data-accion="sos">' +
-                    (sos ? "Cancelar ayuda" : "Pedir ayuda") +
+                    ICO_SOS + (sos ? " Cancelar ayuda" : " Pedir ayuda") +
                 "</button>" +
                 "</div>";
         } else {
             extra = '<div class="acciones-sec">' +
-                '<button type="button" class="btn-ficha" data-accion="mensaje">Escribir</button>' +
-                (tel ? '<a href="tel:' + esc(tel) + '">Llamar</a>' : '<button type="button" class="btn-ficha" data-accion="ficha">Ver datos</button>') +
+                '<button type="button" class="btn-ficha" data-accion="mensaje">' + ICO_MSG + " Escribir</button>" +
+                (tel
+                    ? '<a href="tel:' + esc(tel) + '">' + ICO_TEL + " Llamar</a>"
+                    : '<button type="button" class="btn-ficha" data-accion="ficha">' + ICO_SEGURO + " Ver datos</button>") +
                 "</div>";
         }
-        let privados = "";
+        let datos = fichaDato(ICO_VEL, "Velocidad", Math.round(a.velocidad || 0) + " km/h");
+        datos += fichaDato(ICO_RUMBO, "Rumbo", textoRumbo(a.rumbo));
+        if (!soyYo && miPosicion && a.lat && a.lng) {
+            datos += fichaDato(ICO_PIN, "Distancia", textoDistancia(calcularDistanciaKm(miPosicion.lat, miPosicion.lng, a.lat, a.lng)));
+        }
         if (det) {
-            if (placa) privados += "<p>Patente · " + esc(placa) + "</p>";
-            if (seguro) privados += "<p>Seguro · " + esc(seguro) + "</p>";
-            if (telRaw && !tel) privados += "<p>" + esc(telRaw) + "</p>";
+            if (placa) datos += fichaDato(ICO_PATENTE, "Patente", placa);
+            if (seguro) datos += fichaDato(ICO_SEGURO, "Seguro", seguro);
+            if (telRaw && !tel) datos += fichaDato(ICO_TEL, "Contacto", telRaw);
         } else if (!soyYo) {
-            privados = '<p class="ficha-priv">Teléfono y seguro se piden al abrir.</p>';
+            datos += '<p class="ficha-priv">Teléfono y seguro se piden al abrir.</p>';
         }
 
         return (
@@ -1006,10 +1468,8 @@
                     "</button>" +
                 "</div>" +
                 "<h4>" + esc(nombre) + "</h4>" +
-                "<p>" + esc(a.vehiculo || "Vehículo") + "</p>" +
-                "<p><b>" + esc(Math.round(a.velocidad || 0)) + " km/h</b> · " + esc(textoRumbo(a.rumbo)) + "</p>" +
-                distHtml +
-                privados +
+                '<p class="ficha-vehiculo">' + esc(a.vehiculo || "Vehículo") + "</p>" +
+                '<div class="v2v-popup-datos">' + datos + "</div>" +
                 '<div class="acciones">' + walkie + extra + "</div>" +
             "</div>"
         );
@@ -2292,7 +2752,20 @@
         $("btnCerrarIcono").addEventListener("click", cerrarModalIcono);
         $("fondoModalIcono").addEventListener("click", cerrarModalIcono);
         document.addEventListener("keydown", function (e) {
-            if (e.key === "Escape") cerrarModalIcono();
+            if (e.key !== "Escape") return;
+            if (cartelLlegasteVisible()) {
+                ocultarCartelLlegaste();
+                return;
+            }
+            if (modalEncuentroVisible()) {
+                cerrarModalEncuentro();
+                return;
+            }
+            if (modalMapaClickVisible()) {
+                cerrarModalMapaClick();
+                return;
+            }
+            cerrarModalIcono();
         });
         $("btnCentrar").addEventListener("click", function () {
             vistaRadio = false;
@@ -2304,6 +2777,11 @@
         $("btnCerrarComms").addEventListener("click", function () {
             cerrarComms();
         });
+        if ($("btnDockMapa")) {
+            $("btnDockMapa").addEventListener("click", function () {
+                cerrarComms();
+            });
+        }
         $("btnActivarGps").addEventListener("click", iniciarGps);
         $("radioFiltro").addEventListener("change", function () {
             localStorage.setItem("radiomap_radio", String(radioKmActual()));
@@ -2369,6 +2847,30 @@
         pintarBotonSos();
         aplicarModoManejo();
         actualizarDestinoUI();
+        restaurarEncuentros();
+        if ($("btnIrHastaAhi")) $("btnIrHastaAhi").addEventListener("click", irHastaClick);
+        if ($("btnPuntoEncuentro")) $("btnPuntoEncuentro").addEventListener("click", abrirModalEncuentro);
+        if ($("btnCancelarMapaClick")) $("btnCancelarMapaClick").addEventListener("click", function () {
+            cerrarModalMapaClick();
+        });
+        if ($("fondoModalMapaClick")) $("fondoModalMapaClick").addEventListener("click", function () {
+            cerrarModalMapaClick();
+        });
+        if ($("btnGuardarEncuentro")) $("btnGuardarEncuentro").addEventListener("click", guardarEncuentroDesdeForm);
+        if ($("btnCancelarEncuentro")) $("btnCancelarEncuentro").addEventListener("click", function () {
+            cerrarModalEncuentro();
+        });
+        if ($("fondoModalEncuentro")) $("fondoModalEncuentro").addEventListener("click", function () {
+            cerrarModalEncuentro();
+        });
+        if ($("formEncuentro")) {
+            $("formEncuentro").addEventListener("submit", function (e) {
+                e.preventDefault();
+                guardarEncuentroDesdeForm();
+            });
+        }
+        if ($("btnCancelarRuta")) $("btnCancelarRuta").addEventListener("click", cancelarNavegacion);
+        if ($("cartelLlegaste")) $("cartelLlegaste").addEventListener("click", ocultarCartelLlegaste);
         if (yaEntroMapa()) pedirWakeLock();
         if (miGrupo) {
             emitirTelemetria(true);
@@ -2404,11 +2906,21 @@
 
     function abrirComms() {
         $("commsPanel").classList.add("open");
+        pintarDock();
         asegurarTrampaAtras();
     }
 
     function cerrarComms() {
         $("commsPanel").classList.remove("open");
+        pintarDock();
+    }
+
+    function pintarDock() {
+        const radio = $("btnToggleComms");
+        const mapa = $("btnDockMapa");
+        const abierto = commsAbierto();
+        if (radio) radio.classList.toggle("on", abierto);
+        if (mapa) mapa.classList.toggle("on", !abierto);
     }
 
     function modalSalirVisible() {
@@ -2433,6 +2945,18 @@
     function consumirAtrasEnLaApp() {
         if (modalSalirVisible()) {
             ocultarModalSalir();
+            return true;
+        }
+        if (cartelLlegasteVisible()) {
+            ocultarCartelLlegaste();
+            return true;
+        }
+        if (modalEncuentroVisible()) {
+            cerrarModalEncuentro();
+            return true;
+        }
+        if (modalMapaClickVisible()) {
+            cerrarModalMapaClick();
             return true;
         }
         const icono = $("modalIcono");
