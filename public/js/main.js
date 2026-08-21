@@ -42,7 +42,13 @@
 
     const map = L.map("map", {
         zoomControl: true,
-        closePopupOnClick: false
+        closePopupOnClick: false,
+        rotate: true,
+        bearing: 0,
+        rotateControl: false,
+        touchRotate: false,
+        shiftKeyRotate: false,
+        compassBearing: false
     }).setView([-34.6037, -58.3816], 13);
     L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
         attribution: "&copy; OpenStreetMap &copy; CARTO",
@@ -96,6 +102,10 @@
     let radioTimer = null;
     let miGrupo = localStorage.getItem("radiomap_grupo") || "";
     let modoManejo = localStorage.getItem("radiomap_manejo") === "1";
+    let modoNavGps = false;
+    let rumboNavSuave = 0;
+    let navGpsRaf = null;
+    let navGpsZoomPendiente = false;
     let asistenciaActiva = false;
     let wakeLock = null;
     const cacheFichas = {};
@@ -109,6 +119,7 @@
     let ackWalkieTimer = null;
 
     function debeMostrarFicha(id) {
+        if (modoNavGps && id === miId) return false;
         if (fichasForzadas[id] === "cerrada") return false;
         if (fichasForzadas[id] === "abierta") return true;
         if (id === miId) return true;
@@ -166,6 +177,10 @@
     setTimeout(function () { map.invalidateSize(); }, 250);
 
     map.on("dragstart", function () {
+        if (modoNavGps) {
+            seguirMe = true;
+            return;
+        }
         seguirMe = false;
     });
 
@@ -643,6 +658,11 @@
             contacto: $("contacto").value.trim()
         });
 
+        if (modoNavGps) seguirMe = true;
+        if (navGpsZoomPendiente && modoNavGps) {
+            navGpsZoomPendiente = false;
+            map.setView([lat, lng], Math.max(map.getZoom(), 17), { animate: false });
+        }
         if (debeEmitir(lat, lng)) emitirTelemetria(false);
         renderizarContactos();
         aplicarRumbo(miId, rumbo);
@@ -718,15 +738,22 @@
     }
 
     function aplicarRumbo(id, deg) {
-        if (!Number.isFinite(Number(deg))) return;
+        if (!Number.isFinite(Number(deg)) && !(modoNavGps && id === miId)) return;
         const marker = markers[id];
         if (!marker) return;
         const el = marker.getElement();
         if (!el) return;
         const rot = el.querySelector(".auto-rot");
-        if (rot) rot.style.transform = "rotate(" + Number(deg) + "deg)";
-        if (autos[id]) autos[id].rumbo = Number(deg);
-        if (id === miId && miPosicion) miPosicion.rumbo = Number(deg);
+        if (!rot) return;
+        let vis = Number(deg);
+        if (modoNavGps) {
+            vis = id === miId ? 0 : ((vis - rumboNavSuave) + 360) % 360;
+        }
+        if (Number.isFinite(vis)) rot.style.transform = "rotate(" + vis + "deg)";
+        if (Number.isFinite(Number(deg))) {
+            if (autos[id]) autos[id].rumbo = Number(deg);
+            if (id === miId && miPosicion) miPosicion.rumbo = Number(deg);
+        }
     }
 
     function clavePunto(lat, lng) {
@@ -1074,7 +1101,7 @@
             map.removeLayer(navegacion.markerDest);
             navegacion.markerDest = null;
         }
-        if (ajustarVista) {
+        if (ajustarVista && !modoNavGps) {
             try {
                 map.fitBounds(navegacion.capa.getBounds(), {
                     padding: [56, 56],
@@ -1160,8 +1187,8 @@
                 capa: previa && previa.capa,
                 markerDest: previa && previa.markerDest
             };
-            dibujarRuta(path, hasta, !!opts.sinMarker, primera);
-            if (primera) seguirMe = true;
+            dibujarRuta(path, hasta, !!opts.sinMarker, primera && !modoNavGps);
+            if (primera || modoNavGps) seguirMe = true;
             actualizarHudRuta();
         });
     }
@@ -1441,7 +1468,7 @@
             marker.setLatLng(p);
             if (soyYo && circuloRadio) circuloRadio.setLatLng(p);
             if (debeMostrarFicha(id) && !marker.isTooltipOpen()) marker.openTooltip();
-            if (soyYo && seguirMe) map.setView(p, map.getZoom(), { animate: false });
+            if (soyYo && (seguirMe || modoNavGps)) map.setView(p, map.getZoom(), { animate: false });
             if (t < 1) {
                 est.raf = requestAnimationFrame(frame);
             } else {
@@ -2283,6 +2310,96 @@
         aplicarModoManejo();
     }
 
+    function lerpAngulo(desde, hasta, t) {
+        if (!Number.isFinite(desde)) return hasta;
+        if (!Number.isFinite(hasta)) return desde;
+        let d = hasta - desde;
+        while (d > 180) d -= 360;
+        while (d < -180) d += 360;
+        return (desde + d * t + 360) % 360;
+    }
+
+    function setMapaBearing(deg) {
+        if (!map || typeof map.setBearing !== "function") return;
+        map.setBearing(((deg % 360) + 360) % 360);
+    }
+
+    function refrescarRumbosMarcadores() {
+        Object.keys(markers).forEach(function (id) {
+            const h = (autos[id] && Number.isFinite(Number(autos[id].rumbo)))
+                ? autos[id].rumbo
+                : (id === miId && miPosicion ? miPosicion.rumbo : null);
+            aplicarRumbo(id, h);
+        });
+    }
+
+    function tickNavGps() {
+        if (!modoNavGps) {
+            navGpsRaf = null;
+            return;
+        }
+        const m = markers[miId];
+        const pos = m
+            ? m.getLatLng()
+            : (miPosicion ? L.latLng(miPosicion.lat, miPosicion.lng) : null);
+        if (pos && !map._animatingZoom && !(map.touchGestures && map.touchGestures._zooming)) {
+            map.setView(pos, map.getZoom(), { animate: false });
+        }
+        const destino = Number.isFinite(miPosicion && miPosicion.rumbo)
+            ? miPosicion.rumbo
+            : rumboNavSuave;
+        if (Number.isFinite(destino)) {
+            rumboNavSuave = lerpAngulo(rumboNavSuave, destino, 0.16);
+            setMapaBearing(rumboNavSuave);
+            refrescarRumbosMarcadores();
+        }
+        navGpsRaf = requestAnimationFrame(tickNavGps);
+    }
+
+    function aplicarModoNavGps() {
+        document.body.classList.toggle("modo-nav-gps", modoNavGps);
+        const btn = $("btnNavGps");
+        if (btn) {
+            btn.classList.toggle("on", modoNavGps);
+            btn.setAttribute("aria-pressed", modoNavGps ? "true" : "false");
+        }
+        if (modoNavGps) {
+            seguirMe = true;
+            vistaRadio = false;
+            pedirWakeLock();
+            if (map.dragging) map.dragging.disable();
+            if (miPosicion) {
+                navGpsZoomPendiente = false;
+                if (Number.isFinite(miPosicion.rumbo)) rumboNavSuave = miPosicion.rumbo;
+                map.setView([miPosicion.lat, miPosicion.lng], Math.max(map.getZoom(), 17), { animate: false });
+                setMapaBearing(rumboNavSuave);
+            } else {
+                navGpsZoomPendiente = true;
+                iniciarGps();
+            }
+            if (markers[miId] && markers[miId].closeTooltip) markers[miId].closeTooltip();
+            aplicarVisibilidadPopups();
+            if (!navGpsRaf) navGpsRaf = requestAnimationFrame(tickNavGps);
+        } else {
+            navGpsZoomPendiente = false;
+            if (map.dragging) map.dragging.enable();
+            rumboNavSuave = 0;
+            setMapaBearing(0);
+            if (navGpsRaf) {
+                cancelAnimationFrame(navGpsRaf);
+                navGpsRaf = null;
+            }
+            refrescarRumbosMarcadores();
+            aplicarVisibilidadPopups();
+        }
+        if (map) setTimeout(function () { map.invalidateSize(); }, 80);
+    }
+
+    function alternarModoNavGps() {
+        modoNavGps = !modoNavGps;
+        aplicarModoNavGps();
+    }
+
     // ===================================================
     // Walkie-talkie (PTT)
     // ===================================================
@@ -2999,7 +3116,9 @@
         $("btnCentrar").addEventListener("click", function () {
             vistaRadio = false;
             seguirMe = true;
-            if (miPosicion) map.setView([miPosicion.lat, miPosicion.lng], 16);
+            if (modoNavGps && miPosicion) {
+                map.setView([miPosicion.lat, miPosicion.lng], map.getZoom(), { animate: false });
+            } else if (miPosicion) map.setView([miPosicion.lat, miPosicion.lng], 16);
             else iniciarGps();
         });
         $("btnToggleComms").addEventListener("click", toggleComms);
@@ -3029,6 +3148,7 @@
         }
         if ($("btnSosMapa")) $("btnSosMapa").addEventListener("click", alternarAsistencia);
         if ($("btnManejo")) $("btnManejo").addEventListener("click", alternarModoManejo);
+        if ($("btnNavGps")) $("btnNavGps").addEventListener("click", alternarModoNavGps);
         $("btnEnviarV2V").addEventListener("click", enviarV2V);
         $("btnEnviarPrivado").addEventListener("click", enviarPrivado);
         $("txtV2V").addEventListener("keydown", function (e) {

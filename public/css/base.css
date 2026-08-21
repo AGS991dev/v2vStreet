@@ -281,6 +281,18 @@ body {
     background: #e7e2d6;
 }
 
+.leaflet-control-rotate {
+    display: none !important;
+}
+
+body.modo-nav-gps .ficha-propia {
+    display: none !important;
+}
+
+body.modo-nav-gps .marker-propio {
+    z-index: 1200;
+}
+
 /* ================= HUD ================= */
 
 .hud-top {
@@ -792,7 +804,8 @@ body {
     background: #fff8ee;
 }
 
-#btnManejo.on {
+#btnManejo.on,
+#btnNavGps.on {
     background: #fff8ee;
     box-shadow: 0 0 0 2px var(--ambar), var(--sombra);
 }
@@ -1950,7 +1963,8 @@ body.mosaico-listo .marker-otro .auto-cuerpo {
     color: var(--suave);
 }
 
-#btnManejo.on {
+#btnManejo.on,
+#btnNavGps.on {
     background: #fff8ee;
     box-shadow: 0 0 0 2px var(--ambar), var(--sombra);
 }
