@@ -5,102 +5,81 @@
 @media (min-width: 1024px) {
 
     .map-container {
-        right: 380px;
+        right: 0;
     }
 
     .comms-panel {
-        right: 0;
+        right: 16px;
         left: auto;
-        top: 0;
-        width: 380px;
-        height: 100%;
+        top: 16px;
+        bottom: 16px;
+        width: var(--panel-w);
+        height: auto;
         max-height: none;
-        bottom: 0;
         background: var(--nieve);
-        transition: none;
-        transform: none;
+        transform: translateX(120%);
+        transition: transform 0.28s ease;
         padding-bottom: 0;
-        border-left: 1px solid var(--linea);
-        border-radius: 0;
-        box-shadow: none;
+        border-left: 0;
+        border-radius: 24px;
+        box-shadow: 0 16px 48px rgba(28, 40, 60, 0.16);
         overflow: hidden;
+    }
+
+    .comms-panel.open {
+        transform: translateX(0);
     }
 
     .comms-handle {
         display: none;
     }
 
-    .usos-linea {
-        display: flex;
-    }
-
-    .comms-contactos {
-        flex: 0 0 42%;
-    }
-
-    .btn-toggle-comms,
-    .btn-cerrar-comms,
-    #btnDockMapa {
-        display: none;
-    }
-
     .hud-top {
-        right: 400px;
+        right: 16px;
     }
 
-    .comms-contactos {
-        flex-basis: 42%;
+    body.comms-open .hud-top {
+        right: calc(var(--panel-w) + 32px);
     }
 
     .chat-mensajes {
         min-height: 140px;
     }
 
-    .dock-mapa {
-        left: 16px;
-        right: auto;
-        width: auto;
-        height: auto;
-        background: transparent;
-        box-shadow: none;
-        padding: 0 0 20px;
-        border-radius: 0;
-        justify-content: flex-start;
-    }
-
-    .btn-ptt-mapa {
-        margin: 0;
-    }
-
     .habla-mapa {
         left: 16px;
         right: auto;
-        bottom: 100px;
+        bottom: 24px;
         max-width: 280px;
         flex-direction: column;
         align-items: flex-start;
     }
 
-    .destino-habla {
-        max-width: 100%;
+    .mapa-atajos {
+        display: flex;
+    }
+
+    .dock-mapa {
+        display: none !important;
     }
 
     .aviso-audio {
         left: 16px;
         transform: none;
-        bottom: 92px;
+        bottom: 168px;
     }
 
     .ack-walkie {
         left: 16px;
         transform: none;
-        bottom: 148px;
+        bottom: 220px;
     }
 
     .aviso-gps {
         left: 16px;
         transform: none;
-        bottom: 24px;
+        top: 88px;
+        bottom: auto;
     }
 
     .portada-card h1 {

@@ -175,6 +175,8 @@ function listaEncuentrosDisco() {
             descripcion: e.descripcion || "",
             de: e.de || "",
             grupo: e.grupo || "",
+            alcance: e.alcance || "",
+            para: e.para || "",
             ts: e.ts || Date.now()
         };
     }).filter(Boolean);
@@ -196,6 +198,8 @@ function cargarEncuentrosDisco() {
                 descripcion: sanitizarTexto(e.descripcion, 200),
                 de: sanitizarTexto(e.de, 64),
                 grupo: sanitizarTexto(e.grupo, 8),
+                alcance: sanitizarAlcance(e.alcance, true),
+                para: sanitizarTexto(e.para, 64),
                 ts: Number(e.ts) || Date.now()
             };
         });
@@ -221,6 +225,12 @@ cargarEncuentrosDisco();
 
 function sanitizarTexto(valor, max) {
     return String(valor || "").trim().slice(0, max);
+}
+
+function sanitizarAlcance(valor, permitirVacio) {
+    const a = String(valor || "").trim().toLowerCase();
+    if (a === "global" || a === "privado" || a === "grupo") return a;
+    return permitirVacio ? "" : "global";
 }
 
 function sanitizarEntero(valor, min, max, def) {
@@ -290,6 +300,7 @@ function publicoDe(v) {
 
 function publicoEncuentro(e) {
     if (!e) return null;
+    const dest = e.para ? vehiculos[e.para] : null;
     return {
         id: e.id,
         lat: e.lat,
@@ -298,13 +309,20 @@ function publicoEncuentro(e) {
         horario: e.horario || "",
         descripcion: e.descripcion || "",
         de: e.de,
-        grupo: e.grupo || ""
+        grupo: e.grupo || "",
+        alcance: e.alcance || "",
+        para: e.para || "",
+        paraNombre: dest && dest.nombre ? dest.nombre : ""
     };
 }
 
 function puedeVerEncuentro(oyente, e) {
     if (!oyente || !e) return false;
     if (e.de && e.de === oyente.id) return true;
+    const alcance = sanitizarAlcance(e.alcance, true);
+    if (alcance === "global") return true;
+    if (alcance === "grupo") return !!(e.grupo && oyente.grupo && e.grupo === oyente.grupo);
+    if (alcance === "privado") return !!(e.para && e.para === oyente.id);
     if (e.grupo && oyente.grupo && e.grupo === oyente.grupo) return true;
     return kmEntre(oyente, e) <= radioDe(oyente);
 }
@@ -601,6 +619,27 @@ io.on("connection", socket => {
             return;
         }
         const id = sanitizarTexto(raw.id, 40) || ("enc" + Date.now().toString(36));
+        const alcance = sanitizarAlcance(raw.alcance, false);
+        let grupo = "";
+        let para = "";
+        if (alcance === "grupo") {
+            if (!yo.grupo) {
+                if (typeof ack === "function") ack({ ok: false, error: "Uníte a un grupo para compartir el punto ahí." });
+                return;
+            }
+            grupo = yo.grupo;
+        } else if (alcance === "privado") {
+            para = sanitizarTexto(raw.para, 64);
+            if (!para || para === yo.id) {
+                if (typeof ack === "function") ack({ ok: false, error: "Elegí un contacto para el punto privado." });
+                return;
+            }
+            const dest = vehiculos[para];
+            if (!dest) {
+                if (typeof ack === "function") ack({ ok: false, error: "Ese contacto no está en el mapa ahora." });
+                return;
+            }
+        }
         const e = {
             id: id,
             lat: lat,
@@ -609,7 +648,9 @@ io.on("connection", socket => {
             horario: sanitizarTexto(raw.horario, 40),
             descripcion: sanitizarTexto(raw.descripcion, 200),
             de: yo.id,
-            grupo: yo.grupo || "",
+            grupo: grupo,
+            alcance: alcance,
+            para: para,
             ts: Date.now()
         };
         encuentros[id] = e;
