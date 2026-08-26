@@ -474,10 +474,11 @@
     }
 
     function pintarPreviewIcono() {
-        const el = $("iconoPreview");
         const xy = leerIconoLocal();
-        if (el) {
-            const rec = recorteCelda(xy.x, xy.y);
+        const rec = recorteCelda(xy.x, xy.y);
+        ["iconoPreview", "iconoPreviewCabeza"].forEach(function (id) {
+            const el = $(id);
+            if (!el || !rec.url) return;
             let img = el.querySelector("img");
             if (!img) {
                 img = document.createElement("img");
@@ -485,7 +486,7 @@
                 el.appendChild(img);
             }
             img.src = rec.url;
-        }
+        });
     }
 
     function abrirModalIcono() {
@@ -4137,6 +4138,12 @@
             ev.stopPropagation();
             abrirModalIcono();
         });
+        if ($("btnAvatarPerfil")) {
+            $("btnAvatarPerfil").addEventListener("click", function (ev) {
+                ev.stopPropagation();
+                abrirModalIcono();
+            });
+        }
         $("btnCerrarIcono").addEventListener("click", cerrarModalIcono);
         $("fondoModalIcono").addEventListener("click", cerrarModalIcono);
         document.addEventListener("keydown", function (e) {

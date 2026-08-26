@@ -37,11 +37,12 @@
         border-radius: 18px;
     }
 
-    .perfil-handy {
+    .perfil-avatar {
         width: 36px;
         height: 36px;
         flex-basis: 36px;
         border-radius: 12px;
+        padding: 3px;
     }
 
     .perfil-datos #perfilNombre {

@@ -388,14 +388,17 @@ body.modo-nav-gps .marker-propio {
 }
 
 .perfil-avatar {
-    width: 40px;
-    height: 40px;
-    flex: 0 0 40px;
-    padding: 3px;
-    border-radius: 50%;
-    background: #f8eedf;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    padding: 4px;
+    border-radius: 14px;
+    background: #fff8ee;
     border: 1.5px solid #e8c49a;
     cursor: pointer;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
 }
 
 .perfil-avatar:hover,
@@ -3568,12 +3571,15 @@ body.modo-manejo .atajo-pill {
         --dock-h: calc(78px + env(safe-area-inset-bottom, 0px));
     }
 
-    .hud-desk {
-        display: none !important;
-    }
-
     .hud-mob {
         display: inline-flex;
+    }
+
+    .hud-iconos {
+        max-height: calc(100dvh - var(--dock-h) - 112px);
+        overflow-y: auto;
+        padding-bottom: 4px;
+        scrollbar-width: none;
     }
 
     .hud-ico {

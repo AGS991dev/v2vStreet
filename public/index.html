@@ -14,9 +14,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="css/base.css?v=20260825e">
-<link rel="stylesheet" href="css/desktop.css?v=20260825e">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260825e">
+<link rel="stylesheet" href="css/base.css?v=20260825f">
+<link rel="stylesheet" href="css/desktop.css?v=20260825f">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260825f">
 </head>
 
 <body>
@@ -78,9 +78,9 @@
 <div class="hud-top">
     <div class="hud-card" id="cardPerfil">
         <div class="perfil-cabeza">
-            <span class="perfil-handy" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><rect x="8" y="7" width="10" height="13" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 7V3.5M14.5 7V5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M8 11H5.5a1.5 1.5 0 0 0 0 3H8" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="13" cy="14" r="1.6" fill="currentColor"/></svg>
-            </span>
+            <button type="button" id="btnAvatarPerfil" class="perfil-avatar" title="Elegir el icono de tu auto">
+                <span id="iconoPreviewCabeza" class="icono-preview" aria-hidden="true"></span>
+            </button>
             <button type="button" id="btnTogglePerfil" class="perfil-resumen">
                 <span class="perfil-datos">
                     <span id="perfilNombre">Tu perfil</span>
@@ -139,26 +139,17 @@
 
     <div class="hud-acciones">
         <div class="hud-iconos">
-            <button type="button" id="btnZoomIn" class="hud-btn hud-ico hud-desk" title="Acercar el mapa">
+            <button type="button" id="btnZoomIn" class="hud-btn hud-ico" title="Acercar el mapa">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v12M6 12h12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
                 <span>Acercar</span>
             </button>
-            <button type="button" id="btnZoomOut" class="hud-btn hud-ico hud-desk" title="Alejar el mapa">
+            <button type="button" id="btnZoomOut" class="hud-btn hud-ico" title="Alejar el mapa">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
                 <span>Alejar</span>
             </button>
             <button type="button" id="btnBuscar" class="hud-btn hud-ico" title="Buscar un lugar o una dirección">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M16 16l4.2 4.2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
                 <span>Buscar</span>
-            </button>
-            <button type="button" id="btnHudCerca" class="hud-btn hud-ico hud-mob" title="Quién está cerca y grupos">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="16" cy="8.5" r="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M4.5 18c.7-2.4 2.3-3.6 4.5-3.6s3.8 1.2 4.5 3.6M13.2 18c.4-1.6 1.5-2.6 3-2.6s2.4.8 2.8 2.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-                <span>Cerca</span>
-            </button>
-            <button type="button" id="btnHudAvisos" class="hud-btn hud-ico hud-mob" title="Avisos y mensajes">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 5 2 6.5 2 6.5H4S6 13 6 8zM10 18.5a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>
-                <span>Avisos</span>
-                <span id="badgeHudAvisos" class="badge-hud oculto">0</span>
             </button>
             <button type="button" id="btnQueEs" class="hud-btn hud-ico" title="Qué es RadioMap">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="12" cy="12" r="3.1" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6.4 6.4l2.3 2.3M15.3 15.3l2.3 2.3M15.3 6.4l-2.3 2.3M8.7 15.3l-2.3 2.3" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
@@ -168,9 +159,18 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
                 <span>Centrar</span>
             </button>
-            <button type="button" id="btnHerramientas" class="hud-btn hud-ico hud-desk" title="Perfil y herramientas" aria-expanded="false">
+            <button type="button" id="btnHerramientas" class="hud-btn hud-ico" title="Perfil y herramientas" aria-expanded="false">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M5.5 19.5c1.2-3.2 3.5-4.8 6.5-4.8s5.3 1.6 6.5 4.8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
                 <span>Perfil</span>
+            </button>
+            <button type="button" id="btnHudCerca" class="hud-btn hud-ico hud-mob" title="Quién está cerca y grupos">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="16" cy="8.5" r="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M4.5 18c.7-2.4 2.3-3.6 4.5-3.6s3.8 1.2 4.5 3.6M13.2 18c.4-1.6 1.5-2.6 3-2.6s2.4.8 2.8 2.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                <span>Cerca</span>
+            </button>
+            <button type="button" id="btnHudAvisos" class="hud-btn hud-ico hud-mob" title="Avisos y mensajes">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 5 2 6.5 2 6.5H4S6 13 6 8zM10 18.5a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>
+                <span>Avisos</span>
+                <span id="badgeHudAvisos" class="badge-hud oculto">0</span>
             </button>
         </div>
         <div id="menuHerramientas" class="menu-herramientas oculto">
@@ -601,6 +601,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
 <script src="/socket.io/socket.io.js"></script>
-<script src="js/main.js?v=20260825e"></script>
+<script src="js/main.js?v=20260825f"></script>
 </body>
 </html>
