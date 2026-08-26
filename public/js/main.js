@@ -32,6 +32,14 @@
         return localStorage.getItem("radiomap_entro") === "1" || localStorage.getItem("baliza_entro") === "1";
     }
 
+    function esInvitadoFantasma() {
+        try {
+            return !!(new URLSearchParams(window.location.search).get("fantasma") || "").trim();
+        } catch (e) {
+            return !!(window.RadioMapFantasma && RadioMapFantasma.esInvitado());
+        }
+    }
+
     const miId = obtenerId();
     const socket = io({
         transports: ["websocket", "polling"],
@@ -230,7 +238,7 @@
     iniciarPerfil();
     iniciarMosaico();
     bindUi();
-    if (yaEntroMapa()) iniciarGps();
+    if (yaEntroMapa() && !esInvitadoFantasma()) iniciarGps();
     setTimeout(function () { map.invalidateSize(); }, 250);
 
     map.on("dragstart", function () {
@@ -467,6 +475,7 @@
             aplicarCssMosaico(src);
             pintarPreviewIcono();
             Object.keys(markers).forEach(function (id) {
+                if (id === "vivo-fantasma") return;
                 const a = autos[id] || (id === miId ? datosPropios() : null);
                 const marker = markers[id];
                 if (marker) marker._iconoSrc = "";
@@ -626,6 +635,7 @@
     // GPS: al iniciar va a tu punto y el marker sigue las coords
     // ===================================================
     function iniciarGps() {
+        if (esInvitadoFantasma()) return;
         if (!navigator.geolocation) {
             mostrarAvisoGps("Tu navegador no permite geolocalización.");
             avisarGpsErrorIntro("Tu navegador no permite ubicación.");
@@ -839,6 +849,7 @@
     }
 
     function emitirTelemetria(forzar) {
+        if (esInvitadoFantasma()) return;
         if (window.RadioMapCarrera && RadioMapCarrera.bloqueaGps()) return;
         if (!miPosicion || !socket.connected) return;
         if (!forzar && !debeEmitir(miPosicion.lat, miPosicion.lng) && Date.now() - ultimoEnvio.ts < 2000) {
@@ -907,7 +918,8 @@
         const rot = el.querySelector(".auto-rot");
         if (!rot) return;
         let vis = Number(deg);
-        if (modoNavGps) {
+        const enCarrera = window.RadioMapCarrera && RadioMapCarrera.bloqueaGps();
+        if (modoNavGps && !enCarrera) {
             vis = id === miId ? 0 : ((vis - rumboNavSuave) + 360) % 360;
         }
         if (Number.isFinite(vis)) rot.style.transform = "rotate(" + vis + "deg)";
@@ -917,6 +929,11 @@
         if (id === miId && Number.isFinite(Number(deg))) {
             if (miPosicion) miPosicion.rumbo = Number(deg);
             if (posGpsObjetivo) posGpsObjetivo.rumbo = Number(deg);
+            if (window.RadioMapCarrera && RadioMapCarrera.bloqueaGps()) {
+                rumboVisual = Number(deg);
+                pintarRumbo(id, Number(deg));
+                return;
+            }
             pintarRumbo(id, Number.isFinite(rumboVisual) ? rumboVisual : deg);
             return;
         }
@@ -1406,6 +1423,7 @@
     }
 
     function onClickMapa(ev) {
+        if (window.RadioMapFantasma && RadioMapFantasma.consumeClick(ev)) return;
         if (window.RadioMapCarrera && RadioMapCarrera.consumeClick(ev)) return;
         if (saltearClickCalle) {
             saltearClickCalle = false;
@@ -2771,6 +2789,7 @@
     }
 
     function aplicarEstadoGlobal(estado) {
+        if (esInvitadoFantasma()) return;
         const fantasma = fantasmaActivo ? autos[FANTASMA_ID] : null;
         autos = estado && typeof estado === "object" ? estado : {};
         if (fantasma) autos[FANTASMA_ID] = fantasma;
@@ -3421,6 +3440,7 @@
     }
 
     function alternarAsistencia() {
+        if (esInvitadoFantasma()) return;
         if (!socket.connected) return;
         const proximo = !asistenciaActiva;
         socket.emit("asistencia", { activo: proximo }, function (res) {
@@ -3486,6 +3506,10 @@
     function tickNavGps() {
         if (!modoNavGps) {
             navGpsRaf = null;
+            return;
+        }
+        if (window.RadioMapCarrera && RadioMapCarrera.bloqueaGps()) {
+            navGpsRaf = requestAnimationFrame(tickNavGps);
             return;
         }
         const m = markers[miId];
@@ -3740,10 +3764,12 @@
     function resolverModoPtt(modo) {
         if (modo === "privado") return "privado";
         if (modo === "grupo") return "grupo";
+        if (modo === "carrera") return "carrera";
         return "general";
     }
 
     function empezarPtt(modo) {
+        if (esInvitadoFantasma()) return;
         if (resolverModoPtt(modo) === "privado" && esFantasma(contactoActivo)) {
             mostrarMensajeFantasma();
             return;
@@ -3760,6 +3786,9 @@
         }
         if (canal === "grupo" && !miGrupo) {
             alert("Creá o unite a un grupo para hablarle al convoy.");
+            return;
+        }
+        if (canal === "carrera" && !(window.RadioMapCarrera && RadioMapCarrera.activo())) {
             return;
         }
         ctxPtt();
@@ -3783,6 +3812,8 @@
             setAvisoAudio("Mantené para hablar a " + etiquetaGrupo() + " — soltá para enviar");
             if ($("destinoKicker")) $("destinoKicker").textContent = "Transmitiendo al grupo";
             if ($("destinoNombre")) $("destinoNombre").textContent = etiquetaGrupo() + " · " + miGrupo;
+        } else if (canal === "carrera") {
+            setAvisoAudio("Mantené para hablar a la carrera — soltá para enviar");
         } else {
             setAvisoAudio("Mantené para hablar a RADIO — soltá para enviar");
             actualizarDestinoUI();
@@ -3926,6 +3957,20 @@
             } else if (pttModo === "grupo") {
                 emitirAudioConAck("audioV2V", { mime: mime, audio: buf, texto: dicho, canal: "grupo" });
                 agregarMensaje($("msgsGrupo"), $("nombre").value.trim() || "Vos", texto, true, ts);
+            } else if (pttModo === "carrera") {
+                const cid = window.RadioMapCarrera && RadioMapCarrera.carreraId
+                    ? RadioMapCarrera.carreraId()
+                    : null;
+                const n = window.RadioMapCarrera && RadioMapCarrera.participantes
+                    ? RadioMapCarrera.participantes().length
+                    : 0;
+                if (!cid || n < 2) {
+                    avisarEnvioPtt(false);
+                    setAvisoAudio("Nadie más en esta carrera");
+                    setTimeout(function () { setAvisoAudio(""); }, 1800);
+                    return;
+                }
+                emitirAudioConAck("audioCarrera", { carreraId: cid, mime: mime, audio: buf, texto: dicho });
             } else {
                 emitirAudioConAck("audioV2V", { mime: mime, audio: buf, texto: dicho, canal: "radio" });
                 agregarMensaje($("msgsV2V"), $("nombre").value.trim() || "Vos", texto, true, ts);
@@ -3997,6 +4042,7 @@
     socket.on("telemetria_global", aplicarEstadoGlobal);
 
     socket.on("telemetria", function (auto) {
+        if (esInvitadoFantasma()) return;
         if (!auto || !auto.id || auto.id === miId) return;
         if (esBloqueado(auto.id)) return;
         const prev = autos[auto.id];
@@ -4090,6 +4136,12 @@
             false,
             data.ts
         );
+        reproducirAudio(data);
+    });
+
+    socket.on("audioCarrera", function (data) {
+        if (data && data.de && data.de !== miId && esBloqueado(data.de)) return;
+        if (!(window.RadioMapCarrera && RadioMapCarrera.activo())) return;
         reproducirAudio(data);
     });
 
@@ -4444,7 +4496,9 @@
     // UI
     // ===================================================
     function bindUi() {
-        if (yaEntroMapa()) {
+        if (esInvitadoFantasma()) {
+            $("portada").classList.add("oculto");
+        } else if (yaEntroMapa()) {
             $("portada").classList.add("oculto");
         } else {
             mostrarPasoIntro(0);
@@ -4712,6 +4766,7 @@
         bindPtt($("btnPttDock"), modoPttTab);
         bindPtt($("btnHablarRadio"), "general");
         bindPtt($("btnHablarGrupo"), "grupo");
+        bindPtt($("btnCarreraPtt"), "carrera");
         restaurarRadioGuardado();
         const gUrl = codigoDesdeUrl();
         if (gUrl) {
@@ -4754,14 +4809,14 @@
         }
         if ($("btnCancelarRuta")) $("btnCancelarRuta").addEventListener("click", cancelarNavegacion);
         if ($("cartelLlegaste")) $("cartelLlegaste").addEventListener("click", ocultarCartelLlegaste);
-        if (yaEntroMapa()) pedirWakeLock();
-        if (miGrupo) {
+        if (yaEntroMapa() && !esInvitadoFantasma()) pedirWakeLock();
+        if (miGrupo && !esInvitadoFantasma()) {
             emitirTelemetria(true);
             if (socket.connected) {
                 socket.emit("grupoUnirse", { codigo: miGrupo, nombre: miGrupoNombre });
             }
         }
-        if (!commsEsOverlay()) {
+        if (!esInvitadoFantasma() && !commsEsOverlay()) {
             mostrarVistaComms("avisos");
             abrirComms();
         }
@@ -4775,6 +4830,8 @@
                 iconoDeAuto: iconoDeAuto,
                 aplicarRumbo: aplicarRumbo,
                 rumboEntre: rumboEntre,
+                setMapaBearing: setMapaBearing,
+                detenerPtt: detenerPtt,
                 calcularDistanciaKm: calcularDistanciaKm,
                 rutaPorCalle: function (a, b) {
                     return rutaPorCalle(a, b, false).then(function (res) {
@@ -4826,6 +4883,31 @@
                         asegurarTickGps();
                     }
                     map.invalidateSize();
+                }
+            });
+        }
+        if (window.RadioMapFantasma) {
+            window.RadioMapFantasma.init({
+                map: map,
+                socket: socket,
+                $: $,
+                markers: markers,
+                posicion: function () { return miPosicion; },
+                navegacion: function () {
+                    if (!navegacion) return null;
+                    return {
+                        path: navegacion.path || [],
+                        dest: navegacion.dest || null
+                    };
+                },
+                navGps: function () { return !!modoNavGps; },
+                nombre: function () {
+                    const el = $("nombre");
+                    const n = el && el.value ? el.value.trim() : "";
+                    return n || "Alguien";
+                },
+                metrosEntre: function (a, b) {
+                    return metrosEntre(a, b);
                 }
             });
         }
@@ -4917,6 +4999,7 @@
     }
 
     function abrirComms() {
+        if (esInvitadoFantasma()) return;
         $("commsPanel").classList.add("open");
         document.body.classList.add("comms-open");
         pintarDock();

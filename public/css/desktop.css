@@ -50,13 +50,8 @@
         display: flex;
     }
 
-    .btn-carrera-fab {
-        left: 16px;
-        bottom: 24px;
-    }
-
     .habla-mapa {
-        left: 76px;
+        left: 16px;
         right: auto;
         bottom: 24px;
         max-width: 280px;

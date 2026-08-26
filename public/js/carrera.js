@@ -10,13 +10,13 @@
     var SENSACION = 2.2;
     var VMAX_KMH = 140;
     var ACEL = 16;
-    var FRENO = 24;
+    var FRENO = 32;
     var COAST = 4.2;
     var CURVA_U_KMH = 15;
     var CURVA_90_KMH = 40;
     var CURVA_135_KMH = 60;
     var AVISO_CURVA_M = 260;
-    var ZONA_CURVA_M = 22;
+    var ZONA_CURVA_M = 9;
     var GIF_CHOQUE = "img/explosin.gif";
 
     var api = null;
@@ -29,7 +29,7 @@
     var rutaSeq = 0;
     var vehiculo = null;
     var controles = { acel: false, freno: false };
-    var capas = { a: null, b: null, linea: null };
+    var capas = { a: null, b: null, linea: null, curvas: null };
     var raf = 0;
     var ultimoTs = 0;
     var t0 = 0;
@@ -141,15 +141,15 @@
 
     function limitePorGiro(deflexion) {
         if (deflexion >= 125) return CURVA_U_KMH;
-        if (deflexion >= 48) return CURVA_90_KMH;
-        if (deflexion >= 22) return CURVA_135_KMH;
+        if (deflexion >= 52) return CURVA_90_KMH;
+        if (deflexion >= 28) return CURVA_135_KMH;
         return 0;
     }
 
     function headingEn(pts, dist, total) {
         var d0 = Math.max(0, Math.min(total - 1, dist));
-        var d1 = Math.min(total, d0 + 12);
-        if (d1 - d0 < 3) d0 = Math.max(0, d1 - 12);
+        var d1 = Math.min(total, d0 + 8);
+        if (d1 - d0 < 3) d0 = Math.max(0, d1 - 8);
         return api.rumboEntre(puntoEnPath(pts, d0), puntoEnPath(pts, d1));
     }
 
@@ -157,28 +157,38 @@
         return anguloDiff(headingEn(pts, d - radio, total), headingEn(pts, d + radio, total));
     }
 
+    function marcaCurva(c) {
+        return {
+            distM: c.distM,
+            maxKmh: c.maxKmh,
+            giro: c.giro,
+            desdeM: Math.max(0, c.distM - ZONA_CURVA_M),
+            hastaM: c.distM + ZONA_CURVA_M
+        };
+    }
+
     function detectarCurvas(pts) {
         if (!pts || pts.length < 3) return [];
         var total = longitudPath(pts);
         if (total < 40) return [];
         var crudas = [];
-        var paso = 5;
-        for (var d = 24; d <= total - 24; d += paso) {
-            var g16 = giroEnVentana(pts, d, 16, total);
-            var g32 = giroEnVentana(pts, d, 32, total);
-            var g55 = giroEnVentana(pts, d, 55, total);
-            var g80 = giroEnVentana(pts, d, 80, total);
-            var giro = Math.max(g16, g32, g55, g80);
+        var paso = 4;
+        for (var d = 16; d <= total - 16; d += paso) {
+            var g8 = giroEnVentana(pts, d, 8, total);
+            var g14 = giroEnVentana(pts, d, 14, total);
+            var g22 = giroEnVentana(pts, d, 22, total);
+            if (g8 < 10 && g14 < 14) continue;
+            var giro = Math.max(g8, g14, g22);
             var maxKmh = limitePorGiro(giro);
             if (!maxKmh) continue;
-            crudas.push({ distM: d, maxKmh: maxKmh, giro: giro, g32: g32, g55: g55 });
+            crudas.push({ distM: d, maxKmh: maxKmh, giro: giro, g14: g14, g22: g22 });
         }
         if (!crudas.length) return [];
         var runs = [{ items: [crudas[0]] }];
         for (var k = 1; k < crudas.length; k++) {
             var run = runs[runs.length - 1];
             var last = run.items[run.items.length - 1];
-            if (crudas[k].distM - last.distM < 14) {
+            if (crudas[k].distM - last.distM < 10) {
                 run.items.push(crudas[k]);
             } else {
                 runs.push({ items: [crudas[k]] });
@@ -190,22 +200,20 @@
             var best = items[0];
             for (var j = 1; j < items.length; j++) {
                 var cand = items[j];
-                var mejorApex = cand.g32 > best.g32 + 2 ||
-                    (Math.abs(cand.g32 - best.g32) <= 2 && cand.g55 > best.g55);
-                if (mejorApex || (cand.g32 >= best.g32 - 2 && cand.maxKmh < best.maxKmh)) {
+                var mejorApex = cand.g14 > best.g14 + 2 ||
+                    (Math.abs(cand.g14 - best.g14) <= 2 && cand.g22 > best.g22);
+                if (mejorApex || (cand.g14 >= best.g14 - 2 && cand.maxKmh < best.maxKmh)) {
                     best = cand;
                 }
             }
-            out.push({ distM: best.distM, maxKmh: best.maxKmh, giro: best.giro });
+            out.push(marcaCurva(best));
         }
         var fused = [out[0]];
         for (var f = 1; f < out.length; f++) {
             var prev = fused[fused.length - 1];
-            if (out[f].distM - prev.distM < 55) {
+            if (out[f].distM - prev.distM < 36) {
                 if (out[f].giro > prev.giro || out[f].maxKmh < prev.maxKmh) {
-                    prev.distM = out[f].distM;
-                    prev.giro = Math.max(prev.giro, out[f].giro);
-                    prev.maxKmh = Math.min(prev.maxKmh, out[f].maxKmh);
+                    fused[fused.length - 1] = marcaCurva(out[f]);
                 }
             } else {
                 fused.push(out[f]);
@@ -278,7 +286,7 @@
         var actual = r.curvaActual(dist);
         var prox = r.proximaCurva(dist);
         var kmh = velMs * 3.6;
-        var choca = !!(actual && kmh > actual.maxKmh + 0.4);
+        var choca = !!(actual && Math.round(kmh) > actual.maxKmh);
         return {
             velMs: velMs,
             estable: !choca,
@@ -356,8 +364,18 @@
         });
     }
 
+    function subpathMetros(pts, fromM, toM) {
+        var total = longitudPath(pts);
+        var a = Math.max(0, Math.min(total, fromM));
+        var b = Math.max(a + 2, Math.min(total, toM));
+        var out = [];
+        for (var d = a; d < b; d += 3) out.push(puntoEnPath(pts, d));
+        out.push(puntoEnPath(pts, b));
+        return out;
+    }
+
     function quitarCapas() {
-        ["a", "b", "linea"].forEach(function (k) {
+        ["a", "b", "linea", "curvas"].forEach(function (k) {
             if (capas[k]) {
                 api.map.removeLayer(capas[k]);
                 capas[k] = null;
@@ -365,7 +383,32 @@
         });
     }
 
-    function pintarCircuito(path) {
+    function pintarCurvasRojas(pts, curvas) {
+        if (capas.curvas) {
+            api.map.removeLayer(capas.curvas);
+            capas.curvas = null;
+        }
+        if (!pts || !curvas || !curvas.length) return;
+        var grupo = L.layerGroup();
+        for (var i = 0; i < curvas.length; i++) {
+            var c = curvas[i];
+            var desde = Number.isFinite(c.desdeM) ? c.desdeM : c.distM - ZONA_CURVA_M;
+            var hasta = Number.isFinite(c.hastaM) ? c.hastaM : c.distM + ZONA_CURVA_M;
+            var tramo = subpathMetros(pts, desde, hasta);
+            if (tramo.length < 2) continue;
+            L.polyline(tramo, {
+                color: "#dc2626",
+                weight: 8,
+                opacity: 0.95,
+                lineCap: "round",
+                lineJoin: "round",
+                interactive: false
+            }).addTo(grupo);
+        }
+        capas.curvas = grupo.addTo(api.map);
+    }
+
+    function pintarCircuito(path, curvas) {
         quitarCapas();
         if (!puntoA) return;
         capas.a = L.marker(puntoA, {
@@ -389,6 +432,7 @@
             lineJoin: "round",
             interactive: false
         }).addTo(api.map);
+        pintarCurvasRojas(pts, curvas);
         api.map.fitBounds(L.latLngBounds(pts).pad(0.28), { animate: true, maxZoom: 16 });
     }
 
@@ -396,12 +440,14 @@
         var t = $("carreraBannerTitulo");
         var d = $("carreraBannerDet");
         var a = $("carreraAviso");
+        var hud = $("carreraHudSel");
         if (t) t.textContent = titulo || "";
         if (d) d.textContent = detalle || "";
         if (a) {
             a.textContent = aviso || "";
             a.classList.toggle("oculto", !aviso);
         }
+        if (hud) hud.setAttribute("data-fase", fase || "");
     }
 
     function mostrar(el, si) {
@@ -425,12 +471,16 @@
         document.body.classList.toggle("modo-carrera-setup", setupActivo());
         document.body.classList.toggle("modo-carrera", bloqueaGps());
         mostrar($("btnCarrera"), fase === "idle");
+        mostrar($("btnCarreraDock"), fase === "idle");
         mostrar($("carreraHudSel"), setupActivo());
         mostrar($("carreraVel"), fase === "corriendo" || fase === "meta" || fase === "choque");
         mostrar($("carreraPedales"), fase === "corriendo");
         mostrar($("btnCarreraSalir"), fase === "corriendo");
+        mostrar($("btnCarreraPtt"), fase === "corriendo" || fase === "esperando" || fase === "meta" || fase === "choque");
         mostrar($("carreraMeta"), fase === "meta" || fase === "choque");
         setHudSel(fase === "eligiendo_a" || fase === "eligiendo_b" || fase === "listo" || fase === "esperando");
+        var hud = $("carreraHudSel");
+        if (hud) hud.setAttribute("data-fase", fase || "");
     }
 
     function escHtml(s) {
@@ -482,15 +532,28 @@
         if (caja) caja.classList.toggle("choque", fase === "choque");
         var el = $("carreraCurvaAviso");
         if (!el) return;
+        var txt = $("carreraCurvaTxt");
+        var num = $("carreraCurvaNum");
         if (aviso && aviso.maxKmh && fase === "corriendo") {
-            el.textContent = aviso.tipo === "ahora"
-                ? ("Giro max " + aviso.maxKmh + " km/h")
-                : ("En la próxima curva giro max " + aviso.maxKmh + " km/h");
+            if (txt) txt.textContent = aviso.tipo === "ahora" ? "Giro máx." : "Próxima curva";
+            if (num) num.textContent = String(aviso.maxKmh);
+            el.classList.toggle("ahora", aviso.tipo === "ahora");
             el.classList.remove("oculto");
         } else {
-            el.textContent = "";
+            if (txt) txt.textContent = "";
+            if (num) num.textContent = "";
+            el.classList.remove("ahora");
             el.classList.add("oculto");
         }
+    }
+
+    function aplicarRumboMarker(id, rumbo) {
+        if (!id || !Number.isFinite(Number(rumbo))) return;
+        if (typeof api.aplicarRumbo !== "function") return;
+        api.aplicarRumbo(id, rumbo);
+        requestAnimationFrame(function () {
+            if (typeof api.aplicarRumbo === "function") api.aplicarRumbo(id, rumbo);
+        });
     }
 
     function moverAuto(ll, rumbo) {
@@ -498,7 +561,7 @@
         if (!m) return;
         m.setLatLng(ll);
         if (m.closeTooltip) m.closeTooltip();
-        if (typeof api.aplicarRumbo === "function") api.aplicarRumbo(api.miId, rumbo);
+        aplicarRumboMarker(api.miId, rumbo);
         api.map.setView(ll, Math.max(api.map.getZoom(), 17), { animate: false });
     }
 
@@ -545,6 +608,7 @@
         }
         if (m.closeTooltip) m.closeTooltip();
         marcarRivalEl(m);
+        if (ruta) aplicarRumboMarker(rival.id, ruta.rumboEn(vehiculo ? vehiculo.s : 0));
         return m;
     }
 
@@ -557,9 +621,11 @@
         if (Number.isFinite(Number(snap.lat)) && Number.isFinite(Number(snap.lng))) {
             m.setLatLng([Number(snap.lat), Number(snap.lng)]);
         }
-        if (Number.isFinite(Number(snap.rumbo)) && typeof api.aplicarRumbo === "function") {
-            api.aplicarRumbo(rival.id, snap.rumbo);
+        var rumboSnap = Number(snap.rumbo);
+        if (!Number.isFinite(rumboSnap) && ruta && Number.isFinite(Number(snap.s))) {
+            rumboSnap = ruta.rumboEn(Number(snap.s));
         }
+        aplicarRumboMarker(rival.id, rumboSnap);
         marcarRivalEl(m);
         if (snap.fase === "choque") {
             m.setIcon(iconoChoque());
@@ -644,6 +710,7 @@
         if (!m || !api.crearIcono) return;
         m.setIcon(api.crearIcono(true, api.iconoDeAuto ? api.iconoDeAuto({ id: api.miId }) : null));
         m.setZIndexOffset(1000);
+        if (ruta) aplicarRumboMarker(api.miId, ruta.rumboEn(vehiculo ? vehiculo.s : 0));
     }
 
     function chocar(aviso) {
@@ -690,7 +757,7 @@
         emitirEstado(false);
         var curvaHit = curvaEnTramo(ruta, distAntes, distAhora) || next.curva;
         var kmh = next.velMs * 3.6;
-        if (curvaHit && kmh > curvaHit.maxKmh + 0.4) {
+        if (curvaHit && Math.round(kmh) > curvaHit.maxKmh) {
             chocar(curvaHit);
             return;
         }
@@ -763,6 +830,7 @@
         claseCuerpo();
         if (api.cerrarComms) api.cerrarComms();
         lockMapa(true);
+        if (typeof api.setMapaBearing === "function") api.setMapaBearing(0);
         asegurarMarker();
         restaurarIconoAuto();
         if (esDuelo()) asegurarRival();
@@ -807,6 +875,7 @@
                 tFin = 0;
                 ultimoTs = 0;
                 claseCuerpo();
+                moverAuto(ruta.puntoEn(0), ruta.rumboEn(0));
                 pintarVel();
                 raf = requestAnimationFrame(loop);
                 emitirEstado(true);
@@ -845,6 +914,7 @@
         controles.acel = false;
         controles.freno = false;
         lockMapa(false);
+        if (typeof api.detenerPtt === "function") api.detenerPtt();
         mostrar($("carreraCortina"), false);
         var cortina = $("carreraCortina");
         if (cortina) {
@@ -862,6 +932,7 @@
         if (invitacionPendiente) responderDuelo(false);
         if (api.cerrarComms) api.cerrarComms();
         if (api.cerrarModales) api.cerrarModales();
+        if (typeof api.setMapaBearing === "function") api.setMapaBearing(0);
         fase = "eligiendo_a";
         limpiarCircuito();
         setBanner("Carrera", "Tocá el mapa para marcar la SALIDA.");
@@ -898,7 +969,7 @@
             rutaArmada = r;
             puntoB = r.b;
             fase = "listo";
-            pintarCircuito(r.puntos);
+            pintarCircuito(r.puntos, r.curvas);
             setBanner("Circuito listo", textoKm(r.km) + " · desafiá a alguien o largá práctica");
             claseCuerpo();
         }).catch(function () {
@@ -980,7 +1051,7 @@
         puntoA = data.a || data.path[0];
         puntoB = data.b || data.path[data.path.length - 1];
         rutaArmada = crearRutaCalle(data.path);
-        pintarCircuito(rutaArmada.puntos);
+        pintarCircuito(rutaArmada.puntos, rutaArmada.curvas);
         prepararLargada(rutaArmada, data.tLargada);
     }
 
@@ -1146,6 +1217,8 @@
         api = opts || {};
         var btn = $("btnCarrera");
         if (btn) btn.addEventListener("click", empezarPractica);
+        var dock = $("btnCarreraDock");
+        if (dock) dock.addEventListener("click", empezarPractica);
         var cancel = $("btnCarreraCancelar");
         if (cancel) cancel.addEventListener("click", salir);
         var rehacer = $("btnCarreraRehacer");
@@ -1179,6 +1252,13 @@
         estado: estado,
         rivalId: rivalId,
         esRival: esRival,
+        carreraId: function () { return carreraId; },
+        participantes: function () {
+            var ids = [];
+            if (api && api.miId) ids.push(api.miId);
+            if (rival && rival.id && ids.indexOf(rival.id) < 0) ids.push(rival.id);
+            return ids;
+        },
         refrescarRivales: refrescarRivales,
         debugCircuito: function () {
             var r = ruta || rutaArmada;

@@ -11,6 +11,7 @@ const https = require("https");
 const fs = require("fs");
 const path = require("path");
 const { Server } = require("socket.io");
+const crypto = require("crypto");
 const escala = require("./lib/escala");
 
 const app = express();
@@ -231,6 +232,11 @@ const encuentros = {};
 const desafiosCarrera = {};
 const carreras1v1 = {};
 const ultimoCarreraTs = {};
+const fantasmas = {};
+const fantasmaPorHost = {};
+const ultimoFantasmaVistaTs = {};
+const FANTASMA_TTL_MS = 8 * 60 * 60 * 1000;
+const FANTASMA_GRACE_MS = 10 * 60 * 1000;
 
 function listaEncuentrosDisco() {
     return Object.keys(encuentros).map(id => {
@@ -895,6 +901,79 @@ function idCarreraNuevo() {
     return "c" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
 }
 
+function tokenFantasmaNuevo() {
+    return crypto.randomBytes(9).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function salaFantasma(token) {
+    return "fan:" + token;
+}
+
+function recFantasmaVivo(token) {
+    const rec = token ? fantasmas[token] : null;
+    if (!rec) return null;
+    if (Date.now() > rec.exp) {
+        cortarFantasma(rec, "expiro");
+        return null;
+    }
+    return rec;
+}
+
+function cortarFantasma(rec, motivo) {
+    if (!rec || !rec.token) return;
+    if (rec.corteTimer) {
+        clearTimeout(rec.corteTimer);
+        rec.corteTimer = null;
+    }
+    io.to(salaFantasma(rec.token)).emit("fantasmaFin", { motivo: motivo || "cortado" });
+    delete fantasmas[rec.token];
+    if (rec.hostId && fantasmaPorHost[rec.hostId] === rec.token) delete fantasmaPorHost[rec.hostId];
+}
+
+function sanitizarPtsFantasma(raw, maxN) {
+    if (!Array.isArray(raw) || raw.length < 1) return [];
+    const tope = Math.min(raw.length, maxN || 80);
+    const out = [];
+    for (let i = 0; i < tope; i++) {
+        const p = sanitizarPuntoCarrera(raw[i]);
+        if (p) out.push(p);
+    }
+    return out;
+}
+
+function sanitizarVistaFantasma(raw) {
+    if (!raw || typeof raw !== "object") return null;
+    const lat = Number(raw.lat);
+    const lng = Number(raw.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+    const c0 = Number(raw.clat);
+    const c1 = Number(raw.clng);
+    const clat = Number.isFinite(c0) ? c0 : lat;
+    const clng = Number.isFinite(c1) ? c1 : lng;
+    const zoom = sanitizarEntero(raw.zoom, 3, 20, 16);
+    let bearing = Number(raw.bearing);
+    if (!Number.isFinite(bearing)) bearing = 0;
+    bearing = ((bearing % 360) + 360) % 360;
+    let rumbo = Number(raw.rumbo);
+    if (!Number.isFinite(rumbo)) rumbo = null;
+    return {
+        lat: lat,
+        lng: lng,
+        rumbo: rumbo,
+        vel: Math.max(0, Math.min(220, Number(raw.vel) || 0)),
+        clat: clat,
+        clng: clng,
+        zoom: zoom,
+        bearing: bearing,
+        navGps: !!raw.navGps,
+        path: sanitizarPtsFantasma(raw.path, 120),
+        trail: sanitizarPtsFantasma(raw.trail, 80),
+        dest: sanitizarPuntoCarrera(raw.dest),
+        nombre: sanitizarTexto(raw.nombre, 40) || "Alguien"
+    };
+}
+
 function sanitizarPuntoCarrera(p) {
     if (!Array.isArray(p) || p.length < 2) return null;
     const lat = Number(p[0]);
@@ -927,10 +1006,12 @@ function fichaCarrera(v) {
 }
 
 function carreraDeJugador(id) {
-    const ids = Object.keys(carreras1v1);
-    for (let i = 0; i < ids.length; i++) {
-        const c = carreras1v1[ids[i]];
-        if (c && (c.hostId === id || c.rivalId === id)) return c;
+    const keys = Object.keys(carreras1v1);
+    for (let i = 0; i < keys.length; i++) {
+        const c = carreras1v1[keys[i]];
+        if (!c) continue;
+        if (c.hostId === id || c.rivalId === id) return c;
+        if (Array.isArray(c.ids) && c.ids.indexOf(id) >= 0) return c;
     }
     return null;
 }
@@ -967,8 +1048,28 @@ function cerrarCarrera1v1(c, motivo, extra) {
         carreraId: c.id,
         motivo: motivo || "fin"
     }, extra || {});
-    emitirAJugador(c.hostId, "carreraFin", payload);
-    emitirAJugador(c.rivalId, "carreraFin", payload);
+    const ids = idsDeCarrera(c);
+    for (let i = 0; i < ids.length; i++) emitirAJugador(ids[i], "carreraFin", payload);
+}
+
+function idsDeCarrera(c) {
+    if (!c) return [];
+    if (Array.isArray(c.ids) && c.ids.length) {
+        const seen = {};
+        const out = [];
+        for (let i = 0; i < c.ids.length; i++) {
+            const id = c.ids[i];
+            if (id && !seen[id]) {
+                seen[id] = true;
+                out.push(id);
+            }
+        }
+        return out;
+    }
+    const out = [];
+    if (c.hostId) out.push(c.hostId);
+    if (c.rivalId && c.rivalId !== c.hostId) out.push(c.rivalId);
+    return out;
 }
 
 function rivalDeCarrera(c, id) {
@@ -1444,6 +1545,44 @@ io.on("connection", socket => {
         if (typeof ack === "function") ack({ ok: true });
     });
 
+    socket.on("audioCarrera", (payload, ack) => {
+        const yo = vehiculoDeSocket(socket);
+        const audio = payload && payload.audio;
+        const bytes = tamanioAudio(audio);
+        if (!yo || bytes < 200 || bytes > 400000 || !rateOk(ultimoAudioTs, socket.id, minMsAudio())) {
+            if (typeof ack === "function") ack({ ok: false });
+            return;
+        }
+        const c = carreraDeJugador(yo.id);
+        const carreraId = sanitizarTexto(payload && payload.carreraId, 40);
+        if (!c || c.cerrada || (carreraId && c.id !== carreraId)) {
+            if (typeof ack === "function") ack({ ok: false });
+            return;
+        }
+        const ids = idsDeCarrera(c);
+        if (ids.indexOf(yo.id) < 0) {
+            if (typeof ack === "function") ack({ ok: false });
+            return;
+        }
+        const meta = metaEmisor(socket);
+        const paquete = {
+            de: meta.de,
+            nombre: meta.nombre,
+            mime: sanitizarTexto(payload.mime, 40) || "audio/webm",
+            texto: sanitizarTexto(payload.texto, 500),
+            audio: audio,
+            ts: Date.now(),
+            canal: "carrera",
+            carreraId: c.id
+        };
+        let n = 0;
+        for (let i = 0; i < ids.length; i++) {
+            if (ids[i] === yo.id) continue;
+            if (emitirAJugador(ids[i], "audioCarrera", paquete)) n += 1;
+        }
+        if (typeof ack === "function") ack({ ok: true, n: n });
+    });
+
     socket.on("carreraDesafiar", (payload, ack) => {
         const origen = vehiculoDeSocket(socket);
         const rivalId = sanitizarTexto(payload && payload.rivalId, 64);
@@ -1530,6 +1669,7 @@ io.on("connection", socket => {
             km: d.km,
             tLargada: tLargada,
             estado: "cuenta",
+            ids: [d.de, yo.id],
             snapshots: {},
             ganador: null,
             cerrada: false
@@ -1601,6 +1741,78 @@ io.on("connection", socket => {
         }
     });
 
+    socket.on("fantasmaCrear", (_payload, ack) => {
+        const yo = vehiculoDeSocket(socket);
+        if (!yo) {
+            if (typeof ack === "function") ack({ ok: false, error: "Esperá a estar en el mapa." });
+            return;
+        }
+        if (!rateOk(ultimoCarreraTs, socket.id, 600)) {
+            if (typeof ack === "function") ack({ ok: false, error: "Esperá un segundo." });
+            return;
+        }
+        let token = fantasmaPorHost[yo.id];
+        let rec = recFantasmaVivo(token);
+        if (!rec) {
+            token = tokenFantasmaNuevo();
+            rec = {
+                token: token,
+                hostId: yo.id,
+                socketId: socket.id,
+                nombre: yo.nombre || "Alguien",
+                exp: Date.now() + FANTASMA_TTL_MS
+            };
+            fantasmas[token] = rec;
+            fantasmaPorHost[yo.id] = token;
+        } else {
+            rec.socketId = socket.id;
+            rec.nombre = yo.nombre || rec.nombre;
+            rec.exp = Date.now() + FANTASMA_TTL_MS;
+            if (rec.corteTimer) {
+                clearTimeout(rec.corteTimer);
+                rec.corteTimer = null;
+            }
+        }
+        socket.join(salaFantasma(token));
+        if (typeof ack === "function") ack({ ok: true, token: token, exp: rec.exp });
+    });
+
+    socket.on("fantasmaCortar", (_payload, ack) => {
+        const yo = vehiculoDeSocket(socket);
+        if (yo) cortarFantasma(recFantasmaVivo(fantasmaPorHost[yo.id]), "cortado");
+        if (typeof ack === "function") ack({ ok: true });
+    });
+
+    socket.on("fantasmaUnirse", (payload, ack) => {
+        const token = sanitizarTexto(payload && payload.token, 40);
+        const rec = recFantasmaVivo(token);
+        if (!rec) {
+            if (typeof ack === "function") ack({ ok: false, error: "Ese fantasma ya no está al aire." });
+            return;
+        }
+        socket.fantasmaToken = token;
+        socket.join(salaFantasma(token));
+        if (typeof ack === "function") {
+            ack({ ok: true, nombre: rec.nombre || "Alguien", exp: rec.exp });
+        }
+        if (rec.ultimaVista) socket.emit("fantasmaVista", rec.ultimaVista);
+    });
+
+    socket.on("fantasmaVista", payload => {
+        const yo = vehiculoDeSocket(socket);
+        if (!yo) return;
+        const token = fantasmaPorHost[yo.id];
+        const rec = recFantasmaVivo(token);
+        if (!rec) return;
+        if (!rateOk(ultimoFantasmaVistaTs, socket.id, 180)) return;
+        const vista = sanitizarVistaFantasma(payload);
+        if (!vista) return;
+        vista.nombre = yo.nombre || vista.nombre;
+        rec.socketId = socket.id;
+        rec.ultimaVista = vista;
+        socket.to(salaFantasma(token)).emit("fantasmaVista", vista);
+    });
+
     socket.on("disconnect", () => {
         const id = socketAVehiculo[socket.id];
         delete socketAVehiculo[socket.id];
@@ -1624,6 +1836,15 @@ io.on("connection", socket => {
                 motivo: "desconexion"
             });
             cerrarCarrera1v1(c, "desconexion");
+        }
+        const fan = fantasmas[fantasmaPorHost[id]];
+        if (fan) {
+            fan.socketId = null;
+            if (fan.corteTimer) clearTimeout(fan.corteTimer);
+            fan.corteTimer = setTimeout(function () {
+                const actual = fantasmas[fan.token];
+                if (actual && !actual.socketId) cortarFantasma(actual, "desconexion");
+            }, FANTASMA_GRACE_MS);
         }
     });
 });
@@ -1650,6 +1871,10 @@ setInterval(() => {
     Object.keys(desafiosCarrera).forEach(function (para) {
         const d = desafiosCarrera[para];
         if (d && ahora - d.ts > 28000) limpiarDesafioCarrera(d, "timeout");
+    });
+    Object.keys(fantasmas).forEach(function (token) {
+        const rec = fantasmas[token];
+        if (rec && ahora > rec.exp) cortarFantasma(rec, "expiro");
     });
 }, 5000);
 

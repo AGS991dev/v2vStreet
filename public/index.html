@@ -14,9 +14,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="css/base.css?v=20260826m">
-<link rel="stylesheet" href="css/desktop.css?v=20260826m">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260826m">
+            <link rel="stylesheet" href="css/base.css?v=20260826t">
+<link rel="stylesheet" href="css/desktop.css?v=20260826t">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260826t">
 </head>
 
 <body>
@@ -228,6 +228,12 @@
             <strong id="destinoNombre">RADIO · 5 km</strong>
         </div>
         <div class="mapa-atajos">
+            <button type="button" id="btnCarrera" class="atajo-pill atajo-carrera" title="Armar una carrera">
+                <span class="atajo-ico atajo-ico-carrera" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M4 7h7l1.2 3H20v7H4V7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8" cy="17.2" r="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16.2" cy="17.2" r="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13.2 10 15 7h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                </span>
+                <span>Carrera</span>
+            </button>
             <button type="button" id="btnToggleComms" class="atajo-pill" title="Abrir walkie, grupos y avisos">
                 <span class="atajo-ico atajo-ico-walkie" aria-hidden="true">
                     <svg viewBox="0 0 24 24"><rect x="8" y="7" width="10" height="13" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 7V3.5M14.5 7V5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M8 11H5.5a1.5 1.5 0 0 0 0 3H8" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="13" cy="14" r="1.6" fill="currentColor"/></svg>
@@ -241,6 +247,12 @@
                 </span>
                 <span>Necesito ayuda</span>
             </button>
+            <button type="button" id="btnFantasmaMapa" class="atajo-pill atajo-fantasma" title="Compartir tu recorrido por WhatsApp">
+                <span class="atajo-ico atajo-ico-fantasma" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M8.2 10.2c0-2.4 1.7-5.2 3.8-5.2s3.8 2.8 3.8 5.2v6.6c0 .7-.5.9-.9.4-.5-.6-1.1-.6-1.6 0-.5.6-1.1.6-1.6 0-.5-.6-1.1-.6-1.6 0-.4.5-.9.3-.9-.4V10.2z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="10.4" cy="10.4" r="0.8" fill="currentColor"/><circle cx="13.6" cy="10.4" r="0.8" fill="currentColor"/></svg>
+                </span>
+                <span>Compartir fantasma</span>
+            </button>
             <button type="button" id="btnPttMapa" class="btn-ptt-mapa" title="Mantené para hablar a RADIO">
                 <span class="ico" aria-hidden="true">
                     <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
@@ -252,21 +264,42 @@
             </button>
         </div>
     </div>
-    <button type="button" id="btnCarrera" class="btn-carrera-fab" title="Carrera" aria-label="Carrera">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7l1.2 3H20v7H4V7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8" cy="17.2" r="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16.2" cy="17.2" r="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13.2 10 15 7h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
-    </button>
-    <div id="carreraHudSel" class="carrera-hud-sel oculto">
+    <div id="carreraHudSel" class="carrera-hud-sel oculto" data-fase="eligiendo_a">
+        <span class="carrera-hud-ico" aria-hidden="true">
+            <svg class="ico-salida" viewBox="0 0 24 24"><path d="M6 3v18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M6 4h12v8H6z" fill="currentColor" opacity="0.2"/><path d="M6 4h6v4H6zM12 8h6v4H12z" fill="currentColor"/></svg>
+            <svg class="ico-meta" viewBox="0 0 24 24"><path d="M12 21s-7-4.6-7-11a7 7 0 1 1 14 0c0 6.4-7 11-7 11z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+            <svg class="ico-armando" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.2-5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M4 4v4h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg class="ico-listo" viewBox="0 0 24 24"><path d="M8 20V9l4-2 4 2v11M8 12h8M8 16h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        </span>
         <div class="carrera-hud-sel-txt">
             <strong id="carreraBannerTitulo">Carrera</strong>
             <span id="carreraBannerDet">Tocá el mapa para marcar la SALIDA.</span>
             <em id="carreraAviso" class="oculto"></em>
+            <div id="carreraListaRivales" class="carrera-rivales oculto"></div>
+            <div class="carrera-hud-sel-acc">
+                <button type="button" id="btnCarreraLargar" class="carrera-btn-pri oculto">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6v12l10-6z" fill="currentColor"/></svg>
+                    Largar práctica
+                </button>
+                <button type="button" id="btnCarreraRehacer" class="carrera-btn-sec oculto">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4.8V8.5H8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Elegir de nuevo
+                </button>
+                <button type="button" id="btnCarreraCancelar" class="carrera-btn-txt">Cancelar</button>
+            </div>
         </div>
-        <div id="carreraListaRivales" class="carrera-rivales oculto"></div>
-        <div class="carrera-hud-sel-acc">
-            <button type="button" id="btnCarreraLargar" class="btn-portada oculto">Largar práctica</button>
-            <button type="button" id="btnCarreraRehacer" class="btn-portada-sec oculto">Elegir de nuevo</button>
-            <button type="button" id="btnCarreraCancelar" class="btn-portada-sec">Cancelar</button>
-        </div>
+        <span class="carrera-hud-deco" aria-hidden="true">
+            <svg viewBox="0 0 88 72">
+                <rect x="8" y="18" width="10" height="10" fill="#f5a623"/>
+                <rect x="18" y="18" width="10" height="10" fill="#1c1c1c"/>
+                <rect x="8" y="28" width="10" height="10" fill="#1c1c1c"/>
+                <rect x="18" y="28" width="10" height="10" fill="#f5a623"/>
+                <path d="M36 44h36l-6 10H42z" fill="#f5a623"/>
+                <circle cx="48" cy="56" r="5" fill="none" stroke="#1c1c1c" stroke-width="1.8"/>
+                <circle cx="66" cy="56" r="5" fill="none" stroke="#1c1c1c" stroke-width="1.8"/>
+                <path d="M40 34h22l6 10H46z" fill="#fff6e8" stroke="#f5a623" stroke-width="1.6" stroke-linejoin="round"/>
+            </svg>
+        </span>
     </div>
     <div id="modalCarreraDuelo" class="modal-salir oculto" role="dialog" aria-labelledby="carreraDueloTitulo" aria-modal="true">
         <div class="modal-salir-fondo" id="fondoCarreraDuelo"></div>
@@ -283,9 +316,19 @@
             <strong id="carreraVelNum">0</strong>
             <span>km/h</span>
         </div>
-        <em id="carreraCurvaAviso" class="carrera-curva-aviso oculto"></em>
+        <em id="carreraCurvaAviso" class="carrera-curva-aviso oculto">
+            <span id="carreraCurvaTxt" class="carrera-curva-txt"></span>
+            <strong id="carreraCurvaNum" class="carrera-curva-num">0</strong>
+            <span class="carrera-curva-un">km/h</span>
+        </em>
     </div>
     <button type="button" id="btnCarreraSalir" class="carrera-salir oculto">Salir</button>
+    <button type="button" id="btnCarreraPtt" class="btn-ptt-mapa carrera-ptt oculto" title="Mantené para hablar a la carrera" aria-label="Walkie de la carrera">
+        <span class="ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+        </span>
+        <small>Walkie</small>
+    </button>
     <div id="carreraPedales" class="carrera-pedales oculto">
         <button type="button" id="btnCarreraFreno" class="carrera-pedal freno" aria-label="Freno">
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="4" width="10" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9 11h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -305,6 +348,16 @@
         <p id="carreraMetaTxt">Práctica terminada</p>
         <strong id="carreraMetaTiempo">0 s</strong>
         <button type="button" id="btnCarreraVolver" class="btn-portada">Volver al mapa</button>
+    </div>
+    <div id="fantasmaBanner" class="fantasma-banner oculto" role="status">
+        <span class="fantasma-banner-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M8.2 10.2c0-2.4 1.7-5.2 3.8-5.2s3.8 2.8 3.8 5.2v6.6c0 .7-.5.9-.9.4-.5-.6-1.1-.6-1.6 0-.5.6-1.1.6-1.6 0-.5-.6-1.1-.6-1.6 0-.4.5-.9.3-.9-.4V10.2z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="10.4" cy="10.4" r="0.8" fill="currentColor"/><circle cx="13.6" cy="10.4" r="0.8" fill="currentColor"/></svg>
+        </span>
+        <div class="fantasma-banner-txt">
+            <strong>Mirás el fantasma de <em id="fantasmaBannerNom">alguien</em></strong>
+            <small id="fantasmaBannerSub">Solo lectura · estás mirando su recorrido</small>
+        </div>
+        <button type="button" id="btnFantasmaSalir">Salir</button>
     </div>
     <div id="avisoAudio" class="aviso-audio oculto"></div>
     <div id="ackWalkie" class="ack-walkie oculto" role="status"></div>
@@ -542,6 +595,14 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8.5h14l-1.2 8.2a2 2 0 0 1-2 1.7H8.2a2 2 0 0 1-2-1.7L5 8.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M9 8.5V6.6a3 3 0 0 1 6 0v1.9M8 12.5h.01M12 12.5h.01M16 12.5h.01" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
         <span>Ayuda</span>
     </button>
+    <button type="button" id="btnCarreraDock" class="dock-item dock-carrera" title="Armar una carrera">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7l1.2 3H20v7H4V7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8" cy="17.2" r="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16.2" cy="17.2" r="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13.2 10 15 7h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        <span>Carrera</span>
+    </button>
+    <button type="button" id="btnFantasmaDock" class="dock-item dock-fantasma" title="Compartir tu recorrido por WhatsApp">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.2 10.2c0-2.4 1.7-5.2 3.8-5.2s3.8 2.8 3.8 5.2v6.6c0 .7-.5.9-.9.4-.5-.6-1.1-.6-1.6 0-.5.6-1.1.6-1.6 0-.5-.6-1.1-.6-1.6 0-.4.5-.9.3-.9-.4V10.2z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="10.4" cy="10.4" r="0.8" fill="currentColor"/><circle cx="13.6" cy="10.4" r="0.8" fill="currentColor"/></svg>
+        <span>Fantasma</span>
+    </button>
 </nav>
 
 <div id="modalIcono" class="modal-icono oculto">
@@ -665,7 +726,8 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
 <script src="/socket.io/socket.io.js"></script>
-<script src="js/carrera.js?v=20260826m"></script>
-<script src="js/main.js?v=20260826m"></script>
+<script src="js/carrera.js?v=20260826t"></script>
+<script src="js/fantasma.js?v=20260826t"></script>
+<script src="js/main.js?v=20260826t"></script>
 </body>
 </html>
