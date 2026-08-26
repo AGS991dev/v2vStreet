@@ -12,6 +12,7 @@
     const GPS_LENTO_KMH = 8;
     const GPS_SALTO_ABSURDO_M = 90;
     const MAX_AUTOS_MAPA = 56;
+    const ENC_KM = 200;
     const RUTA_MIN_M = 40;
     const MIC_OPTS = { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } };
     const ICONO_KEY = "v2v_icono";
@@ -804,6 +805,7 @@
         if (debeEmitir(lat, lng)) emitirTelemetria(false);
         renderizarContactos();
         actualizarNavegacion();
+        refrescarBanderasEncuentro();
     }
 
     function aKmh(ms) {
@@ -1975,6 +1977,27 @@
         });
     }
 
+    function visibleEncuentro(p) {
+        if (!p) return false;
+        if (p.de && p.de === miId) return true;
+        if (!miPosicion || !Number.isFinite(Number(p.lat)) || !Number.isFinite(Number(p.lng))) return true;
+        return calcularDistanciaKm(miPosicion.lat, miPosicion.lng, p.lat, p.lng) <= ENC_KM + 0.5;
+    }
+
+    function mostrarBanderaEncuentro(p) {
+        if (!p || !p.marker) return;
+        const vis = visibleEncuentro(p);
+        const on = map.hasLayer(p.marker);
+        if (vis && !on) p.marker.addTo(map);
+        else if (!vis && on) map.removeLayer(p.marker);
+    }
+
+    function refrescarBanderasEncuentro() {
+        Object.keys(encuentros).forEach(function (id) {
+            mostrarBanderaEncuentro(encuentros[id]);
+        });
+    }
+
     function ponerBanderaEncuentro(p, abrir) {
         const marker = L.marker([p.lat, p.lng], {
             icon: iconoBandera(p.alcance),
@@ -1994,7 +2017,8 @@
         engancharPopupEncuentro(marker, p.id);
         p.marker = marker;
         encuentros[p.id] = p;
-        if (abrir) marker.openPopup();
+        mostrarBanderaEncuentro(p);
+        if (abrir && visibleEncuentro(p)) marker.openPopup();
         return marker;
     }
 
@@ -2032,7 +2056,8 @@
             prev.marker.setIcon(iconoBandera(prev.alcance));
             prev.marker.setPopupContent(htmlEncuentro(prev));
             encuentros[p.id] = prev;
-            if (abrir) prev.marker.openPopup();
+            mostrarBanderaEncuentro(prev);
+            if (abrir && visibleEncuentro(prev)) prev.marker.openPopup();
             return prev;
         }
         return ponerBanderaEncuentro(p, abrir);

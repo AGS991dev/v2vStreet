@@ -13,7 +13,7 @@ Radio de ruta (mapa + walkie). Frontend: HTML/CSS/JS (vanilla + Leaflet). Backen
 - App: `http://127.0.0.1:3000`
 - Salud: `http://127.0.0.1:3000/api/salud` → `{ ok, sql, redis, fase, shard, shards, enVivo }`
 - Si el 3000 está ocupado, matar ese Node y volver a arrancar.
-- Recarga dura: Ctrl+F5. Cache de assets: `?v=20260826c`.
+- Recarga dura: Ctrl+F5. Cache de assets: `?v=20260826d`.
 
 ## Railway (producción)
 

@@ -40,6 +40,7 @@ app.use(express.static("public", {
 const RADIO_MIN = 1;
 const RADIO_MAX = 10;
 const RADIO_DEF = 3;
+const ENC_KM = 200;
 const CELDA_KM = 4;
 const LAT_CELDA = CELDA_KM / 111.32;
 const SNAPSHOT_MAX = 48;
@@ -555,12 +556,11 @@ function publicoEncuentro(e) {
 function puedeVerEncuentro(oyente, e) {
     if (!oyente || !e) return false;
     if (e.de && e.de === oyente.id) return true;
+    if (kmEntre(oyente, e) > ENC_KM) return false;
     const alcance = sanitizarAlcance(e.alcance, true);
-    if (alcance === "global") return true;
-    if (alcance === "grupo") return !!(e.grupo && oyente.grupo && e.grupo === oyente.grupo);
     if (alcance === "privado") return !!(e.para && e.para === oyente.id);
-    if (e.grupo && oyente.grupo && e.grupo === oyente.grupo) return true;
-    return kmEntre(oyente, e) <= radioDe(oyente);
+    if (alcance === "grupo") return !!(e.grupo && oyente.grupo && e.grupo === oyente.grupo);
+    return true;
 }
 
 function encuentrosPara(oyente) {
@@ -574,28 +574,13 @@ function encuentrosPara(oyente) {
 
 function destinosEncuentro(e) {
     if (!e) return [];
-    const alcance = sanitizarAlcance(e.alcance, true);
-    if (alcance === "privado") {
-        const r = [];
-        const dest = e.para ? vehiculos[e.para] : null;
-        if (dest && dest.socketId) r.push(dest.socketId);
-        const yo = e.de ? vehiculos[e.de] : null;
-        if (yo && yo.socketId && r.indexOf(yo.socketId) < 0) r.push(yo.socketId);
-        return r;
-    }
-    if (alcance === "grupo" && e.grupo) return socketsDeSala(salaGrupo(e.grupo));
-    if (alcance === "global") return socketsDeSala("rm:all");
     const r = [];
     const visto = {};
-    idsCeldasVecinas(e.lat, e.lng).forEach(function (k) {
-        socketsDeSala(salaCelda(k)).forEach(function (sid) {
-            if (visto[sid]) return;
-            const o = oyentePorSocket(sid);
-            if (o && puedeVerEncuentro(o, e)) {
-                visto[sid] = true;
-                r.push(sid);
-            }
-        });
+    Object.keys(vehiculos).forEach(function (id) {
+        const o = vehiculos[id];
+        if (!o || !o.socketId || visto[o.socketId] || !puedeVerEncuentro(o, e)) return;
+        visto[o.socketId] = true;
+        r.push(o.socketId);
     });
     return r;
 }
@@ -913,6 +898,12 @@ io.on("connection", socket => {
                 prev.ausente = false;
                 ponerEnCelda(prev);
                 unirSalas(socket, prev);
+                if (prev.encSyncLat == null ||
+                    kmEntre({ lat: prev.encSyncLat, lng: prev.encSyncLng }, prev) >= 10) {
+                    emitirEncuentrosA(prev);
+                    prev.encSyncLat = prev.lat;
+                    prev.encSyncLng = prev.lng;
+                }
                 return;
             }
         }
@@ -976,10 +967,20 @@ io.on("connection", socket => {
 
         aplicarVisibilidad(v, prevSockets);
         persistirUsuarioSql(v, eraNuevo || grupoAntes !== grupo);
+        const encPrev = v.encSyncLat != null
+            ? { lat: v.encSyncLat, lng: v.encSyncLng }
+            : null;
+        const encMovio = !encPrev || kmEntre(encPrev, v) >= 10;
         if (eraNuevo || radioAntes !== radioKm || grupoAntes !== grupo || socketCambio) {
             socket.emit("telemetria_global", snapshotPara(v));
             socket.emit("grupoEstado", { codigo: grupo, nombre: nombreDeGrupo(grupo) });
             emitirEncuentrosA(v);
+            v.encSyncLat = v.lat;
+            v.encSyncLng = v.lng;
+        } else if (encMovio) {
+            emitirEncuentrosA(v);
+            v.encSyncLat = v.lat;
+            v.encSyncLng = v.lng;
         }
     });
 
