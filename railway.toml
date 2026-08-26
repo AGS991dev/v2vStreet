@@ -1,0 +1,5 @@
+[deploy]
+startCommand = "node server.js"
+healthcheckPath = "/api/salud"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"

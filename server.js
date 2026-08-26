@@ -165,7 +165,7 @@ app.get("/api/geo/buscar", (req, res) => {
 
 const dbSql = require("./lib/sql");
 const ultimoSqlUsuario = {};
-const PORT = process.env.PORT || 3000;
+let puertoActivo = Number(process.env.PORT || 3000) || 3000;
 
 const AUSENTE_MS = 18000;
 const BORRAR_MS = 90000;
@@ -862,7 +862,7 @@ app.get("/api/salud", (_req, res) => {
     });
     res.json({
         ok: true,
-        puerto: Number(PORT) || 3000,
+        puerto: puertoActivo,
         sql: dbSql.activo(),
         fase: 5,
         redis: escala.activo(),
@@ -1388,21 +1388,40 @@ async function cargarDesdeSql() {
 }
 
 async function arrancar() {
-    const ok = await dbSql.conectar();
-    if (ok) {
-        console.log("SQL Server conectado: 001_v2v_gps");
-        try {
-            await cargarDesdeSql();
-        } catch (err) {
-            console.error("No se pudo leer SQL Server:", err.message);
-        }
-    } else {
-        console.log("SQL Server no disponible; se usa JSON en data/.");
-    }
-    await escala.conectar(io, { onUpsert: aplicarRemoto, onBorrar: borrarRemoto });
-    server.listen(PORT, () => {
-        console.log("Servidor V2V corriendo en puerto:", PORT);
+    const puerto = Number(process.env.PORT || 3000) || 3000;
+    puertoActivo = puerto;
+    await new Promise(function (resolve, reject) {
+        server.listen(puerto, "0.0.0.0", function () {
+            const addr = server.address();
+            puertoActivo = addr && addr.port ? addr.port : puerto;
+            console.log("Servidor V2V corriendo en 0.0.0.0:" + puertoActivo);
+            resolve();
+        });
+        server.once("error", reject);
     });
+    try {
+        const ok = await dbSql.conectar();
+        if (ok) {
+            console.log("SQL Server conectado: 001_v2v_gps");
+            try {
+                await cargarDesdeSql();
+            } catch (err) {
+                console.error("No se pudo leer SQL Server:", err.message);
+            }
+        } else {
+            console.log("SQL Server no disponible; se usa JSON en data/.");
+        }
+    } catch (err) {
+        console.error("SQL Server omitido:", err && err.message ? err.message : err);
+    }
+    try {
+        await escala.conectar(io, { onUpsert: aplicarRemoto, onBorrar: borrarRemoto });
+    } catch (err) {
+        console.error("Redis omitido:", err && err.message ? err.message : err);
+    }
 }
 
-arrancar();
+arrancar().catch(function (err) {
+    console.error("No se pudo abrir el puerto:", err && err.message ? err.message : err);
+    process.exit(1);
+});
