@@ -153,6 +153,7 @@ const PORT = process.env.PORT || 3000;
 const AUSENTE_MS = 18000;
 const BORRAR_MS = 90000;
 const ENC_FILE = path.join(__dirname, "data", "encuentros.json");
+const GRUPOS_FILE = path.join(__dirname, "data", "grupos.json");
 
 // vehiculoId persistente -> datos
 const vehiculos = {};
@@ -222,6 +223,42 @@ function guardarEncuentrosDisco() {
 }
 
 cargarEncuentrosDisco();
+
+const nombresGrupo = {};
+
+function sanitizarNombreGrupo(valor) {
+    return String(valor || "").trim().replace(/\s+/g, " ").slice(0, 32);
+}
+
+function cargarNombresGrupo() {
+    try {
+        const raw = fs.readFileSync(GRUPOS_FILE, "utf8");
+        const obj = JSON.parse(raw);
+        if (!obj || typeof obj !== "object") return;
+        Object.keys(obj).forEach(function (codigo) {
+            const c = String(codigo || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+            if (c.length < 4 || c.length > 8) return;
+            nombresGrupo[c] = sanitizarNombreGrupo(obj[codigo]);
+        });
+    } catch (err) {
+        if (err && err.code !== "ENOENT") console.error("No se pudieron leer los grupos:", err.message);
+    }
+}
+
+let guardarGruposTimer = null;
+function guardarNombresGrupo() {
+    if (guardarGruposTimer) clearTimeout(guardarGruposTimer);
+    guardarGruposTimer = setTimeout(function () {
+        try {
+            fs.mkdirSync(path.dirname(GRUPOS_FILE), { recursive: true });
+            fs.writeFileSync(GRUPOS_FILE, JSON.stringify(nombresGrupo, null, 2), "utf8");
+        } catch (err) {
+            console.error("No se pudieron guardar los grupos:", err.message);
+        }
+    }, 120);
+}
+
+cargarNombresGrupo();
 
 function sanitizarTexto(valor, max) {
     return String(valor || "").trim().slice(0, max);
@@ -423,8 +460,8 @@ function destinosGrupo(emisor) {
     return r;
 }
 
-function destinosCanal(emisor) {
-    if (emisor && emisor.grupo) return destinosGrupo(emisor);
+function destinosCanal(emisor, canal) {
+    if (canal === "grupo") return destinosGrupo(emisor);
     return destinosRadio(emisor);
 }
 
@@ -542,7 +579,7 @@ io.on("connection", socket => {
         aplicarVisibilidad(vehiculos[id], prevSockets);
         if (eraNuevo || radioAntes !== radioKm || grupoAntes !== grupo || socketCambio) {
             socket.emit("telemetria_global", snapshotPara(vehiculos[id]));
-            socket.emit("grupoEstado", { codigo: grupo });
+            socket.emit("grupoEstado", { codigo: grupo, nombre: nombresGrupo[grupo] || "" });
             emitirEncuentrosA(vehiculos[id]);
         }
     });
@@ -565,18 +602,23 @@ io.on("connection", socket => {
         else if (res.ok) socket.emit("fichaDetalle", res);
     });
 
-    socket.on("grupoCrear", (_payload, ack) => {
-        const codigo = crearCodigoGrupo();
+    socket.on("grupoCrear", (payload, ack) => {
         const yo = vehiculoDeSocket(socket);
+        const raw = payload && typeof payload === "object" ? payload : {};
+        let codigo = normalizarGrupo(raw.codigo);
+        if (!codigo) codigo = crearCodigoGrupo();
+        const nombre = sanitizarNombreGrupo(raw.nombre) || ("Grupo " + codigo);
+        nombresGrupo[codigo] = nombre;
+        guardarNombresGrupo();
         if (yo) {
             const prev = yo.vistoPor ? yo.vistoPor.slice() : [];
             yo.grupo = codigo;
             socket.emit("telemetria_global", snapshotPara(yo));
             aplicarVisibilidad(yo, prev);
         }
-        const res = { ok: true, codigo: codigo };
+        const res = { ok: true, codigo: codigo, nombre: nombre };
         if (typeof ack === "function") ack(res);
-        socket.emit("grupoEstado", { codigo: codigo });
+        socket.emit("grupoEstado", { codigo: codigo, nombre: nombre });
         if (yo) emitirEncuentrosA(vehiculos[yo.id] || yo);
     });
 
@@ -587,12 +629,18 @@ io.on("connection", socket => {
             if (typeof ack === "function") ack({ ok: false, error: "Código inválido o todavía no hay GPS." });
             return;
         }
+        const nombreIn = sanitizarNombreGrupo(payload && payload.nombre);
+        if (nombreIn && !nombresGrupo[codigo]) {
+            nombresGrupo[codigo] = nombreIn;
+            guardarNombresGrupo();
+        }
+        const nombre = nombresGrupo[codigo] || "";
         const prev = yo.vistoPor ? yo.vistoPor.slice() : [];
         yo.grupo = codigo;
         socket.emit("telemetria_global", snapshotPara(yo));
         aplicarVisibilidad(yo, prev);
-        if (typeof ack === "function") ack({ ok: true, codigo: codigo });
-        socket.emit("grupoEstado", { codigo: codigo });
+        if (typeof ack === "function") ack({ ok: true, codigo: codigo, nombre: nombre });
+        socket.emit("grupoEstado", { codigo: codigo, nombre: nombre });
         emitirEncuentrosA(yo);
     });
 
@@ -723,15 +771,18 @@ io.on("connection", socket => {
         if (!texto) return;
 
         const v = vehiculoDeSocket(socket);
+        const canal = (payload && payload.canal) === "grupo" ? "grupo" : "radio";
+        if (canal === "grupo" && !(v && v.grupo)) return;
         const msg = {
             de: (v && v.id) || socket.id,
             nombre: (v && v.nombre) || "Anónimo",
             texto: texto,
             ts: Date.now(),
-            grupo: !!(v && v.grupo)
+            grupo: canal === "grupo",
+            canal: canal
         };
         socket.emit("mensajeV2V", msg);
-        emitirA(destinosCanal(v), "mensajeV2V", msg);
+        emitirA(destinosCanal(v, canal), "mensajeV2V", msg);
     });
 
     socket.on("mensajePrivado", payload => {
@@ -761,14 +812,20 @@ io.on("connection", socket => {
             return;
         }
         const v = vehiculoDeSocket(socket);
+        const canal = (payload && payload.canal) === "grupo" ? "grupo" : "radio";
+        if (canal === "grupo" && !(v && v.grupo)) {
+            if (typeof ack === "function") ack({ ok: false });
+            return;
+        }
         const meta = metaEmisor(socket);
-        emitirA(destinosCanal(v), "audioV2V", {
+        emitirA(destinosCanal(v, canal), "audioV2V", {
             de: meta.de,
             nombre: meta.nombre,
             mime: sanitizarTexto(payload.mime, 40) || "audio/webm",
             texto: sanitizarTexto(payload.texto, 500),
             audio: audio,
-            ts: Date.now()
+            ts: Date.now(),
+            canal: canal
         });
         if (typeof ack === "function") ack({ ok: true });
     });

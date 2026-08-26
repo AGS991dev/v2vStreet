@@ -14,9 +14,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="css/base.css?v=20260825g">
-<link rel="stylesheet" href="css/desktop.css?v=20260825g">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260825g">
+<link rel="stylesheet" href="css/base.css?v=20260825h">
+<link rel="stylesheet" href="css/desktop.css?v=20260825h">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260825h">
 </head>
 
 <body>
@@ -141,35 +141,35 @@
         <div class="hud-iconos">
             <button type="button" id="btnZoomIn" class="hud-btn hud-ico" title="Acercar el mapa">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v12M6 12h12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
-                <span>Acercar</span>
+                <span>Acercar el mapa</span>
             </button>
             <button type="button" id="btnZoomOut" class="hud-btn hud-ico" title="Alejar el mapa">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
-                <span>Alejar</span>
+                <span>Alejar el mapa</span>
             </button>
             <button type="button" id="btnBuscar" class="hud-btn hud-ico" title="Buscar un lugar o una dirección">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M16 16l4.2 4.2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
-                <span>Buscar</span>
+                <span>Buscar un lugar</span>
             </button>
             <button type="button" id="btnQueEs" class="hud-btn hud-ico" title="Qué es RadioMap">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="12" cy="12" r="3.1" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6.4 6.4l2.3 2.3M15.3 15.3l2.3 2.3M15.3 6.4l-2.3 2.3M8.7 15.3l-2.3 2.3" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
-                <span>Ayuda</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M9.5 9.4a2.6 2.6 0 1 1 3.8 2.3c-.8.5-1.3 1-1.3 2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="12" cy="16.6" r="1" fill="currentColor"/></svg>
+                <span>Qué es RadioMap</span>
             </button>
             <button type="button" id="btnCentrar" class="hud-btn hud-ico" title="Centrar el mapa en mi posición">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
-                <span>Centrar</span>
+                <span>Centrar en mi posición</span>
             </button>
-            <button type="button" id="btnHerramientas" class="hud-btn hud-ico" title="Perfil y herramientas" aria-expanded="false">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M5.5 19.5c1.2-3.2 3.5-4.8 6.5-4.8s5.3 1.6 6.5 4.8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
-                <span>Perfil</span>
+            <button type="button" id="btnHerramientas" class="hud-btn hud-ico" title="Herramientas del mapa" aria-expanded="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 3h4l.4 2.2c.6.2 1.2.5 1.7.9l2.1-.8 2 3.5-1.8 1.2c.1.5.2 1.1.2 1.6s-.1 1.1-.2 1.6l1.8 1.2-2 3.5-2.1-.8c-.5.4-1.1.7-1.7.9L14 21h-4l-.4-2.2a6.8 6.8 0 0 1-1.7-.9l-2.1.8-2-3.5 1.8-1.2A7 7 0 0 1 5.4 12c0-.5.1-1.1.2-1.6L3.8 9.2l2-3.5 2.1.8c.5-.4 1.1-.7 1.7-.9L10 3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+                <span>Herramientas</span>
             </button>
-            <button type="button" id="btnHudCerca" class="hud-btn hud-ico hud-mob" title="Quién está cerca y grupos">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="16" cy="8.5" r="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M4.5 18c.7-2.4 2.3-3.6 4.5-3.6s3.8 1.2 4.5 3.6M13.2 18c.4-1.6 1.5-2.6 3-2.6s2.4.8 2.8 2.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-                <span>Cerca</span>
+            <button type="button" id="btnHudCerca" class="hud-btn hud-ico hud-mob" title="Quién está cerca">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8.2" cy="8" r="2.3" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="15.8" cy="8.4" r="2.1" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3.8 18.6c.7-2.6 2.4-3.9 4.4-3.9s3.7 1.3 4.4 3.9M13.2 18.4c.4-1.7 1.5-2.7 2.8-2.7s2.4.9 2.8 2.4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                <span>Quién está cerca</span>
             </button>
             <button type="button" id="btnHudAvisos" class="hud-btn hud-ico hud-mob" title="Avisos y mensajes">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 5 2 6.5 2 6.5H4S6 13 6 8zM10 18.5a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>
-                <span>Avisos</span>
+                <span>Avisos y mensajes</span>
                 <span id="badgeHudAvisos" class="badge-hud oculto">0</span>
             </button>
         </div>
@@ -177,26 +177,26 @@
             <label class="switch-popups hud-btn hud-ico" title="Mostrar u ocultar las fichas de los demás">
                 <input type="checkbox" id="chkPopups" checked>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M8 9h8M8 13h5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
-                <span>Fichas</span>
+                <span>Mostrar fichas</span>
             </label>
             <button type="button" id="btnManejo" class="hud-btn hud-ico" title="Modo manejo: pantalla grande y no se apaga">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16V9l3-3h8l3 3v7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="8" cy="16" r="1.7" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="16" cy="16" r="1.7" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
-                <span>Manejo</span>
+                <span>Modo manejo</span>
             </button>
             <button type="button" id="btnModoTransito" class="hud-btn hud-ico" title="Modo auto: la ruta respeta las manos de las calles" aria-pressed="false">
                 <span class="switch-transito-ico" aria-hidden="true">
                     <svg class="ico-transito-auto" viewBox="0 0 24 24"><path d="M5 16V9l3-3h8l3 3v7" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><circle cx="8" cy="16" r="1.6" fill="none" stroke="currentColor" stroke-width="1.9"/><circle cx="16" cy="16" r="1.6" fill="none" stroke="currentColor" stroke-width="1.9"/></svg>
                     <svg class="ico-transito-pie" viewBox="0 0 24 24"><circle cx="13" cy="4.2" r="1.7" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M8.5 21l1.8-6.2 2.2 2.1 1.7 4.1M10.4 14.8l2.8-3.2 2.6.7 2.2 3.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </span>
-                <span>Modo</span>
+                <span>Auto o a pie</span>
             </button>
             <button type="button" id="btnNavGps" class="hud-btn hud-ico" title="Navegación GPS: tu auto queda fijo al centro y el mapa gira con el rumbo">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l3.2 7.2L22 12l-6.8 1.8L12 21l-3.2-7.2L2 12l6.8-1.8L12 3z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>
-                <span>Navegar</span>
+                <span>Navegación GPS</span>
             </button>
             <button type="button" id="btnTestFantasma" class="hud-btn hud-ico" title="TEST: crear usuario fantasma AutoTest">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6L6.2 17.2A3.2 3.2 0 0 0 9 21h6a3.2 3.2 0 0 0 2.8-3.8L14 9V3" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M9.2 14h5.6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
-                <span>Test</span>
+                <span>Usuario de prueba</span>
             </button>
         </div>
         <div id="radioCerca" class="radio-cerca" aria-label="Quién está en la radio"></div>
@@ -255,7 +255,7 @@
     <div id="ackWalkie" class="ack-walkie oculto" role="status"></div>
 </main>
 
-<aside class="comms-panel" id="commsPanel" data-vista="grupos">
+<aside class="comms-panel" id="commsPanel" data-vista="avisos" data-tab="general">
     <div class="comms-handle" aria-hidden="true"></div>
     <header class="comms-header">
         <div class="comms-titulo">
@@ -278,48 +278,35 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M3 12h18M12 4a14 14 0 0 1 0 16M12 4a14 14 0 0 0 0 16" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
             <span class="tab-txt">
                 <strong id="lblTabRadio">Público</strong>
-                <small>Hablar en el grupo</small>
+                <small>Radio por km</small>
             </span>
         </button>
         <button type="button" class="tab" data-tab="privado" id="tabPrivado">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.1" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M5.6 19.2c1.1-3 3.3-4.5 6.4-4.5s5.3 1.5 6.4 4.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><rect x="15.2" y="10.2" width="5.2" height="4.4" rx="1.1" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M16.6 10.2V9.2a1.2 1.2 0 0 1 2.4 0v1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
             <span class="tab-txt">
                 <strong>Privado</strong>
-                <small>Hablar en privado</small>
+                <small>Uno a uno</small>
             </span>
             <span id="badgePrivado" class="badge oculto">0</span>
+        </button>
+        <button type="button" class="tab oculto" data-tab="grupo" id="tabGrupo">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="16" cy="8.5" r="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M4.5 18c.7-2.4 2.3-3.6 4.5-3.6s3.8 1.2 4.5 3.6M13.2 18c.4-1.6 1.5-2.6 3-2.6s2.4.8 2.8 2.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+            <span class="tab-txt">
+                <strong>Grupos</strong>
+                <small>Tu convoy</small>
+            </span>
         </button>
     </div>
 
     <div class="comms-cuerpo">
-        <section class="comms-contactos" id="vistaGrupos">
-            <div class="seccion-cabeza">
-                <h3>
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="16" cy="8.5" r="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M4.5 18c.7-2.4 2.3-3.6 4.5-3.6s3.8 1.2 4.5 3.6M13.2 18c.4-1.6 1.5-2.6 3-2.6s2.4.8 2.8 2.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-                    Mis grupos
-                </h3>
-                <button type="button" id="btnMostrarCrearGrupo" class="btn-crear-grupo">+ Crear grupo</button>
-            </div>
-            <div class="caja-grupo oculto" id="cajaGrupo">
-                <label>
-                    Código de grupo
-                    <input id="txtGrupo" maxlength="8" placeholder="Ej. RUTA82" autocomplete="off" spellcheck="false">
-                </label>
-                <div class="grupo-acciones">
-                    <button type="button" id="btnGrupoUnir">Unirse</button>
-                    <button type="button" id="btnGrupoCrear">Crear</button>
-                    <button type="button" id="btnGrupoSalir" class="oculto">Salir</button>
-                    <button type="button" id="btnGrupoShare" class="oculto">Compartir</button>
-                </div>
-                <p id="estadoGrupo" class="estado-grupo">Sin grupo: la RADIO llega a tu alcance en km.</p>
-            </div>
-            <div class="lista-grupos" id="listaGrupos">
+        <section class="comms-canal" id="vistaPublico">
+            <div class="lista-grupos">
                 <div class="grupo-item activo" id="itemGrupoRadio">
                     <span class="grupo-ico ico-azul" aria-hidden="true">
-                        <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="16" cy="8.5" r="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M4.5 18c.7-2.4 2.3-3.6 4.5-3.6s3.8 1.2 4.5 3.6M13.2 18c.4-1.6 1.5-2.6 3-2.6s2.4.8 2.8 2.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3 12h18M12 4a14 14 0 0 1 0 16M12 4a14 14 0 0 0 0 16" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
                     </span>
                     <div class="grupo-meta">
-                        <strong>RADIO</strong>
+                        <strong>RADIO pública</strong>
                         <small id="grupoRadioDetalle">Alcance 5 km</small>
                     </div>
                     <label class="grupo-alcance">
@@ -332,41 +319,15 @@
                             <option value="50">50 km</option>
                         </select>
                     </label>
-                    <button type="button" class="btn-grupo-speaker" id="btnHablarRadio" title="Walkie a RADIO">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h3l4 3V7L7 10H4zM16.2 8.2a5 5 0 0 1 0 7.6M18.5 6a8 8 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/></svg>
-                    </button>
-                </div>
-                <div class="grupo-item oculto" id="itemGrupoMio">
-                    <span class="grupo-ico ico-ambar" aria-hidden="true">
-                        <svg viewBox="0 0 24 24"><path d="M5 16V9l3-3h8l3 3v7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="8" cy="16" r="1.6" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="16" cy="16" r="1.6" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
-                    </span>
-                    <div class="grupo-meta">
-                        <strong id="nombreGrupoMio">—</strong>
-                        <small id="detalleGrupoMio">Tu convoy</small>
-                    </div>
-                    <button type="button" class="btn-grupo-speaker" id="btnHablarGrupo" title="Walkie al grupo">
+                    <button type="button" class="btn-grupo-speaker" id="btnHablarRadio" title="Walkie a RADIO pública">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h3l4 3V7L7 10H4zM16.2 8.2a5 5 0 0 1 0 7.6M18.5 6a8 8 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/></svg>
                     </button>
                 </div>
             </div>
-
-            <div class="seccion-cabeza">
-                <h3>
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5.5 19.5c1.2-3.2 3.5-4.8 6.5-4.8s5.3 1.6 6.5 4.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-                    Conversaciones privadas
-                </h3>
-                <button type="button" id="btnNuevaPrivada" class="btn-crear-grupo">Nueva +</button>
-            </div>
-            <p class="leyenda-cerca">Más cerca de vos, primero</p>
-            <div id="listaContactos" class="lista-contactos">
-                <p class="vacio">Nadie en la RADIO todavía. Compartí el enlace.</p>
-            </div>
-        </section>
-
-        <section class="comms-chat" id="vistaAvisos">
+            <button type="button" id="btnIrAGrupos" class="btn-crear-grupo btn-ir-grupos">Crear o unirse a un grupo</button>
             <div id="panelGeneral" class="chat-panel">
                 <div class="destino-chat" id="destinoConvoy">
-                    <span>Enviás a RADIO</span>
+                    <span>Enviás a RADIO pública</span>
                     <strong id="destinoConvoyDetalle">RADIO · 5 km</strong>
                 </div>
                 <div id="msgsV2V" class="chat-mensajes"></div>
@@ -382,8 +343,21 @@
                     </button>
                 </div>
             </div>
+        </section>
 
-            <div id="panelPrivado" class="chat-panel oculto">
+        <section class="comms-canal oculto" id="vistaPrivado">
+            <div class="seccion-cabeza">
+                <h3>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5.5 19.5c1.2-3.2 3.5-4.8 6.5-4.8s5.3 1.6 6.5 4.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                    Conversaciones privadas
+                </h3>
+                <button type="button" id="btnNuevaPrivada" class="btn-crear-grupo">Nueva +</button>
+            </div>
+            <p class="leyenda-cerca">Más cerca de vos, primero</p>
+            <div id="listaContactos" class="lista-contactos">
+                <p class="vacio">Nadie en la RADIO todavía. Compartí el enlace.</p>
+            </div>
+            <div id="panelPrivado" class="chat-panel">
                 <div class="destino-chat destino-directo" id="cajaDestinoPrivado">
                     <span>Enviás en directo a</span>
                     <strong id="contactoSeleccionado">Nadie todavía. Elegí un auto.</strong>
@@ -402,6 +376,65 @@
                 </div>
             </div>
         </section>
+
+        <section class="comms-canal oculto" id="vistaGrupo">
+            <div class="seccion-cabeza">
+                <h3>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="16" cy="8.5" r="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M4.5 18c.7-2.4 2.3-3.6 4.5-3.6s3.8 1.2 4.5 3.6M13.2 18c.4-1.6 1.5-2.6 3-2.6s2.4.8 2.8 2.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                    Tu grupo
+                </h3>
+                <button type="button" id="btnMostrarCrearGrupo" class="btn-crear-grupo">+ Crear grupo</button>
+            </div>
+            <div class="caja-grupo" id="cajaGrupo">
+                <label>
+                    Nombre del grupo
+                    <input id="txtGrupoNombre" maxlength="32" placeholder="Ej. Convoy Norte" autocomplete="off">
+                </label>
+                <label>
+                    Código de acceso
+                    <input id="txtGrupo" maxlength="8" placeholder="Ej. RUTA82" autocomplete="off" spellcheck="false">
+                </label>
+                <div class="grupo-acciones">
+                    <button type="button" id="btnGrupoUnir">Unirse</button>
+                    <button type="button" id="btnGrupoCrear">Crear</button>
+                    <button type="button" id="btnGrupoSalir" class="oculto">Salir</button>
+                    <button type="button" id="btnGrupoShare" class="oculto">Compartir</button>
+                </div>
+                <p id="estadoGrupo" class="estado-grupo">Poné un nombre y creá el grupo, o ingresá un código para unirte.</p>
+            </div>
+            <div class="lista-grupos">
+                <div class="grupo-item oculto" id="itemGrupoMio">
+                    <span class="grupo-ico ico-ambar" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M5 16V9l3-3h8l3 3v7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="8" cy="16" r="1.6" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="16" cy="16" r="1.6" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+                    </span>
+                    <div class="grupo-meta">
+                        <strong id="nombreGrupoMio">—</strong>
+                        <small id="detalleGrupoMio">Código —</small>
+                    </div>
+                    <button type="button" class="btn-grupo-speaker" id="btnHablarGrupo" title="Walkie al grupo">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h3l4 3V7L7 10H4zM16.2 8.2a5 5 0 0 1 0 7.6M18.5 6a8 8 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div id="panelGrupo" class="chat-panel">
+                <div class="destino-chat">
+                    <span>Enviás al grupo</span>
+                    <strong id="destinoGrupoDetalle">Sin grupo</strong>
+                </div>
+                <div id="msgsGrupo" class="chat-mensajes"></div>
+                <div class="chat-composer">
+                    <input id="txtAvisoGrupo" class="chat-input" placeholder="Aviso al grupo…" maxlength="500">
+                    <button type="button" id="btnEnviarGrupo" class="btn-enviar" title="Enviar al grupo">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h12M12 6l8 6-8 6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        GRUPO
+                    </button>
+                    <button type="button" id="btnVozGrupo" class="btn-voz" title="Dictar texto">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17V7h4l6-4v18l-6-4H5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M19 9v6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                        <span>Dictar</span>
+                    </button>
+                </div>
+            </div>
+        </section>
     </div>
 
     <div class="ptt-barra">
@@ -411,7 +444,7 @@
             </span>
             <span class="ptt-txt">
                 <strong>Presioná para hablar</strong>
-                <small>Soltá para escuchar</small>
+                <small>RADIO pública</small>
             </span>
         </button>
         <button type="button" id="btnPttPrivado" class="btn-ptt btn-ptt-barra oculto" title="Mantené para hablarle">
@@ -421,6 +454,15 @@
             <span class="ptt-txt">
                 <strong>Presioná para hablar</strong>
                 <small>Directo · soltá para enviar</small>
+            </span>
+        </button>
+        <button type="button" id="btnPttGrupo" class="btn-ptt btn-ptt-barra oculto" title="Mantené para hablar al grupo">
+            <span class="ptt-mic" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </span>
+            <span class="ptt-txt">
+                <strong>Presioná para hablar</strong>
+                <small>Walkie al grupo</small>
             </span>
         </button>
         <span class="ptt-vol" aria-hidden="true">
@@ -601,6 +643,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
 <script src="/socket.io/socket.io.js"></script>
-<script src="js/main.js?v=20260825g"></script>
+<script src="js/main.js?v=20260825h"></script>
 </body>
 </html>

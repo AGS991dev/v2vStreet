@@ -786,6 +786,8 @@ body.modo-nav-gps .marker-propio {
     flex-direction: column;
     align-items: flex-end;
     gap: 8px;
+    overflow: visible;
+    z-index: 1600;
 }
 
 .hud-iconos {
@@ -793,6 +795,7 @@ body.modo-nav-gps .marker-propio {
     flex-direction: column;
     align-items: flex-end;
     gap: 8px;
+    overflow: visible;
 }
 
 .radio-cerca {
@@ -981,16 +984,38 @@ body.modo-nav-gps .marker-propio {
     color: var(--azul);
 }
 
-.hud-ico > span {
+.hud-ico > span:not(.switch-transito-ico):not(.badge-hud):not(.ico):not(.ptt-leyenda):not(.ptt-mic):not(.ptt-txt) {
     position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
+    right: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%);
+    width: auto;
+    height: auto;
+    padding: 6px 8px;
+    margin: 0;
+    overflow: visible;
+    clip: unset;
+    clip-path: none;
     white-space: nowrap;
     border: 0;
+    border-radius: 8px;
+    background: #1c1c1c;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 30;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+}
+
+.hud-ico:hover > span:not(.switch-transito-ico):not(.badge-hud):not(.ico):not(.ptt-leyenda):not(.ptt-mic):not(.ptt-txt),
+.hud-ico:focus > span:not(.switch-transito-ico):not(.badge-hud):not(.ico):not(.ptt-leyenda):not(.ptt-mic):not(.ptt-txt),
+.hud-ico:focus-visible > span:not(.switch-transito-ico):not(.badge-hud):not(.ico):not(.ptt-leyenda):not(.ptt-mic):not(.ptt-txt),
+.hud-ico:active > span:not(.switch-transito-ico):not(.badge-hud):not(.ico):not(.ptt-leyenda):not(.ptt-mic):not(.ptt-txt) {
+    opacity: 1;
 }
 
 .hud-ico > span.switch-transito-ico {
@@ -2325,9 +2350,18 @@ body.mosaico-listo .marker-otro .auto-cuerpo {
     width: 100%;
     margin: 0;
     padding: 8px 10px;
+    letter-spacing: 0.3px;
+    font-weight: 700;
+}
+
+#txtGrupo {
     text-transform: uppercase;
     letter-spacing: 1px;
-    font-weight: 700;
+}
+
+.caja-grupo input[readonly] {
+    background: #f3f4f6;
+    color: var(--tinta);
 }
 
 .grupo-acciones {
@@ -3014,6 +3048,11 @@ body.modo-manejo .hud-ruta-txt p {
     color: #15803d;
 }
 
+.tab[data-tab="grupo"].activa {
+    background: #fff6e8;
+    color: #b45309;
+}
+
 .comms-cuerpo {
     flex: 1;
     min-height: 0;
@@ -3022,13 +3061,21 @@ body.modo-manejo .hud-ruta-txt p {
     overflow: hidden;
 }
 
-.comms-panel[data-vista="grupos"] #vistaAvisos,
-.comms-panel:not([data-vista="avisos"]) #vistaAvisos {
-    display: none;
+.comms-canal {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
 }
 
-.comms-panel[data-vista="avisos"] #vistaGrupos {
-    display: none;
+.comms-canal.oculto {
+    display: none !important;
+}
+
+.btn-ir-grupos {
+    margin: 8px 14px 4px;
+    width: calc(100% - 28px);
 }
 
 .comms-contactos {
@@ -3577,7 +3624,7 @@ body.modo-manejo .atajo-pill {
 
     .hud-iconos {
         max-height: calc(100dvh - var(--dock-h) - 200px);
-        overflow-y: auto;
+        overflow: visible;
         padding-bottom: 4px;
         scrollbar-width: none;
     }
@@ -3739,6 +3786,16 @@ body.modo-manejo .atajo-pill {
     .tab-txt small {
         display: block;
         margin-top: 2px;
+    }
+
+    .chat-tabs:has(#tabGrupo:not(.oculto)) .tab {
+        padding: 10px 6px;
+        gap: 4px;
+        align-items: center;
+    }
+
+    .chat-tabs:has(#tabGrupo:not(.oculto)) .tab-txt small {
+        display: none;
     }
 
     .btn-grupo-speaker {
