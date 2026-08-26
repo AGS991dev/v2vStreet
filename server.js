@@ -11,6 +11,7 @@ const https = require("https");
 const fs = require("fs");
 const path = require("path");
 const { Server } = require("socket.io");
+const escala = require("./lib/escala");
 
 const app = express();
 const server = http.createServer(app);
@@ -23,11 +24,25 @@ const io = new Server(server, {
 });
 
 app.use(express.json());
-app.use(express.static("public"));
+app.use(express.static("public", {
+    etag: true,
+    setHeaders: function (res, filePath) {
+        if (/\.html$/i.test(filePath)) {
+            res.setHeader("Cache-Control", "no-cache");
+            return;
+        }
+        if (/\.(js|css|png|jpe?g|webp|svg|json|woff2?)$/i.test(filePath)) {
+            res.setHeader("Cache-Control", "public, max-age=86400");
+        }
+    }
+}));
 
 const RADIO_MIN = 1;
-const RADIO_MAX = 50;
-const RADIO_DEF = 5;
+const RADIO_MAX = 10;
+const RADIO_DEF = 3;
+const CELDA_KM = 4;
+const LAT_CELDA = CELDA_KM / 111.32;
+const SNAPSHOT_MAX = 48;
 
 function parLngLat(valor) {
     const m = String(valor || "").trim().match(/^(-?\d+(\.\d+)?),(-?\d+(\.\d+)?)$/);
@@ -148,6 +163,8 @@ app.get("/api/geo/buscar", (req, res) => {
     });
 });
 
+const dbSql = require("./lib/sql");
+const ultimoSqlUsuario = {};
 const PORT = process.env.PORT || 3000;
 
 const AUSENTE_MS = 18000;
@@ -211,6 +228,7 @@ function cargarEncuentrosDisco() {
 
 let guardarEncTimer = null;
 function guardarEncuentrosDisco() {
+    if (dbSql.activo()) return;
     if (guardarEncTimer) clearTimeout(guardarEncTimer);
     guardarEncTimer = setTimeout(() => {
         try {
@@ -224,10 +242,83 @@ function guardarEncuentrosDisco() {
 
 cargarEncuentrosDisco();
 
-const nombresGrupo = {};
+const gruposReg = {};
+const grupoVivos = {};
+const celdas = {};
 
 function sanitizarNombreGrupo(valor) {
     return String(valor || "").trim().replace(/\s+/g, " ").slice(0, 32);
+}
+
+function nombreDeGrupo(codigo) {
+    return (gruposReg[codigo] && gruposReg[codigo].nombre) || "";
+}
+
+function sqlCatch(promesa) {
+    Promise.resolve(promesa).catch(function (err) {
+        console.error("SQL Server:", err && err.message ? err.message : err);
+    });
+}
+
+function persistirUsuarioSql(v, forzar) {
+    if (!v || !v.id || !dbSql.activo()) return;
+    const ahora = Date.now();
+    if (!forzar && ultimoSqlUsuario[v.id] && ahora - ultimoSqlUsuario[v.id] < 90000) return;
+    ultimoSqlUsuario[v.id] = ahora;
+    sqlCatch(dbSql.upsertUsuario(v));
+}
+
+function persistirGrupoSql(codigo, nombre) {
+    if (!codigo || !dbSql.activo()) return;
+    sqlCatch(dbSql.upsertGrupo(codigo, nombre || nombreDeGrupo(codigo)));
+}
+
+function persistirMiembroSql(codigo, vehiculo) {
+    if (!codigo || !vehiculo || !dbSql.activo()) return;
+    sqlCatch(dbSql.upsertMiembro(codigo, Object.assign({}, vehiculo, {
+        grupoNombre: nombreDeGrupo(codigo)
+    })));
+}
+
+function persistirEncuentroSql(e) {
+    if (!e || !dbSql.activo()) return;
+    sqlCatch(dbSql.upsertEncuentro(e));
+}
+
+function borrarEncuentroSql(id) {
+    if (!id || !dbSql.activo()) return;
+    sqlCatch(dbSql.borrarEncuentro(id));
+}
+
+function asegurarGrupo(codigo, nombre) {
+    if (!codigo) return;
+    if (!gruposReg[codigo]) {
+        gruposReg[codigo] = { nombre: nombre || ("Grupo " + codigo), miembros: {} };
+    } else if (nombre) {
+        gruposReg[codigo].nombre = nombre;
+    }
+    persistirGrupoSql(codigo, gruposReg[codigo].nombre);
+}
+
+function persistirGrupos() {
+    const out = {};
+    Object.keys(gruposReg).forEach(function (codigo) {
+        const g = gruposReg[codigo];
+        if (!g) return;
+        const miembros = {};
+        const src = g.miembros || {};
+        const ids = Object.keys(src);
+        ids.sort(function (a, b) {
+            return (src[b].ts || 0) - (src[a].ts || 0);
+        });
+        ids.slice(0, 80).forEach(function (id) {
+            const m = src[id];
+            if (!m) return;
+            miembros[id] = { nombre: sanitizarTexto(m.nombre, 40), ts: Number(m.ts) || 0 };
+        });
+        out[codigo] = { nombre: g.nombre || "", miembros: miembros };
+    });
+    return out;
 }
 
 function cargarNombresGrupo() {
@@ -238,7 +329,22 @@ function cargarNombresGrupo() {
         Object.keys(obj).forEach(function (codigo) {
             const c = String(codigo || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
             if (c.length < 4 || c.length > 8) return;
-            nombresGrupo[c] = sanitizarNombreGrupo(obj[codigo]);
+            const val = obj[codigo];
+            if (typeof val === "string") {
+                gruposReg[c] = { nombre: sanitizarNombreGrupo(val), miembros: {} };
+                return;
+            }
+            if (!val || typeof val !== "object") return;
+            const miembros = {};
+            const src = val.miembros && typeof val.miembros === "object" ? val.miembros : {};
+            Object.keys(src).forEach(function (id) {
+                const m = src[id] || {};
+                miembros[String(id)] = {
+                    nombre: sanitizarTexto(m.nombre, 40),
+                    ts: Number(m.ts) || 0
+                };
+            });
+            gruposReg[c] = { nombre: sanitizarNombreGrupo(val.nombre), miembros: miembros };
         });
     } catch (err) {
         if (err && err.code !== "ENOENT") console.error("No se pudieron leer los grupos:", err.message);
@@ -247,15 +353,34 @@ function cargarNombresGrupo() {
 
 let guardarGruposTimer = null;
 function guardarNombresGrupo() {
+    if (dbSql.activo()) return;
     if (guardarGruposTimer) clearTimeout(guardarGruposTimer);
     guardarGruposTimer = setTimeout(function () {
         try {
             fs.mkdirSync(path.dirname(GRUPOS_FILE), { recursive: true });
-            fs.writeFileSync(GRUPOS_FILE, JSON.stringify(nombresGrupo, null, 2), "utf8");
+            fs.writeFileSync(GRUPOS_FILE, JSON.stringify(persistirGrupos(), null, 2), "utf8");
         } catch (err) {
             console.error("No se pudieron guardar los grupos:", err.message);
         }
-    }, 120);
+    }, 250);
+}
+
+function registrarMiembroGrupo(codigo, vehiculo) {
+    if (!codigo || !vehiculo) return;
+    asegurarGrupo(codigo, "");
+    gruposReg[codigo].miembros[vehiculo.id] = {
+        nombre: sanitizarTexto(vehiculo.nombre, 40),
+        ts: Date.now()
+    };
+    guardarNombresGrupo();
+    persistirMiembroSql(codigo, vehiculo);
+}
+
+function quitarMiembroGrupo(codigo, id) {
+    if (!codigo || !id || !gruposReg[codigo] || !gruposReg[codigo].miembros) return;
+    delete gruposReg[codigo].miembros[id];
+    guardarNombresGrupo();
+    if (dbSql.activo()) sqlCatch(dbSql.borrarMiembro(codigo, id));
 }
 
 cargarNombresGrupo();
@@ -298,6 +423,76 @@ function radioDe(v) {
     return sanitizarEntero(v && v.radioKm, RADIO_MIN, RADIO_MAX, RADIO_DEF);
 }
 
+function lngCelda(lat) {
+    const c = Math.cos((Number(lat) || 0) * Math.PI / 180);
+    return CELDA_KM / (111.32 * Math.max(0.25, Math.abs(c)));
+}
+
+function claveCelda(lat, lng) {
+    const i = Math.floor(Number(lat) / LAT_CELDA);
+    const j = Math.floor(Number(lng) / lngCelda(lat));
+    return i + ":" + j;
+}
+
+function sacarDeCelda(v) {
+    if (!v || !v.celda || !celdas[v.celda]) return;
+    delete celdas[v.celda][v.id];
+    if (!Object.keys(celdas[v.celda]).length) delete celdas[v.celda];
+    v.celda = "";
+}
+
+function ponerEnCelda(v) {
+    if (!v || !Number.isFinite(Number(v.lat)) || !Number.isFinite(Number(v.lng))) return;
+    const k = claveCelda(v.lat, v.lng);
+    if (v.celda === k) {
+        if (!celdas[k]) celdas[k] = {};
+        celdas[k][v.id] = true;
+        return;
+    }
+    sacarDeCelda(v);
+    v.celda = k;
+    if (!celdas[k]) celdas[k] = {};
+    celdas[k][v.id] = true;
+}
+
+function idsCeldasVecinas(lat, lng) {
+    const i0 = Math.floor(Number(lat) / LAT_CELDA);
+    const step = lngCelda(lat);
+    const j0 = Math.floor(Number(lng) / step);
+    const keys = [];
+    let di;
+    let dj;
+    for (di = -1; di <= 1; di++) {
+        for (dj = -1; dj <= 1; dj++) keys.push((i0 + di) + ":" + (j0 + dj));
+    }
+    return keys;
+}
+
+function candidatosCerca(v) {
+    if (!v || !Number.isFinite(Number(v.lat))) return [];
+    const ids = {};
+    idsCeldasVecinas(v.lat, v.lng).forEach(function (k) {
+        const bucket = celdas[k];
+        if (!bucket) return;
+        Object.keys(bucket).forEach(function (id) { ids[id] = true; });
+    });
+    return Object.keys(ids);
+}
+
+function ponerEnGrupoVivo(v) {
+    if (!v || !v.id) return;
+    if (v.grupo) {
+        if (!grupoVivos[v.grupo]) grupoVivos[v.grupo] = {};
+        grupoVivos[v.grupo][v.id] = true;
+    }
+}
+
+function sacarDeGrupoVivo(id, codigo) {
+    if (!id || !codigo || !grupoVivos[codigo]) return;
+    delete grupoVivos[codigo][id];
+    if (!Object.keys(grupoVivos[codigo]).length) delete grupoVivos[codigo];
+}
+
 function mismoGrupo(a, b) {
     return !!(a && b && a.grupo && b.grupo && a.grupo === b.grupo);
 }
@@ -315,24 +510,28 @@ function puedeHablarRadio(emisor, dest) {
     return d <= radioDe(emisor) && d <= radioDe(dest);
 }
 
-function publicoDe(v) {
+function publicoDe(v, lite) {
     if (!v) return null;
-    return {
+    const o = {
         id: v.id,
-        nombre: v.nombre,
-        vehiculo: v.vehiculo,
-        iconoX: v.iconoX,
-        iconoY: v.iconoY,
         lat: v.lat,
         lng: v.lng,
-        velocidad: v.velocidad,
         rumbo: v.rumbo,
-        precision: v.precision,
-        ultimaActualizacion: v.ultimaActualizacion,
+        velocidad: v.velocidad,
+        radioKm: v.radioKm,
         grupo: v.grupo || "",
-        asistencia: v.asistencia || null,
-        ausente: !!v.ausente
+        iconoX: v.iconoX,
+        iconoY: v.iconoY,
+        ultimaActualizacion: v.ultimaActualizacion,
+        ausente: !!v.ausente,
+        enRuta: v.enRuta !== false,
+        asistencia: v.asistencia || null
     };
+    if (!lite) {
+        o.nombre = v.nombre;
+        o.vehiculo = v.vehiculo;
+    }
+    return o;
 }
 
 function publicoEncuentro(e) {
@@ -374,10 +573,29 @@ function encuentrosPara(oyente) {
 }
 
 function destinosEncuentro(e) {
+    if (!e) return [];
+    const alcance = sanitizarAlcance(e.alcance, true);
+    if (alcance === "privado") {
+        const r = [];
+        const dest = e.para ? vehiculos[e.para] : null;
+        if (dest && dest.socketId) r.push(dest.socketId);
+        const yo = e.de ? vehiculos[e.de] : null;
+        if (yo && yo.socketId && r.indexOf(yo.socketId) < 0) r.push(yo.socketId);
+        return r;
+    }
+    if (alcance === "grupo" && e.grupo) return socketsDeSala(salaGrupo(e.grupo));
+    if (alcance === "global") return socketsDeSala("rm:all");
     const r = [];
-    Object.keys(vehiculos).forEach(id => {
-        const o = vehiculos[id];
-        if (o && o.socketId && puedeVerEncuentro(o, e)) r.push(o.socketId);
+    const visto = {};
+    idsCeldasVecinas(e.lat, e.lng).forEach(function (k) {
+        socketsDeSala(salaCelda(k)).forEach(function (sid) {
+            if (visto[sid]) return;
+            const o = oyentePorSocket(sid);
+            if (o && puedeVerEncuentro(o, e)) {
+                visto[sid] = true;
+                r.push(sid);
+            }
+        });
     });
     return r;
 }
@@ -392,23 +610,31 @@ function oyentePorSocket(socketId) {
     return id ? vehiculos[id] : null;
 }
 
-function socketsQueVen(objetivo) {
-    const r = [];
-    Object.keys(vehiculos).forEach(id => {
-        const o = vehiculos[id];
-        if (o && o.socketId && puedeVer(o, objetivo)) r.push(o.socketId);
-    });
-    return r;
-}
-
 function snapshotPara(oyente) {
     const estado = {};
     if (!oyente) return estado;
-    Object.keys(vehiculos).forEach(id => {
+    const ids = {};
+    candidatosCerca(oyente).forEach(function (id) { ids[id] = true; });
+    if (oyente.grupo && grupoVivos[oyente.grupo]) {
+        Object.keys(grupoVivos[oyente.grupo]).forEach(function (id) { ids[id] = true; });
+    }
+    const filas = [];
+    Object.keys(ids).forEach(function (id) {
         const v = vehiculos[id];
         if (!puedeVer(oyente, v)) return;
-        estado[id] = Object.assign(publicoDe(v), { enGrupo: mismoGrupo(oyente, v) });
+        const enG = mismoGrupo(oyente, v);
+        filas.push({
+            id: id,
+            d: enG ? -1 : kmEntre(oyente, v),
+            enG: enG,
+            pub: Object.assign(publicoDe(v, false), { enGrupo: enG })
+        });
     });
+    filas.sort(function (a, b) { return a.d - b.d; });
+    let i;
+    for (i = 0; i < filas.length; i++) {
+        if (i < SNAPSHOT_MAX || filas[i].enG) estado[filas[i].id] = filas[i].pub;
+    }
     return estado;
 }
 
@@ -421,56 +647,153 @@ function emitirA(sockets, evento, payload) {
     });
 }
 
-function aplicarVisibilidad(vehiculo, prevSockets) {
+function aplicarVisibilidad(vehiculo) {
     if (!vehiculo) return [];
-    const next = socketsQueVen(vehiculo);
-    const nextSet = {};
-    next.forEach(sid => { nextSet[sid] = true; });
-    (prevSockets || []).forEach(sid => {
-        if (!nextSet[sid]) io.to(sid).emit("vehiculo_desconectado", vehiculo.id);
+    const next = salasDeVehiculo(vehiculo);
+    const prev = vehiculo.salasEmit || [];
+    prev.forEach(function (sala) {
+        if (next.indexOf(sala) >= 0) return;
+        if (vehiculo.socketId) io.to(sala).except(vehiculo.socketId).emit("vehiculo_desconectado", vehiculo.id);
+        else io.to(sala).emit("vehiculo_desconectado", vehiculo.id);
     });
-    const pub = publicoDe(vehiculo);
-    next.forEach(sid => {
-        const oyente = oyentePorSocket(sid);
-        io.to(sid).emit("telemetria", Object.assign({}, pub, {
-            enGrupo: mismoGrupo(oyente, vehiculo)
+    emitirASalas(next, "telemetria", Object.assign(publicoDe(vehiculo, false), {
+        enGrupo: false,
+        grupo: vehiculo.grupo || ""
+    }), vehiculo.socketId);
+    vehiculo.salasEmit = next;
+    if (escala.activo()) {
+        escala.publicar("upsert", Object.assign(publicoDe(vehiculo, false), {
+            grupo: vehiculo.grupo || "",
+            ultimaActualizacion: vehiculo.ultimaActualizacion,
+            ausente: !!vehiculo.ausente
         }));
-    });
-    vehiculo.vistoPor = next;
+    }
     return next;
 }
 
-function destinosRadio(emisor) {
+function aplicarRemoto(pub) {
+    if (!pub || !pub.id) return;
+    const id = String(pub.id);
+    const local = vehiculos[id];
+    if (local && local.socketId && io.sockets.sockets.has(local.socketId)) return;
+    const v = local || {
+        id: id,
+        socketId: null,
+        celda: "",
+        asistencia: null,
+        vistoPor: []
+    };
+    v.nombre = sanitizarTexto(pub.nombre, 40);
+    v.vehiculo = sanitizarTexto(pub.vehiculo, 40);
+    v.iconoX = sanitizarEntero(pub.iconoX, 0, 64, 0);
+    v.iconoY = sanitizarEntero(pub.iconoY, 0, 64, 0);
+    v.lat = Number(pub.lat);
+    v.lng = Number(pub.lng);
+    v.velocidad = Number(pub.velocidad) || 0;
+    v.rumbo = Number.isFinite(Number(pub.rumbo)) ? Number(pub.rumbo) : v.rumbo;
+    v.radioKm = sanitizarEntero(pub.radioKm, RADIO_MIN, RADIO_MAX, RADIO_DEF);
+    v.grupo = sanitizarTexto(pub.grupo, 8);
+    v.enRuta = pub.enRuta !== false;
+    v.ausente = !!pub.ausente;
+    v.ultimaActualizacion = Number(pub.ultimaActualizacion) || Date.now();
+    v.remoto = true;
+    vehiculos[id] = v;
+    if (Number.isFinite(v.lat) && Number.isFinite(v.lng)) ponerEnCelda(v);
+    ponerEnGrupoVivo(v);
+}
+
+function borrarRemoto(id) {
+    id = String(id || "");
+    const v = vehiculos[id];
+    if (!v) return;
+    if (v.socketId && io.sockets.sockets.has(v.socketId)) return;
+    sacarDeCelda(v);
+    sacarDeGrupoVivo(id, v.grupo);
+    delete vehiculos[id];
+}
+
+function salaCelda(k) {
+    return k ? ("c:" + k) : "";
+}
+
+function salaGrupo(codigo) {
+    return codigo ? ("g:" + codigo) : "";
+}
+
+function socketsDeSala(sala) {
+    const set = sala && io.sockets.adapter.rooms.get(sala);
+    if (!set) return [];
     const r = [];
-    if (!emisor) return r;
-    Object.keys(vehiculos).forEach(id => {
-        const v = vehiculos[id];
-        if (v && v.socketId && puedeHablarRadio(emisor, v)) r.push(v.socketId);
-    });
+    set.forEach(function (sid) { r.push(sid); });
     return r;
 }
 
-function destinosGrupo(emisor) {
-    const r = [];
-    if (!emisor || !emisor.grupo) return r;
-    Object.keys(vehiculos).forEach(id => {
-        const v = vehiculos[id];
-        if (v && v.socketId && v.id !== emisor.id && mismoGrupo(emisor, v)) r.push(v.socketId);
-    });
-    return r;
+function salasRadioDe(emisor) {
+    if (!emisor || !Number.isFinite(Number(emisor.lat))) return [];
+    return idsCeldasVecinas(emisor.lat, emisor.lng).map(salaCelda);
 }
 
-function destinosCanal(emisor, canal) {
-    if (canal === "grupo") return destinosGrupo(emisor);
-    return destinosRadio(emisor);
+function salasDeVehiculo(v) {
+    const s = salasRadioDe(v);
+    if (v && v.grupo) s.push(salaGrupo(v.grupo));
+    return s;
 }
 
-function destinosAsistencia(emisor) {
-    const r = destinosRadio(emisor).slice();
-    destinosGrupo(emisor).forEach(sid => {
-        if (r.indexOf(sid) < 0) r.push(sid);
+function clientesAhora() {
+    return (io.engine && io.engine.clientsCount) || 0;
+}
+
+function umbralGps(v) {
+    const n = v && v.celda && celdas[v.celda] ? Object.keys(celdas[v.celda]).length : 0;
+    const vivos = clientesAhora();
+    if (vivos > 400) return { dt: 12000, dm: 40 };
+    if (n > 50 || vivos > 250) return { dt: 8000, dm: 32 };
+    if (n > 22 || vivos > 120) return { dt: 4500, dm: 16 };
+    return { dt: 2200, dm: 10 };
+}
+
+function minMsAudio() {
+    const n = clientesAhora();
+    if (n > 120) return 1600;
+    if (n > 60) return 1100;
+    return 800;
+}
+
+function emitirASalas(salas, evento, payload, exceptoSid) {
+    const limpio = [];
+    const visto = {};
+    (salas || []).forEach(function (s) {
+        if (!s || visto[s]) return;
+        visto[s] = true;
+        limpio.push(s);
     });
-    return r;
+    if (!limpio.length) return;
+    let n = io.to(limpio);
+    if (exceptoSid) n = n.except(exceptoSid);
+    n.emit(evento, payload);
+}
+
+function unirSalas(socket, v) {
+    if (!socket || !v) return;
+    const nextCelda = v.celda ? salaCelda(v.celda) : "";
+    const nextGrupo = v.grupo ? salaGrupo(v.grupo) : "";
+    if (socket.salaCelda && socket.salaCelda !== nextCelda) socket.leave(socket.salaCelda);
+    if (socket.salaGrupo && socket.salaGrupo !== nextGrupo) socket.leave(socket.salaGrupo);
+    if (nextCelda) socket.join(nextCelda);
+    if (nextGrupo) socket.join(nextGrupo);
+    socket.salaCelda = nextCelda;
+    socket.salaGrupo = nextGrupo;
+}
+
+function payloadZona(emisor, extra) {
+    const o = extra && typeof extra === "object" ? extra : {};
+    if (emisor) {
+        o.lat = emisor.lat;
+        o.lng = emisor.lng;
+        o.radioKm = emisor.radioKm;
+        if (emisor.grupo) o.grupo = emisor.grupo;
+    }
+    return o;
 }
 
 function vehiculoDeSocket(socket) {
@@ -532,7 +855,28 @@ function rateOk(mapa, socketId, minMs) {
     return true;
 }
 
+app.get("/api/salud", (_req, res) => {
+    let enVivo = 0;
+    Object.keys(vehiculos).forEach(function (id) {
+        if (vehiculos[id] && vehiculos[id].socketId) enVivo += 1;
+    });
+    res.json({
+        ok: true,
+        puerto: Number(PORT) || 3000,
+        sql: dbSql.activo(),
+        fase: 5,
+        redis: escala.activo(),
+        shard: escala.info().shard,
+        shards: escala.info().shards,
+        enVivo: enVivo,
+        sockets: clientesAhora(),
+        grupos: Object.keys(gruposReg).length,
+        encuentros: Object.keys(encuentros).length
+    });
+});
+
 io.on("connection", socket => {
+    socket.join("rm:all");
     socket.emit("telemetria_global", {});
 
     socket.on("telemetria", data => {
@@ -542,6 +886,8 @@ io.on("connection", socket => {
         const lat = Number(raw.lat);
         const lng = Number(raw.lng);
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+        const redir = escala.hintShard(lat, lng);
+        if (redir) socket.emit("shardRedirect", redir);
 
         const prev = vehiculos[id];
         const prevSockets = prev && prev.vistoPor ? prev.vistoPor.slice() : [];
@@ -549,38 +895,91 @@ io.on("connection", socket => {
         const grupoAntes = prev ? prev.grupo : "";
         const eraNuevo = !prev;
         const socketCambio = !prev || prev.socketId !== socket.id;
-
         const grupo = normalizarGrupo(raw.grupo);
         const radioKm = sanitizarEntero(raw.radioKm, RADIO_MIN, RADIO_MAX, RADIO_DEF);
+        const enRuta = raw.enRuta !== false;
+        const ahora = Date.now();
 
-        vehiculos[id] = {
-            id: id,
-            socketId: socket.id,
-            nombre: sanitizarTexto(raw.nombre, 40),
-            vehiculo: sanitizarTexto(raw.vehiculo, 40),
-            placa: sanitizarTexto(raw.placa, 20),
-            seguro: sanitizarTexto(raw.seguro, 40),
-            contacto: sanitizarTexto(raw.contacto, 40),
-            iconoX: sanitizarEntero(raw.iconoX, 0, 64, 0),
-            iconoY: sanitizarEntero(raw.iconoY, 0, 64, 0),
-            lat: lat,
-            lng: lng,
-            velocidad: Number(raw.velocidad) || 0,
-            rumbo: Number.isFinite(Number(raw.rumbo)) ? Number(raw.rumbo) : null,
-            precision: Number(raw.precision) || null,
-            radioKm: radioKm,
-            grupo: grupo,
-            asistencia: prev && prev.asistencia ? prev.asistencia : null,
-            vistoPor: prevSockets,
-            ultimaActualizacion: Date.now(),
-            ausente: false
-        };
+        if (prev && !socketCambio && radioAntes === radioKm && grupoAntes === grupo) {
+            const u = umbralGps(prev);
+            const dt = ahora - (prev.ultimaActualizacion || 0);
+            const dm = kmEntre(prev, { lat: lat, lng: lng }) * 1000;
+            if (dt < u.dt && dm < u.dm && prev.enRuta === enRuta) {
+                prev.lat = lat;
+                prev.lng = lng;
+                prev.velocidad = Number(raw.velocidad) || 0;
+                if (Number.isFinite(Number(raw.rumbo))) prev.rumbo = Number(raw.rumbo);
+                prev.ultimaActualizacion = ahora;
+                prev.ausente = false;
+                ponerEnCelda(prev);
+                unirSalas(socket, prev);
+                return;
+            }
+        }
 
-        aplicarVisibilidad(vehiculos[id], prevSockets);
+        let v = prev;
+        if (!v) {
+            v = {
+                id: id,
+                socketId: socket.id,
+                nombre: sanitizarTexto(raw.nombre, 40),
+                vehiculo: sanitizarTexto(raw.vehiculo, 40),
+                placa: sanitizarTexto(raw.placa, 20),
+                seguro: sanitizarTexto(raw.seguro, 40),
+                contacto: sanitizarTexto(raw.contacto, 40),
+                iconoX: sanitizarEntero(raw.iconoX, 0, 64, 0),
+                iconoY: sanitizarEntero(raw.iconoY, 0, 64, 0),
+                lat: lat,
+                lng: lng,
+                velocidad: Number(raw.velocidad) || 0,
+                rumbo: Number.isFinite(Number(raw.rumbo)) ? Number(raw.rumbo) : null,
+                radioKm: radioKm,
+                grupo: grupo,
+                enRuta: enRuta,
+                asistencia: null,
+                vistoPor: prevSockets,
+                ultimaActualizacion: ahora,
+                ausente: false,
+                celda: ""
+            };
+            vehiculos[id] = v;
+        } else {
+            v.socketId = socket.id;
+            v.nombre = sanitizarTexto(raw.nombre, 40);
+            v.vehiculo = sanitizarTexto(raw.vehiculo, 40);
+            if (raw.placa) v.placa = sanitizarTexto(raw.placa, 20);
+            if (raw.seguro) v.seguro = sanitizarTexto(raw.seguro, 40);
+            if (raw.contacto) v.contacto = sanitizarTexto(raw.contacto, 40);
+            v.iconoX = sanitizarEntero(raw.iconoX, 0, 64, 0);
+            v.iconoY = sanitizarEntero(raw.iconoY, 0, 64, 0);
+            v.lat = lat;
+            v.lng = lng;
+            v.velocidad = Number(raw.velocidad) || 0;
+            v.rumbo = Number.isFinite(Number(raw.rumbo)) ? Number(raw.rumbo) : v.rumbo;
+            v.radioKm = radioKm;
+            v.enRuta = enRuta;
+            v.asistencia = prev && prev.asistencia ? prev.asistencia : null;
+            v.vistoPor = prevSockets;
+            v.ultimaActualizacion = ahora;
+            v.ausente = false;
+            if (grupoAntes !== grupo) {
+                sacarDeGrupoVivo(v.id, grupoAntes);
+                if (grupoAntes) quitarMiembroGrupo(grupoAntes, v.id);
+                v.grupo = grupo;
+            }
+        }
+
+        ponerEnCelda(v);
+        ponerEnGrupoVivo(v);
+        unirSalas(socket, v);
+        if (grupo && (eraNuevo || grupoAntes !== grupo)) registrarMiembroGrupo(grupo, v);
+
+        aplicarVisibilidad(v, prevSockets);
+        persistirUsuarioSql(v, eraNuevo || grupoAntes !== grupo);
         if (eraNuevo || radioAntes !== radioKm || grupoAntes !== grupo || socketCambio) {
-            socket.emit("telemetria_global", snapshotPara(vehiculos[id]));
-            socket.emit("grupoEstado", { codigo: grupo, nombre: nombresGrupo[grupo] || "" });
-            emitirEncuentrosA(vehiculos[id]);
+            socket.emit("telemetria_global", snapshotPara(v));
+            socket.emit("grupoEstado", { codigo: grupo, nombre: nombreDeGrupo(grupo) });
+            emitirEncuentrosA(v);
         }
     });
 
@@ -598,8 +997,31 @@ io.on("connection", socket => {
                 contacto: dest.contacto || ""
             }
             : { ok: false };
-        if (typeof ack === "function") ack(res);
-        else if (res.ok) socket.emit("fichaDetalle", res);
+        const responder = function (dato) {
+            if (typeof ack === "function") ack(dato);
+            else if (dato.ok) socket.emit("fichaDetalle", dato);
+        };
+        if (!ok) {
+            responder(res);
+            return;
+        }
+        if ((res.placa || res.seguro || res.contacto) || !dbSql.activo()) {
+            responder(res);
+            return;
+        }
+        dbSql.leerFicha(dest.id).then(function (f) {
+            if (f) {
+                dest.placa = dest.placa || f.placa;
+                dest.seguro = dest.seguro || f.seguro;
+                dest.contacto = dest.contacto || f.contacto;
+                res.placa = dest.placa || "";
+                res.seguro = dest.seguro || "";
+                res.contacto = dest.contacto || "";
+            }
+            responder(res);
+        }).catch(function () {
+            responder(res);
+        });
     });
 
     socket.on("grupoCrear", (payload, ack) => {
@@ -608,15 +1030,20 @@ io.on("connection", socket => {
         let codigo = normalizarGrupo(raw.codigo);
         if (!codigo) codigo = crearCodigoGrupo();
         const nombre = sanitizarNombreGrupo(raw.nombre) || ("Grupo " + codigo);
-        nombresGrupo[codigo] = nombre;
+        asegurarGrupo(codigo, nombre);
         guardarNombresGrupo();
         if (yo) {
             const prev = yo.vistoPor ? yo.vistoPor.slice() : [];
+            sacarDeGrupoVivo(yo.id, yo.grupo);
+            if (yo.grupo && yo.grupo !== codigo) quitarMiembroGrupo(yo.grupo, yo.id);
             yo.grupo = codigo;
+            ponerEnGrupoVivo(yo);
+            registrarMiembroGrupo(codigo, yo);
+            unirSalas(socket, yo);
             socket.emit("telemetria_global", snapshotPara(yo));
             aplicarVisibilidad(yo, prev);
         }
-        const res = { ok: true, codigo: codigo, nombre: nombre };
+        const res = { ok: true, codigo: codigo, nombre: nombreDeGrupo(codigo) || nombre };
         if (typeof ack === "function") ack(res);
         socket.emit("grupoEstado", { codigo: codigo, nombre: nombre });
         if (yo) emitirEncuentrosA(vehiculos[yo.id] || yo);
@@ -630,13 +1057,16 @@ io.on("connection", socket => {
             return;
         }
         const nombreIn = sanitizarNombreGrupo(payload && payload.nombre);
-        if (nombreIn && !nombresGrupo[codigo]) {
-            nombresGrupo[codigo] = nombreIn;
-            guardarNombresGrupo();
-        }
-        const nombre = nombresGrupo[codigo] || "";
+        if (nombreIn) asegurarGrupo(codigo, nombreDeGrupo(codigo) ? "" : nombreIn);
+        else asegurarGrupo(codigo, "");
+        const nombre = nombreDeGrupo(codigo) || "";
         const prev = yo.vistoPor ? yo.vistoPor.slice() : [];
+        sacarDeGrupoVivo(yo.id, yo.grupo);
+        if (yo.grupo && yo.grupo !== codigo) quitarMiembroGrupo(yo.grupo, yo.id);
         yo.grupo = codigo;
+        ponerEnGrupoVivo(yo);
+        registrarMiembroGrupo(codigo, yo);
+        unirSalas(socket, yo);
         socket.emit("telemetria_global", snapshotPara(yo));
         aplicarVisibilidad(yo, prev);
         if (typeof ack === "function") ack({ ok: true, codigo: codigo, nombre: nombre });
@@ -648,7 +1078,11 @@ io.on("connection", socket => {
         const yo = vehiculoDeSocket(socket);
         if (yo) {
             const prev = yo.vistoPor ? yo.vistoPor.slice() : [];
+            const codigoAntes = yo.grupo;
+            sacarDeGrupoVivo(yo.id, codigoAntes);
+            quitarMiembroGrupo(codigoAntes, yo.id);
             yo.grupo = "";
+            unirSalas(socket, yo);
             socket.emit("telemetria_global", snapshotPara(yo));
             aplicarVisibilidad(yo, prev);
             emitirEncuentrosA(yo);
@@ -703,6 +1137,7 @@ io.on("connection", socket => {
         };
         encuentros[id] = e;
         guardarEncuentrosDisco();
+        persistirEncuentroSql(e);
         const pub = publicoEncuentro(e);
         emitirA(destinosEncuentro(e), "encuentroNuevo", pub);
         if (typeof ack === "function") ack({ ok: true, encuentro: pub });
@@ -719,6 +1154,7 @@ io.on("connection", socket => {
         const dest = destinosEncuentro(e);
         delete encuentros[id];
         guardarEncuentrosDisco();
+        borrarEncuentroSql(id);
         emitirA(dest, "encuentroQuitar", { id: id });
         if (typeof ack === "function") ack({ ok: true, id: id });
     });
@@ -744,8 +1180,8 @@ io.on("connection", socket => {
             lng: yo.lng,
             ts: Date.now()
         };
-        const destinos = destinosAsistencia(yo);
-        emitirA(destinos, "asistencia", msg);
+        const salasAsist = salasRadioDe(yo).concat(yo.grupo ? [salaGrupo(yo.grupo)] : []);
+        emitirASalas(salasAsist, "asistencia", payloadZona(yo, msg), socket.id);
         socket.emit("asistencia", msg);
         aplicarVisibilidad(yo, yo.vistoPor ? yo.vistoPor.slice() : []);
         if (activo) {
@@ -754,9 +1190,10 @@ io.on("connection", socket => {
                 nombre: yo.nombre || "Anónimo",
                 texto: "Necesito ayuda. Estoy parado en ruta.",
                 ts: Date.now(),
-                asistencia: true
+                asistencia: true,
+                canal: "radio"
             };
-            emitirA(destinos, "mensajeV2V", aviso);
+            emitirASalas(salasAsist, "mensajeV2V", payloadZona(yo, aviso), socket.id);
             socket.emit("mensajeV2V", aviso);
         }
         if (typeof ack === "function") ack({ ok: true, activo: activo });
@@ -782,7 +1219,11 @@ io.on("connection", socket => {
             canal: canal
         };
         socket.emit("mensajeV2V", msg);
-        emitirA(destinosCanal(v, canal), "mensajeV2V", msg);
+        if (canal === "grupo") {
+            emitirASalas([salaGrupo(v.grupo)], "mensajeV2V", msg, socket.id);
+        } else {
+            emitirASalas(salasRadioDe(v), "mensajeV2V", payloadZona(v, msg), socket.id);
+        }
     });
 
     socket.on("mensajePrivado", payload => {
@@ -807,7 +1248,8 @@ io.on("connection", socket => {
     socket.on("audioV2V", (payload, ack) => {
         const audio = payload && payload.audio;
         const bytes = tamanioAudio(audio);
-        if (bytes < 200 || bytes > 400000 || !rateOk(ultimoAudioTs, socket.id, 800)) {
+        const carga = clientesAhora();
+        if (bytes < 200 || bytes > 400000 || !rateOk(ultimoAudioTs, socket.id, minMsAudio())) {
             if (typeof ack === "function") ack({ ok: false });
             return;
         }
@@ -817,8 +1259,12 @@ io.on("connection", socket => {
             if (typeof ack === "function") ack({ ok: false });
             return;
         }
+        if (canal === "radio" && carga > 180 && bytes > 90000) {
+            if (typeof ack === "function") ack({ ok: false });
+            return;
+        }
         const meta = metaEmisor(socket);
-        emitirA(destinosCanal(v, canal), "audioV2V", {
+        const paquete = {
             de: meta.de,
             nombre: meta.nombre,
             mime: sanitizarTexto(payload.mime, 40) || "audio/webm",
@@ -826,7 +1272,12 @@ io.on("connection", socket => {
             audio: audio,
             ts: Date.now(),
             canal: canal
-        });
+        };
+        if (canal === "grupo") {
+            emitirASalas([salaGrupo(v.grupo)], "audioV2V", paquete, socket.id);
+        } else {
+            emitirASalas(salasRadioDe(v), "audioV2V", payloadZona(v, paquete), socket.id);
+        }
         if (typeof ack === "function") ack({ ok: true });
     });
 
@@ -878,7 +1329,10 @@ setInterval(() => {
         if (!v) return;
         const age = ahora - v.ultimaActualizacion;
         if (age > BORRAR_MS) {
-            emitirA(v.vistoPor || [], "vehiculo_desconectado", id);
+            emitirASalas(salasDeVehiculo(v), "vehiculo_desconectado", id);
+            if (escala.activo()) escala.publicar("borrar", id);
+            sacarDeCelda(v);
+            sacarDeGrupoVivo(id, v.grupo);
             delete vehiculos[id];
             return;
         }
@@ -889,6 +1343,66 @@ setInterval(() => {
     });
 }, 5000);
 
-server.listen(PORT, () => {
-    console.log("Servidor V2V corriendo en puerto:", PORT);
-});
+async function migrarJsonASql() {
+    if (!dbSql.activo()) return;
+    const codigos = Object.keys(gruposReg);
+    let i;
+    for (i = 0; i < codigos.length; i++) {
+        const codigo = codigos[i];
+        const g = gruposReg[codigo];
+        await dbSql.upsertGrupo(codigo, g && g.nombre);
+        const miembros = (g && g.miembros) || {};
+        const ids = Object.keys(miembros);
+        let j;
+        for (j = 0; j < ids.length; j++) {
+            await dbSql.upsertMiembro(codigo, {
+                id: ids[j],
+                nombre: miembros[ids[j]].nombre || "",
+                grupoNombre: g.nombre || ""
+            });
+        }
+    }
+    const lista = listaEncuentrosDisco();
+    for (i = 0; i < lista.length; i++) await dbSql.upsertEncuentro(lista[i]);
+}
+
+async function cargarDesdeSql() {
+    if (!dbSql.activo()) return false;
+    const g = await dbSql.leerGrupos();
+    const hayGrupos = g && Object.keys(g).length;
+    if (hayGrupos) {
+        Object.keys(g).forEach(function (c) {
+            gruposReg[c] = g[c];
+        });
+    }
+    const enc = await dbSql.leerEncuentros();
+    if (enc && enc.length) {
+        enc.forEach(function (e) {
+            if (!e || !e.id || !Number.isFinite(Number(e.lat)) || !Number.isFinite(Number(e.lng))) return;
+            encuentros[e.id] = e;
+        });
+    }
+    if (!hayGrupos && Object.keys(gruposReg).length) await migrarJsonASql();
+    else if (hayGrupos && listaEncuentrosDisco().length && !(enc && enc.length)) await migrarJsonASql();
+    return true;
+}
+
+async function arrancar() {
+    const ok = await dbSql.conectar();
+    if (ok) {
+        console.log("SQL Server conectado: 001_v2v_gps");
+        try {
+            await cargarDesdeSql();
+        } catch (err) {
+            console.error("No se pudo leer SQL Server:", err.message);
+        }
+    } else {
+        console.log("SQL Server no disponible; se usa JSON en data/.");
+    }
+    await escala.conectar(io, { onUpsert: aplicarRemoto, onBorrar: borrarRemoto });
+    server.listen(PORT, () => {
+        console.log("Servidor V2V corriendo en puerto:", PORT);
+    });
+}
+
+arrancar();

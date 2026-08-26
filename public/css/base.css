@@ -3144,6 +3144,7 @@ body.modo-manejo .hud-ruta-txt p {
 .grupo-item {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 10px;
     padding: 10px;
     background: #fff;
@@ -3154,6 +3155,33 @@ body.modo-manejo .hud-ruta-txt p {
 .grupo-item.activo {
     border-color: #b9d4f0;
     background: #f3f8fd;
+}
+
+.btn-en-ruta {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 6px 8px;
+    border: 1px solid #c5d8ee;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--suave);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-en-ruta.on {
+    background: #e9f8ef;
+    border-color: #86efac;
+    color: #15803d;
+}
+
+.btn-ficha.silenciado,
+.contacto.silenciado {
+    opacity: 0.55;
 }
 
 .grupo-ico {

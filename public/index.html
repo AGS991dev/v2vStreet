@@ -14,9 +14,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="css/base.css?v=20260825h">
-<link rel="stylesheet" href="css/desktop.css?v=20260825h">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260825h">
+<link rel="stylesheet" href="css/base.css?v=20260826b">
+<link rel="stylesheet" href="css/desktop.css?v=20260826b">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260826b">
 </head>
 
 <body>
@@ -313,22 +313,23 @@
                         <span class="sr-only">Alcance</span>
                         <select id="radioFiltro" class="select-radio">
                             <option value="1">1 km</option>
-                            <option value="5" selected>5 km</option>
+                            <option value="3" selected>3 km</option>
+                            <option value="5">5 km</option>
+                            <option value="8">8 km</option>
                             <option value="10">10 km</option>
-                            <option value="25">25 km</option>
-                            <option value="50">50 km</option>
                         </select>
                     </label>
                     <button type="button" class="btn-grupo-speaker" id="btnHablarRadio" title="Walkie a RADIO pública">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h3l4 3V7L7 10H4zM16.2 8.2a5 5 0 0 1 0 7.6M18.5 6a8 8 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/></svg>
                     </button>
+                    <button type="button" id="btnEnRuta" class="btn-en-ruta on" title="Avisá que estás en viaje. El grupo te ve en ruta." aria-pressed="true">En ruta</button>
                 </div>
             </div>
             <button type="button" id="btnIrAGrupos" class="btn-crear-grupo btn-ir-grupos">Crear o unirse a un grupo</button>
             <div id="panelGeneral" class="chat-panel">
                 <div class="destino-chat" id="destinoConvoy">
                     <span>Enviás a RADIO pública</span>
-                    <strong id="destinoConvoyDetalle">RADIO · 5 km</strong>
+                    <strong id="destinoConvoyDetalle">RADIO · 3 km</strong>
                 </div>
                 <div id="msgsV2V" class="chat-mensajes"></div>
                 <div class="chat-composer">
@@ -416,6 +417,7 @@
                     </button>
                 </div>
             </div>
+            <p class="leyenda-cerca" id="resumenEnRuta">Nadie del grupo en ruta todavía.</p>
             <div id="panelGrupo" class="chat-panel">
                 <div class="destino-chat">
                     <span>Enviás al grupo</span>
@@ -643,6 +645,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
 <script src="/socket.io/socket.io.js"></script>
-<script src="js/main.js?v=20260825h"></script>
+<script src="js/main.js?v=20260826b"></script>
 </body>
 </html>

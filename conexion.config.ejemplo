@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<conexion>
+  <!-- Instancia predeterminada de SQL Server (no es \Caballo; eso es el usuario de Windows). -->
+  <servidor>localhost</servidor>
+  <base>001_v2v_gps</base>
+  <!-- windows requiere msnodesqlv8 (C++). En Node 16 usá sql + login radiomap. -->
+  <autenticacion>sql</autenticacion>
+  <usuario>radiomap</usuario>
+  <clave></clave>
+  <!-- Fase 4: Redis. Ejemplo local, sin clave. Si no hay Redis, la app igual arranca. -->
+  <redis>redis://127.0.0.1:6379</redis>
+  <workers>1</workers>
+  <!-- Fase 5: shards. En esta notebook dejá shards=1. Los URL de shard 1 son ejemplo. -->
+  <shard>0</shard>
+  <shards>1</shards>
+  <shardCorteLat>-40</shardCorteLat>
+  <shardUrl0>http://127.0.0.1:3000</shardUrl0>
+  <shardUrl1>http://127.0.0.1:3001</shardUrl1>
+</conexion>

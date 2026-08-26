@@ -1,3 +1,11 @@
 {
-  "92CS74": "Convoy Norte"
+  "92CS74": {
+    "nombre": "Convoy Norte",
+    "miembros": {
+      "vbexdv5i23cpmt9aondc": {
+        "nombre": "",
+        "ts": 1787713209610
+      }
+    }
+  }
 }

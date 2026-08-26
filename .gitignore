@@ -1,4 +1,5 @@
 node_modules/
+conexion.config
 .vscode/
 *.log
 .DS_Store
