@@ -3576,7 +3576,7 @@ body.modo-manejo .atajo-pill {
     }
 
     .hud-iconos {
-        max-height: calc(100dvh - var(--dock-h) - 112px);
+        max-height: calc(100dvh - var(--dock-h) - 200px);
         overflow-y: auto;
         padding-bottom: 4px;
         scrollbar-width: none;
@@ -3631,6 +3631,16 @@ body.modo-manejo .atajo-pill {
     }
 
     .radio-cerca {
+        display: flex;
+        position: fixed;
+        right: 10px;
+        bottom: calc(var(--dock-h) + 8px);
+        max-height: min(36vh, 280px);
+        z-index: 1501;
+        padding-bottom: 2px;
+    }
+
+    body.comms-open .radio-cerca {
         display: none;
     }
 
