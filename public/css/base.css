@@ -615,6 +615,58 @@ body.modo-nav-gps .marker-propio {
     outline: none;
 }
 
+.modal-accion {
+    position: fixed;
+    inset: 0;
+    z-index: 6000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal-accion-fondo {
+    position: absolute;
+    inset: 0;
+    background: rgba(28, 28, 28, 0.28);
+}
+
+.modal-accion-opciones {
+    position: relative;
+    z-index: 1;
+    width: min(280px, 84vw);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.btn-accion {
+    width: 100%;
+    padding: 14px 22px;
+    border: 0;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    cursor: pointer;
+    color: #fff;
+    background: rgba(245, 166, 35, 0.62);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 22px rgba(28, 20, 8, 0.22);
+}
+
+.btn-accion.alt {
+    background: rgba(255, 255, 255, 0.55);
+    color: var(--tinta);
+    box-shadow: 0 8px 22px rgba(28, 20, 8, 0.16);
+}
+
+.btn-accion:active {
+    transform: scale(0.98);
+}
+
 .modal-salir {
     position: fixed;
     inset: 0;

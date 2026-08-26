@@ -1419,6 +1419,10 @@
     }
 
     function mostrarModalMapaClick() {
+        Object.keys(markers).forEach(function (id) {
+            const m = markers[id];
+            if (m && m.isTooltipOpen && m.isTooltipOpen()) m.closeTooltip();
+        });
         $("modalMapaClick").classList.remove("oculto");
     }
 

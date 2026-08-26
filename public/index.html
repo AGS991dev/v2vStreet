@@ -14,9 +14,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="css/base.css?v=20260826b">
-<link rel="stylesheet" href="css/desktop.css?v=20260826b">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260826b">
+<link rel="stylesheet" href="css/base.css?v=20260826c">
+<link rel="stylesheet" href="css/desktop.css?v=20260826c">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260826c">
 </head>
 
 <body>
@@ -541,14 +541,12 @@
     </div>
 </div>
 
-<div id="modalMapaClick" class="modal-salir oculto" role="dialog" aria-labelledby="tituloMapaClick" aria-modal="true">
-    <div class="modal-salir-fondo" id="fondoModalMapaClick"></div>
-    <div class="modal-salir-card">
-        <h2 id="tituloMapaClick">¿Qué querés hacer?</h2>
-        <p class="mision">¿Querés ir hasta ahí o poner un punto de encuentro?</p>
-        <button type="button" class="btn-portada" id="btnIrHastaAhi">Ir hasta ahí</button>
-        <button type="button" class="btn-portada alt" id="btnPuntoEncuentro">Punto de encuentro</button>
-        <button type="button" class="btn-portada-sec" id="btnCancelarMapaClick">Cancelar</button>
+<div id="modalMapaClick" class="modal-accion oculto" role="dialog" aria-labelledby="tituloMapaClick" aria-modal="true">
+    <div class="modal-accion-fondo" id="fondoModalMapaClick"></div>
+    <div class="modal-accion-opciones">
+        <h2 id="tituloMapaClick" class="sr-only">¿Qué querés hacer?</h2>
+        <button type="button" class="btn-accion" id="btnIrHastaAhi">Ir hasta ahí</button>
+        <button type="button" class="btn-accion alt" id="btnPuntoEncuentro">Punto de encuentro</button>
     </div>
 </div>
 
@@ -645,6 +643,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
 <script src="/socket.io/socket.io.js"></script>
-<script src="js/main.js?v=20260826b"></script>
+<script src="js/main.js?v=20260826c"></script>
 </body>
 </html>
