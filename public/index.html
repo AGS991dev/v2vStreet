@@ -14,9 +14,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="css/base.css?v=20260826c">
-<link rel="stylesheet" href="css/desktop.css?v=20260826c">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260826c">
+<link rel="stylesheet" href="css/base.css?v=20260826k">
+<link rel="stylesheet" href="css/desktop.css?v=20260826k">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260826k">
 </head>
 
 <body>
@@ -212,6 +212,7 @@
 
 <main class="map-container">
     <div id="map"></div>
+    <div id="tipCalle" class="tip-calle oculto" role="tooltip"></div>
     <div class="habla-mapa">
         <div id="hudRuta" class="hud-ruta oculto">
             <div class="hud-ruta-txt">
@@ -227,6 +228,12 @@
             <strong id="destinoNombre">RADIO · 5 km</strong>
         </div>
         <div class="mapa-atajos">
+            <button type="button" id="btnCarrera" class="atajo-pill atajo-carrera" title="Modo carrera: práctica">
+                <span class="atajo-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M4 7h7l1.2 3H20v7H4V7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8" cy="17.2" r="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16.2" cy="17.2" r="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13.2 10 15 7h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                </span>
+                <span>Carrera</span>
+            </button>
             <button type="button" id="btnToggleComms" class="atajo-pill" title="Abrir walkie, grupos y avisos">
                 <span class="atajo-ico atajo-ico-walkie" aria-hidden="true">
                     <svg viewBox="0 0 24 24"><rect x="8" y="7" width="10" height="13" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 7V3.5M14.5 7V5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M8 11H5.5a1.5 1.5 0 0 0 0 3H8" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="13" cy="14" r="1.6" fill="currentColor"/></svg>
@@ -250,6 +257,46 @@
                 </span>
             </button>
         </div>
+    </div>
+    <div id="carreraHudSel" class="carrera-hud-sel oculto">
+        <div class="carrera-hud-sel-txt">
+            <strong id="carreraBannerTitulo">Carrera · práctica</strong>
+            <span id="carreraBannerDet">Tocá el mapa para marcar la SALIDA.</span>
+            <em id="carreraAviso" class="oculto"></em>
+        </div>
+        <div class="carrera-hud-sel-acc">
+            <button type="button" id="btnCarreraLargar" class="btn-portada oculto">Largar</button>
+            <button type="button" id="btnCarreraRehacer" class="btn-portada-sec oculto">Elegir de nuevo</button>
+            <button type="button" id="btnCarreraCancelar" class="btn-portada-sec">Cancelar</button>
+        </div>
+    </div>
+    <div id="carreraVel" class="carrera-vel oculto" aria-live="polite">
+        <div class="carrera-vel-fila">
+            <strong id="carreraVelNum">0</strong>
+            <span>km/h</span>
+        </div>
+        <em id="carreraCurvaAviso" class="carrera-curva-aviso oculto"></em>
+    </div>
+    <button type="button" id="btnCarreraSalir" class="carrera-salir oculto">Salir</button>
+    <div id="carreraPedales" class="carrera-pedales oculto">
+        <button type="button" id="btnCarreraFreno" class="carrera-pedal freno" aria-label="Freno">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="4" width="10" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9 11h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <small>Freno</small>
+        </button>
+        <button type="button" id="btnCarreraAcel" class="carrera-pedal acel" aria-label="Acelerador">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M7 9l5-5 5 5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <small>Acelera</small>
+        </button>
+    </div>
+    <div id="carreraCortina" class="carrera-cortina oculto" aria-hidden="true">
+        <p id="carreraCortinaKicker">Práctica</p>
+        <h1 id="carreraCortinaTitulo">CARRERA</h1>
+    </div>
+    <div id="carreraMeta" class="carrera-meta oculto" role="dialog" aria-labelledby="carreraMetaTitulo">
+        <h2 id="carreraMetaTitulo">¡META!</h2>
+        <p id="carreraMetaTxt">Práctica terminada</p>
+        <strong id="carreraMetaTiempo">0 s</strong>
+        <button type="button" id="btnCarreraVolver" class="btn-portada">Volver al mapa</button>
     </div>
     <div id="avisoAudio" class="aviso-audio oculto"></div>
     <div id="ackWalkie" class="ack-walkie oculto" role="status"></div>
@@ -439,39 +486,6 @@
         </section>
     </div>
 
-    <div class="ptt-barra">
-        <button type="button" id="btnPttV2V" class="btn-ptt btn-ptt-barra" title="Mantené para hablar a RADIO">
-            <span class="ptt-mic" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            </span>
-            <span class="ptt-txt">
-                <strong>Presioná para hablar</strong>
-                <small>RADIO pública</small>
-            </span>
-        </button>
-        <button type="button" id="btnPttPrivado" class="btn-ptt btn-ptt-barra oculto" title="Mantené para hablarle">
-            <span class="ptt-mic" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            </span>
-            <span class="ptt-txt">
-                <strong>Presioná para hablar</strong>
-                <small>Directo · soltá para enviar</small>
-            </span>
-        </button>
-        <button type="button" id="btnPttGrupo" class="btn-ptt btn-ptt-barra oculto" title="Mantené para hablar al grupo">
-            <span class="ptt-mic" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            </span>
-            <span class="ptt-txt">
-                <strong>Presioná para hablar</strong>
-                <small>Walkie al grupo</small>
-            </span>
-        </button>
-        <span class="ptt-vol" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M4 10v4h3l4 3V7L7 10H4zM16.2 8.2a5 5 0 0 1 0 7.6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/></svg>
-        </span>
-    </div>
-
     <nav class="dock-radio" aria-label="Radio">
         <button type="button" id="btnDockMapa" class="dock-item" title="Volver al mapa">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9H4v-9z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M10 20v-6h4v6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>
@@ -643,6 +657,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
 <script src="/socket.io/socket.io.js"></script>
-<script src="js/main.js?v=20260826d"></script>
+<script src="js/carrera.js?v=20260826k"></script>
+<script src="js/main.js?v=20260826k"></script>
 </body>
 </html>

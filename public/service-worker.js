@@ -1,4 +1,4 @@
-const CACHE = "radiomap-20260826d";
+const CACHE = "radiomap-20260826k";
 const TILES = "radiomap-tiles-v1";
 const TILES_MAX = 420;
 

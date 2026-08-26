@@ -56,7 +56,10 @@
         compassBearing: false
     }).setView([-34.6037, -58.3816], 13);
     let mapaOcupado = false;
-    map.on("movestart zoomstart", function () { mapaOcupado = true; });
+    map.on("movestart zoomstart", function () {
+        mapaOcupado = true;
+        ocultarTipCalle();
+    });
     map.on("moveend zoomend", function () {
         mapaOcupado = false;
         Object.keys(autos).forEach(function (id) {
@@ -239,6 +242,9 @@
     });
 
     map.on("click", onClickMapa);
+    map.on("mousemove", onMoveCalle);
+    map.on("mouseout", function () { ocultarTipCalle(); });
+    engancharHoldCalle();
 
     // ===================================================
     // Identidad persistente (sobrevive reconexiones)
@@ -772,6 +778,7 @@
             rumbo: rumbo,
             precision: extra.precision
         };
+        if (window.RadioMapCarrera && RadioMapCarrera.bloqueaGps()) return;
         posGpsObjetivo = {
             lat: lat,
             lng: lng,
@@ -832,6 +839,7 @@
     }
 
     function emitirTelemetria(forzar) {
+        if (window.RadioMapCarrera && RadioMapCarrera.bloqueaGps()) return;
         if (!miPosicion || !socket.connected) return;
         if (!forzar && !debeEmitir(miPosicion.lat, miPosicion.lng) && Date.now() - ultimoEnvio.ts < 2000) {
             return;
@@ -923,6 +931,7 @@
 
     function tickGpsFluido() {
         gpsTickRaf = requestAnimationFrame(tickGpsFluido);
+        if (window.RadioMapCarrera && RadioMapCarrera.bloqueaGps()) return;
         const marker = markers[miId];
         const dest = posGpsObjetivo;
         if (!marker || !dest) return;
@@ -1377,6 +1386,17 @@
             });
     }
 
+    let saltearClickCalle = false;
+
+    function ocultarTipCalle() {
+        const el = $("tipCalle");
+        if (el) el.classList.add("oculto");
+    }
+
+    function onMoveCalle() {}
+
+    function engancharHoldCalle() {}
+
     function clickSobreUiMapa(ev) {
         const t = ev.originalEvent && ev.originalEvent.target;
         if (!t || !t.closest) return false;
@@ -1386,8 +1406,14 @@
     }
 
     function onClickMapa(ev) {
+        if (window.RadioMapCarrera && RadioMapCarrera.consumeClick(ev)) return;
+        if (saltearClickCalle) {
+            saltearClickCalle = false;
+            return;
+        }
         if (clickSobreUiMapa(ev)) return;
         if (modalMapaClickVisible() || modalEncuentroVisible() || modalBuscarVisible()) return;
+        ocultarTipCalle();
         const lat = ev.latlng && ev.latlng.lat;
         const lng = ev.latlng && ev.latlng.lng;
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
@@ -2584,6 +2610,13 @@
 
     function actualizarMarker(a) {
         if (!a || !Number.isFinite(Number(a.lat)) || !Number.isFinite(Number(a.lng))) return;
+        if (window.RadioMapCarrera && RadioMapCarrera.bloqueaGps()) {
+            if (a.id !== miId && markers[a.id]) {
+                map.removeLayer(markers[a.id]);
+                delete markers[a.id];
+            }
+            return;
+        }
         if (a.id !== miId && esBloqueado(a.id)) {
             quitarVehiculo(a.id);
             return;
@@ -3666,13 +3699,33 @@
         if (el) el.classList.toggle("hablando", !!on);
     }
 
+    function modoPttTab() {
+        if (tabActiva === "privado") return "privado";
+        if (tabActiva === "grupo") return "grupo";
+        return "general";
+    }
+
+    function pintarCanalPtt() {
+        const canal = modoPttTab();
+        const titulo = canal === "privado"
+            ? "Mantené para hablar en privado"
+            : (canal === "grupo" ? "Mantené para hablar al grupo" : "Mantené para hablar a RADIO");
+        ["btnPttDock", "btnPttMapa"].forEach(function (id) {
+            const btn = $(id);
+            if (!btn) return;
+            btn.classList.toggle("ptt-canal-privado", canal === "privado");
+            btn.classList.toggle("ptt-canal-grupo", canal === "grupo");
+            btn.title = titulo;
+        });
+    }
+
     function bindPtt(el, modo) {
         if (!el) return;
         el.addEventListener("pointerdown", function (ev) {
             ev.preventDefault();
             ctxPtt();
             if (el.setPointerCapture) el.setPointerCapture(ev.pointerId);
-            empezarPtt(modo);
+            empezarPtt(typeof modo === "function" ? modo() : modo);
         });
         el.addEventListener("pointerup", function (ev) {
             ev.preventDefault();
@@ -4437,6 +4490,7 @@
         $("fondoModalIcono").addEventListener("click", cerrarModalIcono);
         document.addEventListener("keydown", function (e) {
             if (e.key !== "Escape") return;
+            if (window.RadioMapCarrera && RadioMapCarrera.teclaEscape()) return;
             if (cartelLlegasteVisible()) {
                 ocultarCartelLlegaste();
                 return;
@@ -4651,11 +4705,8 @@
                 mostrarTab(btn.getAttribute("data-tab"));
             });
         });
-        bindPtt($("btnPttV2V"), "general");
-        bindPtt($("btnPttPrivado"), "privado");
-        bindPtt($("btnPttGrupo"), "grupo");
-        bindPtt($("btnPttMapa"), "general");
-        bindPtt($("btnPttDock"), "general");
+        bindPtt($("btnPttMapa"), modoPttTab);
+        bindPtt($("btnPttDock"), modoPttTab);
         bindPtt($("btnHablarRadio"), "general");
         bindPtt($("btnHablarGrupo"), "grupo");
         restaurarRadioGuardado();
@@ -4711,6 +4762,55 @@
             mostrarVistaComms("avisos");
             abrirComms();
         }
+        if (window.RadioMapCarrera) {
+            window.RadioMapCarrera.init({
+                map: map,
+                miId: miId,
+                markers: markers,
+                $: $,
+                crearIcono: crearIcono,
+                iconoDeAuto: iconoDeAuto,
+                aplicarRumbo: aplicarRumbo,
+                rumboEntre: rumboEntre,
+                calcularDistanciaKm: calcularDistanciaKm,
+                rutaPorCalle: function (a, b) {
+                    return rutaPorCalle(a, b, false).then(function (res) {
+                        if (Array.isArray(res)) return res;
+                        if (res && res.path) return res.path;
+                        return null;
+                    });
+                },
+                cerrarComms: cerrarComms,
+                cerrarModales: function () {
+                    cerrarModalMapaClick();
+                    cerrarModalEncuentro();
+                    if (typeof cerrarModalBuscar === "function") cerrarModalBuscar();
+                    cerrarComms();
+                    if (typeof cancelarNavegacion === "function") cancelarNavegacion();
+                },
+                alSalir: function () {
+                    seguirMe = true;
+                    Object.keys(autos).forEach(function (id) {
+                        if (autos[id]) actualizarMarker(autos[id]);
+                    });
+                    if (miPosicion) {
+                        posGpsObjetivo = {
+                            lat: miPosicion.lat,
+                            lng: miPosicion.lng,
+                            rumbo: miPosicion.rumbo,
+                            vel: miPosicion.velocidad || 0
+                        };
+                        if (markers[miId]) {
+                            markers[miId].setLatLng([miPosicion.lat, miPosicion.lng]);
+                            markers[miId].setZIndexOffset(1000);
+                        }
+                        setVistaSeguir([miPosicion.lat, miPosicion.lng], 16);
+                        asegurarTickGps();
+                    }
+                    map.invalidateSize();
+                }
+            });
+        }
     }
 
     function irACrearGrupo() {
@@ -4736,9 +4836,6 @@
         if ($("panelGeneral")) $("panelGeneral").classList.toggle("oculto", tabActiva !== "general");
         if ($("panelPrivado")) $("panelPrivado").classList.toggle("oculto", tabActiva !== "privado");
         if ($("panelGrupo")) $("panelGrupo").classList.toggle("oculto", tabActiva !== "grupo");
-        if ($("btnPttV2V")) $("btnPttV2V").classList.toggle("oculto", tabActiva !== "general");
-        if ($("btnPttPrivado")) $("btnPttPrivado").classList.toggle("oculto", tabActiva !== "privado");
-        if ($("btnPttGrupo")) $("btnPttGrupo").classList.toggle("oculto", tabActiva !== "grupo");
         const panel = $("commsPanel");
         if (panel) {
             panel.setAttribute("data-tab", tabActiva);
@@ -4831,6 +4928,7 @@
         if (mapaDock) mapaDock.classList.toggle("on", !commsAbierto());
         if (radioDock) radioDock.classList.toggle("on", commsAbierto());
         if (avisosDock) avisosDock.classList.toggle("on", commsAbierto() && vista !== "grupo");
+        pintarCanalPtt();
     }
 
     function modalSalirVisible() {
@@ -4853,6 +4951,9 @@
     }
 
     function consumirAtrasEnLaApp() {
+        if (window.RadioMapCarrera && RadioMapCarrera.activo() && RadioMapCarrera.teclaEscape()) {
+            return true;
+        }
         if (modalSalirVisible()) {
             ocultarModalSalir();
             return true;

@@ -164,6 +164,54 @@ app.get("/api/geo/buscar", (req, res) => {
     });
 });
 
+app.get("/api/geo/calle", (req, res) => {
+    const lat = Number(req.query.lat);
+    const lng = Number(req.query.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        return res.status(400).json({ ok: false });
+    }
+    const ahora = Date.now();
+    if (ahora - ultimoGeoTs < 1100) {
+        return res.status(429).json({ ok: false });
+    }
+    ultimoGeoTs = ahora;
+
+    const params = new URLSearchParams({
+        lat: String(lat),
+        lon: String(lng),
+        format: "jsonv2",
+        addressdetails: "1",
+        zoom: "18",
+        "accept-language": "es"
+    });
+    const reqUp = https.get("https://nominatim.openstreetmap.org/reverse?" + params.toString(), {
+        headers: {
+            "User-Agent": "RadioMap/1.0",
+            Accept: "application/json"
+        },
+        timeout: 8000
+    }, up => {
+        let buf = "";
+        up.on("data", c => {
+            buf += c;
+            if (buf.length > 80000) reqUp.destroy();
+        });
+        up.on("end", () => {
+            let j = null;
+            try { j = JSON.parse(buf); } catch (e) { j = null; }
+            const a = j && j.address ? j.address : {};
+            const calle = String(a.road || a.pedestrian || a.residential || a.footway || "").trim();
+            const nro = String(a.house_number || "").trim();
+            const texto = calle ? (nro ? calle + " " + nro : calle).slice(0, 80) : "";
+            res.json({ ok: true, texto: texto });
+        });
+    });
+    reqUp.on("timeout", () => reqUp.destroy());
+    reqUp.on("error", () => {
+        if (!res.headersSent) res.status(502).json({ ok: false });
+    });
+});
+
 const dbSql = require("./lib/sql");
 const ultimoSqlUsuario = {};
 let puertoActivo = Number(process.env.PORT || 3000) || 3000;
