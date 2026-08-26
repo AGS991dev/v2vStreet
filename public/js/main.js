@@ -2611,7 +2611,9 @@
     function actualizarMarker(a) {
         if (!a || !Number.isFinite(Number(a.lat)) || !Number.isFinite(Number(a.lng))) return;
         if (window.RadioMapCarrera && RadioMapCarrera.bloqueaGps()) {
-            if (a.id !== miId && markers[a.id]) {
+            if (a.id === miId) return;
+            if (RadioMapCarrera.esRival && RadioMapCarrera.esRival(a.id)) return;
+            if (markers[a.id]) {
                 map.removeLayer(markers[a.id]);
                 delete markers[a.id];
             }
@@ -4000,6 +4002,7 @@
         const prev = autos[auto.id];
         autos[auto.id] = prev ? Object.assign({}, prev, auto) : auto;
         actualizarMarker(autos[auto.id]);
+        if (window.RadioMapCarrera && RadioMapCarrera.refrescarRivales) RadioMapCarrera.refrescarRivales();
         podarAutosLejanos();
         renderizarContactos();
         pintarResumenEnRuta();
@@ -4778,6 +4781,21 @@
                         if (Array.isArray(res)) return res;
                         if (res && res.path) return res.path;
                         return null;
+                    });
+                },
+                socket: socket,
+                conectados: function () {
+                    return Object.keys(autos).filter(function (id) {
+                        return id && id !== miId && id !== FANTASMA_ID && autos[id] && autos[id].ausente !== true;
+                    }).map(function (id) {
+                        const a = autos[id];
+                        return {
+                            id: id,
+                            nombre: a.nombre || "Sin nombre",
+                            vehiculo: a.vehiculo || "",
+                            iconoX: a.iconoX,
+                            iconoY: a.iconoY
+                        };
                     });
                 },
                 cerrarComms: cerrarComms,

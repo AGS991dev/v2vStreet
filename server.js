@@ -228,6 +228,9 @@ const socketAVehiculo = {};
 const ultimoAudioTs = {};
 const ultimoMsgTs = {};
 const encuentros = {};
+const desafiosCarrera = {};
+const carreras1v1 = {};
+const ultimoCarreraTs = {};
 
 function listaEncuentrosDisco() {
     return Object.keys(encuentros).map(id => {
@@ -888,6 +891,91 @@ function rateOk(mapa, socketId, minMs) {
     return true;
 }
 
+function idCarreraNuevo() {
+    return "c" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
+}
+
+function sanitizarPuntoCarrera(p) {
+    if (!Array.isArray(p) || p.length < 2) return null;
+    const lat = Number(p[0]);
+    const lng = Number(p[1]);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+    return [lat, lng];
+}
+
+function sanitizarPathCarrera(raw) {
+    if (!Array.isArray(raw) || raw.length < 2 || raw.length > 900) return null;
+    const out = [];
+    for (let i = 0; i < raw.length; i++) {
+        const p = sanitizarPuntoCarrera(raw[i]);
+        if (!p) return null;
+        out.push(p);
+    }
+    return out;
+}
+
+function fichaCarrera(v) {
+    if (!v) return null;
+    return {
+        id: v.id,
+        nombre: v.nombre || "Anónimo",
+        vehiculo: v.vehiculo || "",
+        iconoX: sanitizarEntero(v.iconoX, 0, 64, 0),
+        iconoY: sanitizarEntero(v.iconoY, 0, 64, 0)
+    };
+}
+
+function carreraDeJugador(id) {
+    const ids = Object.keys(carreras1v1);
+    for (let i = 0; i < ids.length; i++) {
+        const c = carreras1v1[ids[i]];
+        if (c && (c.hostId === id || c.rivalId === id)) return c;
+    }
+    return null;
+}
+
+function desafioDeJugador(id) {
+    if (desafiosCarrera[id]) return desafiosCarrera[id];
+    const ids = Object.keys(desafiosCarrera);
+    for (let i = 0; i < ids.length; i++) {
+        const d = desafiosCarrera[ids[i]];
+        if (d && d.de === id) return d;
+    }
+    return null;
+}
+
+function emitirAJugador(id, evento, payload) {
+    const v = vehiculos[id];
+    if (!v || !v.socketId) return false;
+    io.to(v.socketId).emit(evento, payload);
+    return true;
+}
+
+function limpiarDesafioCarrera(d, motivo) {
+    if (!d) return;
+    if (desafiosCarrera[d.para] === d) delete desafiosCarrera[d.para];
+    emitirAJugador(d.de, "carreraCancelada", { motivo: motivo || "cancelada" });
+    emitirAJugador(d.para, "carreraCancelada", { motivo: motivo || "cancelada" });
+}
+
+function cerrarCarrera1v1(c, motivo, extra) {
+    if (!c || c.cerrada) return;
+    c.cerrada = true;
+    delete carreras1v1[c.id];
+    const payload = Object.assign({
+        carreraId: c.id,
+        motivo: motivo || "fin"
+    }, extra || {});
+    emitirAJugador(c.hostId, "carreraFin", payload);
+    emitirAJugador(c.rivalId, "carreraFin", payload);
+}
+
+function rivalDeCarrera(c, id) {
+    if (!c) return null;
+    return c.hostId === id ? c.rivalId : c.rivalId === id ? c.hostId : null;
+}
+
 app.get("/api/salud", (_req, res) => {
     let enVivo = 0;
     Object.keys(vehiculos).forEach(function (id) {
@@ -1356,6 +1444,163 @@ io.on("connection", socket => {
         if (typeof ack === "function") ack({ ok: true });
     });
 
+    socket.on("carreraDesafiar", (payload, ack) => {
+        const origen = vehiculoDeSocket(socket);
+        const rivalId = sanitizarTexto(payload && payload.rivalId, 64);
+        const path = sanitizarPathCarrera(payload && payload.path);
+        const a = sanitizarPuntoCarrera(payload && payload.a);
+        const b = sanitizarPuntoCarrera(payload && payload.b);
+        const km = Number(payload && payload.km);
+        if (!origen) {
+            if (typeof ack === "function") ack({ ok: false, error: "Sin conexión." });
+            return;
+        }
+        if (!rateOk(ultimoCarreraTs, socket.id, 800)) {
+            if (typeof ack === "function") ack({ ok: false, error: "Esperá un segundo." });
+            return;
+        }
+        const dest = rivalId ? vehiculos[rivalId] : null;
+        if (!path || !a || !b || !dest || !dest.socketId || dest.id === origen.id) {
+            if (typeof ack === "function") ack({ ok: false, error: "Esa persona no está conectada." });
+            return;
+        }
+        if (carreraDeJugador(origen.id) || carreraDeJugador(dest.id)) {
+            if (typeof ack === "function") ack({ ok: false, error: "Alguien ya está en una carrera." });
+            return;
+        }
+        if (desafioDeJugador(origen.id) || desafiosCarrera[dest.id]) {
+            if (typeof ack === "function") ack({ ok: false, error: "Ya hay un desafío en curso." });
+            return;
+        }
+        const d = {
+            de: origen.id,
+            para: dest.id,
+            path: path,
+            a: a,
+            b: b,
+            km: Number.isFinite(km) ? Math.max(0.05, Math.min(5, km)) : 0,
+            ts: Date.now()
+        };
+        desafiosCarrera[dest.id] = d;
+        emitirAJugador(dest.id, "carreraInvitacion", {
+            de: origen.id,
+            nombre: origen.nombre || "Anónimo",
+            vehiculo: origen.vehiculo || "",
+            km: d.km,
+            path: path,
+            a: a,
+            b: b
+        });
+        if (typeof ack === "function") ack({ ok: true, rival: fichaCarrera(dest) });
+    });
+
+    socket.on("carreraResponder", (payload, ack) => {
+        const yo = vehiculoDeSocket(socket);
+        if (!yo) {
+            if (typeof ack === "function") ack({ ok: false });
+            return;
+        }
+        const d = desafiosCarrera[yo.id];
+        const aceptar = !!(payload && payload.aceptar);
+        if (!d) {
+            if (typeof ack === "function") ack({ ok: false, error: "El desafío ya no está." });
+            return;
+        }
+        delete desafiosCarrera[yo.id];
+        const host = vehiculos[d.de];
+        if (!aceptar) {
+            emitirAJugador(d.de, "carreraCancelada", { motivo: "rechazo", de: yo.id });
+            if (typeof ack === "function") ack({ ok: true, aceptar: false });
+            return;
+        }
+        if (!host || !host.socketId || carreraDeJugador(d.de) || carreraDeJugador(yo.id)) {
+            emitirAJugador(d.de, "carreraCancelada", { motivo: "no_disponible" });
+            if (typeof ack === "function") ack({ ok: false, error: "No se pudo largar." });
+            return;
+        }
+        const id = idCarreraNuevo();
+        const tLargada = Date.now() + 3800;
+        const c = {
+            id: id,
+            hostId: d.de,
+            rivalId: yo.id,
+            path: d.path,
+            a: d.a,
+            b: d.b,
+            km: d.km,
+            tLargada: tLargada,
+            estado: "cuenta",
+            snapshots: {},
+            ganador: null,
+            cerrada: false
+        };
+        carreras1v1[id] = c;
+        const inicio = {
+            carreraId: id,
+            path: d.path,
+            a: d.a,
+            b: d.b,
+            km: d.km,
+            tLargada: tLargada,
+            host: fichaCarrera(host),
+            rival: fichaCarrera(yo)
+        };
+        emitirAJugador(d.de, "carreraInicio", inicio);
+        emitirAJugador(yo.id, "carreraInicio", inicio);
+        if (typeof ack === "function") ack({ ok: true, aceptar: true, carreraId: id });
+    });
+
+    socket.on("carreraEstado", payload => {
+        const yo = vehiculoDeSocket(socket);
+        if (!yo || !payload) return;
+        const c = carreras1v1[sanitizarTexto(payload.carreraId, 40)];
+        if (!c || c.cerrada) return;
+        if (c.hostId !== yo.id && c.rivalId !== yo.id) return;
+        const otro = rivalDeCarrera(c, yo.id);
+        const snap = {
+            id: yo.id,
+            s: Math.max(0, Math.min(1, Number(payload.s) || 0)),
+            velKmh: Math.max(0, Math.min(160, Number(payload.velKmh) || 0)),
+            lat: Number(payload.lat),
+            lng: Number(payload.lng),
+            rumbo: Number(payload.rumbo),
+            fase: sanitizarTexto(payload.fase, 20)
+        };
+        c.snapshots[yo.id] = snap;
+        emitirAJugador(otro, "carreraRival", snap);
+        if (snap.fase === "meta" && !c.ganador) {
+            c.ganador = yo.id;
+            c.estado = "fin";
+            emitirAJugador(yo.id, "carreraResultado", { carreraId: c.id, resultado: "ganaste", motivo: "meta" });
+            emitirAJugador(otro, "carreraResultado", {
+                carreraId: c.id,
+                resultado: "perdiste",
+                motivo: "meta",
+                ganador: fichaCarrera(vehiculos[yo.id])
+            });
+        }
+        if (snap.fase === "choque") {
+            emitirAJugador(otro, "carreraRivalChoque", { id: yo.id, carreraId: c.id });
+        }
+    });
+
+    socket.on("carreraSalir", () => {
+        const yo = vehiculoDeSocket(socket);
+        if (!yo) return;
+        const d = desafioDeJugador(yo.id);
+        if (d) limpiarDesafioCarrera(d, "salio");
+        const c = carreraDeJugador(yo.id);
+        if (c) {
+            const otro = rivalDeCarrera(c, yo.id);
+            emitirAJugador(otro, "carreraResultado", {
+                carreraId: c.id,
+                resultado: "ganaste",
+                motivo: "abandono"
+            });
+            cerrarCarrera1v1(c, "abandono", { abandono: yo.id });
+        }
+    });
+
     socket.on("disconnect", () => {
         const id = socketAVehiculo[socket.id];
         delete socketAVehiculo[socket.id];
@@ -1368,6 +1613,18 @@ io.on("connection", socket => {
         v.socketId = null;
         v.ausente = true;
         aplicarVisibilidad(v, v.vistoPor ? v.vistoPor.slice() : []);
+        const d = desafioDeJugador(id);
+        if (d) limpiarDesafioCarrera(d, "desconexion");
+        const c = carreraDeJugador(id);
+        if (c) {
+            const otro = rivalDeCarrera(c, id);
+            emitirAJugador(otro, "carreraResultado", {
+                carreraId: c.id,
+                resultado: "ganaste",
+                motivo: "desconexion"
+            });
+            cerrarCarrera1v1(c, "desconexion");
+        }
     });
 });
 
@@ -1389,6 +1646,10 @@ setInterval(() => {
             v.ausente = true;
             aplicarVisibilidad(v, v.vistoPor ? v.vistoPor.slice() : []);
         }
+    });
+    Object.keys(desafiosCarrera).forEach(function (para) {
+        const d = desafiosCarrera[para];
+        if (d && ahora - d.ts > 28000) limpiarDesafioCarrera(d, "timeout");
     });
 }, 5000);
 

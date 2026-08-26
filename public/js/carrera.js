@@ -37,6 +37,12 @@
     var mapLock = null;
     var cuentaTimers = [];
     var velChoqueKmh = null;
+    var rival = null;
+    var carreraId = null;
+    var invitacionPendiente = null;
+    var ultimoEmit = 0;
+    var resultadoDuelo = null;
+    var ultimoRivalSnap = null;
 
     function $(id) {
         return api && api.$ ? api.$(id) : document.getElementById(id);
@@ -56,6 +62,24 @@
 
     function ocultaRivales() {
         return bloqueaGps();
+    }
+
+    function rivalId() {
+        return rival && rival.id ? rival.id : null;
+    }
+
+    function esRival(id) {
+        return !!(id && rival && rival.id === id);
+    }
+
+    function esDuelo() {
+        return modo === "duelo" && !!rivalId();
+    }
+
+    function socketEmit(ev, payload, ack) {
+        if (!api.socket) return;
+        if (typeof ack === "function") api.socket.emit(ev, payload, ack);
+        else api.socket.emit(ev, payload);
     }
 
     function snapshot() {
@@ -389,18 +413,63 @@
         mostrar($("carreraHudSel"), mostrarSel);
         mostrar($("btnCarreraLargar"), fase === "listo");
         mostrar($("btnCarreraRehacer"), fase === "listo");
+        if (fase === "listo") pintarListaRivales();
+        else mostrar($("carreraListaRivales"), false);
+    }
+
+    function setupActivo() {
+        return fase === "eligiendo_a" || fase === "eligiendo_b" || fase === "armando" || fase === "listo" || fase === "esperando";
     }
 
     function claseCuerpo() {
-        document.body.classList.toggle("modo-carrera-setup", fase === "eligiendo_a" || fase === "eligiendo_b" || fase === "armando" || fase === "listo");
+        document.body.classList.toggle("modo-carrera-setup", setupActivo());
         document.body.classList.toggle("modo-carrera", bloqueaGps());
         mostrar($("btnCarrera"), fase === "idle");
-        mostrar($("carreraHudSel"), fase === "eligiendo_a" || fase === "eligiendo_b" || fase === "armando" || fase === "listo");
+        mostrar($("carreraHudSel"), setupActivo());
         mostrar($("carreraVel"), fase === "corriendo" || fase === "meta" || fase === "choque");
         mostrar($("carreraPedales"), fase === "corriendo");
         mostrar($("btnCarreraSalir"), fase === "corriendo");
         mostrar($("carreraMeta"), fase === "meta" || fase === "choque");
-        setHudSel(fase === "eligiendo_a" || fase === "eligiendo_b" || fase === "listo");
+        setHudSel(fase === "eligiendo_a" || fase === "eligiendo_b" || fase === "listo" || fase === "esperando");
+    }
+
+    function escHtml(s) {
+        return String(s || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+    }
+
+    function pintarListaRivales() {
+        var caja = $("carreraListaRivales");
+        if (!caja) return;
+        if (fase !== "listo") {
+            caja.innerHTML = "";
+            caja.classList.add("oculto");
+            return;
+        }
+        var lista = api.conectados ? api.conectados() : [];
+        caja.classList.remove("oculto");
+        if (!lista.length) {
+            caja.innerHTML = '<p class="carrera-rivales-vacio">Nadie conectado cerca. Podés largar en práctica o esperar.</p>';
+            return;
+        }
+        caja.innerHTML = lista.map(function (p) {
+            var nom = escHtml(p.nombre || "Sin nombre");
+            var extra = p.vehiculo ? ("<small>" + escHtml(p.vehiculo) + "</small>") : "";
+            return '<button type="button" class="carrera-rival" data-id="' + escHtml(p.id) + '">' +
+                "<span><strong>" + nom + "</strong>" + extra + "</span><em>Desafiar</em></button>";
+        }).join("");
+        caja.querySelectorAll(".carrera-rival").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                desafiar(btn.getAttribute("data-id"));
+            });
+        });
+    }
+
+    function tituloModo() {
+        return esDuelo() ? "Carrera · 1 vs 1" : "Carrera · práctica";
     }
 
     function pintarVel(aviso) {
@@ -450,6 +519,69 @@
             if (m.closeTooltip) m.closeTooltip();
         }
         return m;
+    }
+
+    function marcarRivalEl(m) {
+        if (!m) return;
+        var el = m.getElement && m.getElement();
+        if (el) el.classList.add("marker-carrera-rival");
+    }
+
+    function asegurarRival() {
+        if (!rival || !rival.id || !api.crearIcono) return null;
+        var ll = ruta ? ruta.puntoEn(0) : puntoA;
+        var m = api.markers[rival.id];
+        var xy = api.iconoDeAuto ? api.iconoDeAuto(rival) : { x: rival.iconoX || 0, y: rival.iconoY || 0 };
+        if (!m) {
+            m = L.marker(ll, {
+                icon: api.crearIcono(false, xy),
+                zIndexOffset: 1800,
+                title: rival.nombre || "Rival"
+            }).addTo(api.map);
+            api.markers[rival.id] = m;
+        } else {
+            m.setLatLng(ll);
+            m.setZIndexOffset(1800);
+        }
+        if (m.closeTooltip) m.closeTooltip();
+        marcarRivalEl(m);
+        return m;
+    }
+
+    function moverRivalSnap(snap) {
+        if (!rival || !snap) return;
+        ultimoRivalSnap = snap;
+        var m = api.markers[rival.id];
+        if (!m) m = asegurarRival();
+        if (!m) return;
+        if (Number.isFinite(Number(snap.lat)) && Number.isFinite(Number(snap.lng))) {
+            m.setLatLng([Number(snap.lat), Number(snap.lng)]);
+        }
+        if (Number.isFinite(Number(snap.rumbo)) && typeof api.aplicarRumbo === "function") {
+            api.aplicarRumbo(rival.id, snap.rumbo);
+        }
+        marcarRivalEl(m);
+        if (snap.fase === "choque") {
+            m.setIcon(iconoChoque());
+            m._iconoSrc = null;
+        }
+    }
+
+    function emitirEstado(forzar) {
+        if (!esDuelo() || !carreraId || !ruta || !vehiculo) return;
+        var ahora = Date.now();
+        if (!forzar && ahora - ultimoEmit < 90) return;
+        ultimoEmit = ahora;
+        var ll = ruta.puntoEn(vehiculo.s);
+        socketEmit("carreraEstado", {
+            carreraId: carreraId,
+            s: vehiculo.s,
+            velKmh: vehiculo.velMs * 3.6,
+            lat: ll[0],
+            lng: ll[1],
+            rumbo: ruta.rumboEn(vehiculo.s),
+            fase: fase
+        });
     }
 
     function lockMapa(si) {
@@ -535,6 +667,7 @@
         }
         if (tiempo) tiempo.textContent = velChoqueKmh + " km/h";
         claseCuerpo();
+        emitirEstado(true);
     }
 
     function loop(ts) {
@@ -554,6 +687,7 @@
         var ll = ruta.puntoEn(vehiculo.s);
         moverAuto(ll, ruta.rumboEn(vehiculo.s));
         pintarVel(next.aviso);
+        emitirEstado(false);
         var curvaHit = curvaEnTramo(ruta, distAntes, distAhora) || next.curva;
         var kmh = next.velMs * 3.6;
         if (curvaHit && kmh > curvaHit.maxKmh + 0.4) {
@@ -579,10 +713,15 @@
         var tit = $("carreraMetaTitulo");
         var txt = $("carreraMetaTxt");
         var tiempo = $("carreraMetaTiempo");
-        if (tit) tit.textContent = "¡META!";
-        if (txt) txt.textContent = "Práctica terminada";
+        if (tit) tit.textContent = resultadoDuelo === "ganaste" ? "¡GANASTE!" : (resultadoDuelo === "perdiste" ? "Segundo" : "¡META!");
+        if (txt) {
+            txt.textContent = esDuelo()
+                ? (resultadoDuelo === "ganaste" ? "Llegaste primero." : (resultadoDuelo === "perdiste" ? "El rival llegó antes." : "Práctica terminada"))
+                : "Práctica terminada";
+        }
         if (tiempo) tiempo.textContent = textoTiempo(tFin - t0);
         claseCuerpo();
+        emitirEstado(true);
     }
 
     function limpiarCuenta() {
@@ -605,45 +744,63 @@
 
     function largar() {
         if (fase !== "listo" || !rutaArmada) return;
-        ruta = rutaArmada;
+        modo = "practica";
+        rival = null;
+        carreraId = null;
+        resultadoDuelo = null;
+        prepararLargada(rutaArmada, Date.now() + 3500);
+    }
+
+    function prepararLargada(r, tLargada) {
+        ruta = r;
         vehiculo = { s: 0, velMs: 0 };
         velChoqueKmh = null;
         controles.acel = false;
         controles.freno = false;
+        ultimoEmit = 0;
+        ultimoRivalSnap = null;
         fase = "cortina";
         claseCuerpo();
         if (api.cerrarComms) api.cerrarComms();
         lockMapa(true);
         asegurarMarker();
         restaurarIconoAuto();
+        if (esDuelo()) asegurarRival();
         moverAuto(ruta.puntoEn(0), ruta.rumboEn(0));
+        var kicker = esDuelo() ? "1 vs 1" : "Práctica";
         var cortina = $("carreraCortina");
         mostrar(cortina, true);
         if (cortina) cortina.classList.add("on");
-        setCortina("Práctica", "CARRERA", false);
+        setCortina(kicker, "CARRERA", false);
         limpiarCuenta();
-        programar(function () {
+        var t0c = Date.now();
+        var fin = Number(tLargada) || (t0c + 3500);
+        function en(msRel, fn) {
+            var wait = Math.max(0, (fin - 3500 + msRel) - Date.now());
+            programar(fn, wait);
+        }
+        en(650, function () {
             if (fase !== "cortina") return;
             setCortina("", "3", true);
-        }, 650);
-        programar(function () {
+        });
+        en(1300, function () {
             if (fase !== "cortina") return;
             setCortina("", "2", true);
-        }, 1300);
-        programar(function () {
+        });
+        en(1950, function () {
             if (fase !== "cortina") return;
             setCortina("", "1", true);
-        }, 1950);
-        programar(function () {
+        });
+        en(2600, function () {
             if (fase !== "cortina") return;
             setCortina("", "¡YA!", true);
-        }, 2600);
+        });
         programar(function () {
             if (fase !== "cortina") return;
             if (cortina) cortina.classList.remove("on");
             programar(function () {
                 mostrar(cortina, false);
-                setCortina("Práctica", "CARRERA", false);
+                setCortina(kicker, "CARRERA", false);
                 if (fase !== "cortina") return;
                 fase = "corriendo";
                 t0 = Date.now();
@@ -652,8 +809,9 @@
                 claseCuerpo();
                 pintarVel();
                 raf = requestAnimationFrame(loop);
-            }, 260);
-        }, 3200);
+                emitirEstado(true);
+            }, 80);
+        }, Math.max(0, fin - Date.now()));
     }
 
     function limpiarCircuito() {
@@ -664,6 +822,11 @@
         rutaSeq += 1;
         vehiculo = null;
         velChoqueKmh = null;
+        rival = null;
+        carreraId = null;
+        resultadoDuelo = null;
+        ultimoRivalSnap = null;
+        modo = "practica";
         quitarCapas();
         var caja = $("carreraVel");
         if (caja) caja.classList.remove("choque");
@@ -674,6 +837,9 @@
         if (raf) cancelAnimationFrame(raf);
         raf = 0;
         limpiarCuenta();
+        if (carreraId || rival) socketEmit("carreraSalir");
+        ocultarModalDuelo();
+        invitacionPendiente = null;
         restaurarIconoAuto();
         fase = "idle";
         controles.acel = false;
@@ -693,11 +859,12 @@
 
     function empezarPractica() {
         if (fase !== "idle") return;
+        if (invitacionPendiente) responderDuelo(false);
         if (api.cerrarComms) api.cerrarComms();
         if (api.cerrarModales) api.cerrarModales();
         fase = "eligiendo_a";
         limpiarCircuito();
-        setBanner("Carrera · práctica", "Tocá el mapa para marcar la SALIDA.");
+        setBanner("Carrera", "Tocá el mapa para marcar la SALIDA.");
         claseCuerpo();
     }
 
@@ -706,7 +873,7 @@
         rutaArmada = null;
         fase = "eligiendo_b";
         pintarCircuito();
-        setBanner("Carrera · práctica", "Tocá la META · máximo 5 km.", msg);
+        setBanner("Carrera", "Tocá la META · máximo 5 km.", msg);
         claseCuerpo();
     }
 
@@ -732,12 +899,155 @@
             puntoB = r.b;
             fase = "listo";
             pintarCircuito(r.puntos);
-            setBanner("Circuito listo", textoKm(r.km) + " · por calle");
+            setBanner("Circuito listo", textoKm(r.km) + " · desafiá a alguien o largá práctica");
             claseCuerpo();
         }).catch(function () {
             if (seq !== rutaSeq) return;
             rechazarRuta("No se pudo armar la ruta por calle. Probá otros puntos.");
         });
+    }
+
+    function desafiar(id) {
+        if (fase !== "listo" || !rutaArmada || !id) return;
+        var lista = api.conectados ? api.conectados() : [];
+        var ficha = null;
+        for (var i = 0; i < lista.length; i++) {
+            if (lista[i].id === id) ficha = lista[i];
+        }
+        socketEmit("carreraDesafiar", {
+            rivalId: id,
+            path: rutaArmada.puntos,
+            a: rutaArmada.a,
+            b: rutaArmada.b,
+            km: rutaArmada.km
+        }, function (res) {
+            if (!res || !res.ok) {
+                setBanner("Circuito listo", textoKm(rutaArmada.km) + " · por calle", (res && res.error) || "No se pudo desafiar.");
+                claseCuerpo();
+                return;
+            }
+            modo = "duelo";
+            rival = res.rival || ficha || { id: id, nombre: "Rival" };
+            fase = "esperando";
+            setBanner(
+                "Esperando a " + (rival.nombre || "tu rival"),
+                "Si acepta, largan juntos el 1 vs 1."
+            );
+            claseCuerpo();
+        });
+    }
+
+    function ocultarModalDuelo() {
+        var m = $("modalCarreraDuelo");
+        if (m) m.classList.add("oculto");
+    }
+
+    function mostrarModalDuelo(inv) {
+        invitacionPendiente = inv;
+        var tit = $("carreraDueloTitulo");
+        var txt = $("carreraDueloTxt");
+        if (tit) tit.textContent = (inv.nombre || "Alguien") + " te desafía";
+        if (txt) {
+            var km = inv.km ? ("Circuito de " + textoKm(inv.km) + ".") : "Carrera 1 vs 1.";
+            txt.textContent = km + " Si aceptás, largan juntos.";
+        }
+        var m = $("modalCarreraDuelo");
+        if (m) m.classList.remove("oculto");
+    }
+
+    function responderDuelo(aceptar) {
+        var inv = invitacionPendiente;
+        ocultarModalDuelo();
+        invitacionPendiente = null;
+        if (!inv) return;
+        socketEmit("carreraResponder", { aceptar: !!aceptar }, function () {});
+    }
+
+    function yoSoyHost(data) {
+        return !!(data && data.host && api.miId && data.host.id === api.miId);
+    }
+
+    function entrarDuelo(data) {
+        if (!data || !data.path) return;
+        ocultarModalDuelo();
+        invitacionPendiente = null;
+        if (api.cerrarComms) api.cerrarComms();
+        if (api.cerrarModales) api.cerrarModales();
+        modo = "duelo";
+        carreraId = data.carreraId;
+        resultadoDuelo = null;
+        rival = yoSoyHost(data) ? data.rival : data.host;
+        puntoA = data.a || data.path[0];
+        puntoB = data.b || data.path[data.path.length - 1];
+        rutaArmada = crearRutaCalle(data.path);
+        pintarCircuito(rutaArmada.puntos);
+        prepararLargada(rutaArmada, data.tLargada);
+    }
+
+    function onInvitacion(data) {
+        if (!data || !data.de) return;
+        if (bloqueaGps() || fase === "esperando") {
+            socketEmit("carreraResponder", { aceptar: false });
+            return;
+        }
+        mostrarModalDuelo(data);
+    }
+
+    function onCancelada(data) {
+        ocultarModalDuelo();
+        invitacionPendiente = null;
+        if (fase === "esperando") {
+            modo = "practica";
+            rival = null;
+            fase = "listo";
+            setBanner(
+                "Circuito listo",
+                rutaArmada ? (textoKm(rutaArmada.km) + " · desafiá a alguien o largá práctica") : "Elegí de nuevo",
+                (data && data.motivo === "rechazo") ? "No aceptó el desafío." : "El desafío se canceló."
+            );
+            claseCuerpo();
+        }
+    }
+
+    function onResultado(data) {
+        if (!data) return;
+        resultadoDuelo = data.resultado || resultadoDuelo;
+        if (fase === "meta" || fase === "choque") {
+            var tit = $("carreraMetaTitulo");
+            var txt = $("carreraMetaTxt");
+            if (resultadoDuelo === "ganaste") {
+                if (tit) tit.textContent = "¡GANASTE!";
+                if (txt) txt.textContent = data.motivo === "abandono" || data.motivo === "desconexion"
+                    ? "El rival se bajó."
+                    : "Llegaste primero.";
+            } else if (resultadoDuelo === "perdiste") {
+                if (tit) tit.textContent = "Segundo";
+                if (txt) txt.textContent = "El rival llegó antes.";
+            }
+        }
+    }
+
+    function onFin() {
+        carreraId = null;
+    }
+
+    function engancharSocket() {
+        var s = api.socket;
+        if (!s || s._carreraOk) return;
+        s._carreraOk = true;
+        s.on("carreraInvitacion", onInvitacion);
+        s.on("carreraInicio", entrarDuelo);
+        s.on("carreraCancelada", onCancelada);
+        s.on("carreraRival", moverRivalSnap);
+        s.on("carreraRivalChoque", function (d) {
+            if (d) moverRivalSnap({ lat: d.lat, lng: d.lng, rumbo: d.rumbo, fase: "choque" });
+        });
+        s.on("carreraResultado", onResultado);
+        s.on("carreraFin", onFin);
+    }
+
+    function refrescarRivales() {
+        if (fase === "listo") pintarListaRivales();
     }
 
     function consumeClick(ev) {
@@ -753,14 +1063,14 @@
             rutaArmada = null;
             fase = "eligiendo_b";
             pintarCircuito();
-            setBanner("Carrera · práctica", "Tocá la META · máximo 5 km.");
+            setBanner("Carrera", "Tocá la META · máximo 5 km.");
             claseCuerpo();
             return true;
         }
         var km = api.calcularDistanciaKm(puntoA[0], puntoA[1], p[0], p[1]);
         if (km < 0.08) {
             setBanner(
-                "Carrera · práctica",
+                "Carrera",
                 "Tocá la META · máximo 5 km.",
                 "Separá un poco más la salida y la meta."
             );
@@ -772,7 +1082,7 @@
             rutaArmada = null;
             pintarCircuito();
             setBanner(
-                "Carrera · práctica",
+                "Carrera",
                 "Tocá la META · máximo 5 km.",
                 "La distancia máxima entre salida y meta es de 5 km."
             );
@@ -795,7 +1105,7 @@
             salir();
             return true;
         }
-        if (fase === "eligiendo_a" || fase === "eligiendo_b" || fase === "armando" || fase === "listo") {
+        if (fase === "eligiendo_a" || fase === "eligiendo_b" || fase === "armando" || fase === "listo" || fase === "esperando") {
             salir();
             return true;
         }
@@ -848,6 +1158,13 @@
         if (salirRun) salirRun.addEventListener("click", salir);
         engancharPedal($("btnCarreraFreno"), "freno");
         engancharPedal($("btnCarreraAcel"), "acel");
+        var aceptar = $("btnCarreraAceptar");
+        if (aceptar) aceptar.addEventListener("click", function () { responderDuelo(true); });
+        var rechazar = $("btnCarreraRechazar");
+        if (rechazar) rechazar.addEventListener("click", function () { responderDuelo(false); });
+        var fondo = $("fondoCarreraDuelo");
+        if (fondo) fondo.addEventListener("click", function () { responderDuelo(false); });
+        engancharSocket();
         claseCuerpo();
     }
 
@@ -860,6 +1177,9 @@
         ocultaRivales: ocultaRivales,
         snapshot: snapshot,
         estado: estado,
+        rivalId: rivalId,
+        esRival: esRival,
+        refrescarRivales: refrescarRivales,
         debugCircuito: function () {
             var r = ruta || rutaArmada;
             if (!r) return null;

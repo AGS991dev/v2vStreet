@@ -14,9 +14,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="css/base.css?v=20260826k">
-<link rel="stylesheet" href="css/desktop.css?v=20260826k">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260826k">
+<link rel="stylesheet" href="css/base.css?v=20260826m">
+<link rel="stylesheet" href="css/desktop.css?v=20260826m">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260826m">
 </head>
 
 <body>
@@ -228,12 +228,6 @@
             <strong id="destinoNombre">RADIO · 5 km</strong>
         </div>
         <div class="mapa-atajos">
-            <button type="button" id="btnCarrera" class="atajo-pill atajo-carrera" title="Modo carrera: práctica">
-                <span class="atajo-ico" aria-hidden="true">
-                    <svg viewBox="0 0 24 24"><path d="M4 7h7l1.2 3H20v7H4V7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8" cy="17.2" r="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16.2" cy="17.2" r="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13.2 10 15 7h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
-                </span>
-                <span>Carrera</span>
-            </button>
             <button type="button" id="btnToggleComms" class="atajo-pill" title="Abrir walkie, grupos y avisos">
                 <span class="atajo-ico atajo-ico-walkie" aria-hidden="true">
                     <svg viewBox="0 0 24 24"><rect x="8" y="7" width="10" height="13" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 7V3.5M14.5 7V5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M8 11H5.5a1.5 1.5 0 0 0 0 3H8" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="13" cy="14" r="1.6" fill="currentColor"/></svg>
@@ -258,16 +252,30 @@
             </button>
         </div>
     </div>
+    <button type="button" id="btnCarrera" class="btn-carrera-fab" title="Carrera" aria-label="Carrera">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7l1.2 3H20v7H4V7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8" cy="17.2" r="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16.2" cy="17.2" r="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13.2 10 15 7h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+    </button>
     <div id="carreraHudSel" class="carrera-hud-sel oculto">
         <div class="carrera-hud-sel-txt">
-            <strong id="carreraBannerTitulo">Carrera · práctica</strong>
+            <strong id="carreraBannerTitulo">Carrera</strong>
             <span id="carreraBannerDet">Tocá el mapa para marcar la SALIDA.</span>
             <em id="carreraAviso" class="oculto"></em>
         </div>
+        <div id="carreraListaRivales" class="carrera-rivales oculto"></div>
         <div class="carrera-hud-sel-acc">
-            <button type="button" id="btnCarreraLargar" class="btn-portada oculto">Largar</button>
+            <button type="button" id="btnCarreraLargar" class="btn-portada oculto">Largar práctica</button>
             <button type="button" id="btnCarreraRehacer" class="btn-portada-sec oculto">Elegir de nuevo</button>
             <button type="button" id="btnCarreraCancelar" class="btn-portada-sec">Cancelar</button>
+        </div>
+    </div>
+    <div id="modalCarreraDuelo" class="modal-salir oculto" role="dialog" aria-labelledby="carreraDueloTitulo" aria-modal="true">
+        <div class="modal-salir-fondo" id="fondoCarreraDuelo"></div>
+        <div class="modal-salir-card">
+            <p class="marca">Carrera · 1 vs 1</p>
+            <h2 id="carreraDueloTitulo">Te desafían</h2>
+            <p id="carreraDueloTxt" class="mision">Alguien te invita a una carrera.</p>
+            <button type="button" class="btn-portada" id="btnCarreraAceptar">Aceptar</button>
+            <button type="button" class="btn-portada-sec" id="btnCarreraRechazar">Ahora no</button>
         </div>
     </div>
     <div id="carreraVel" class="carrera-vel oculto" aria-live="polite">
@@ -657,7 +665,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
 <script src="/socket.io/socket.io.js"></script>
-<script src="js/carrera.js?v=20260826k"></script>
-<script src="js/main.js?v=20260826k"></script>
+<script src="js/carrera.js?v=20260826m"></script>
+<script src="js/main.js?v=20260826m"></script>
 </body>
 </html>

@@ -3980,7 +3980,35 @@ body.modo-manejo .atajo-pill {
     }
 }
 
-/* ================= CARRERA (práctica) ================= */
+/* ================= CARRERA ================= */
+
+.btn-carrera-fab {
+    position: absolute;
+    left: 12px;
+    bottom: calc(var(--dock-h) + 14px);
+    z-index: 1600;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+    color: var(--navy);
+    box-shadow: var(--sombra);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+}
+
+.btn-carrera-fab svg {
+    width: 22px;
+    height: 22px;
+    display: block;
+}
+
+.btn-carrera-fab.oculto {
+    display: none !important;
+}
 
 .atajo-carrera {
     color: var(--navy);
@@ -4007,7 +4035,8 @@ body.modo-manejo .atajo-pill {
 .carrera-pedales.oculto,
 .carrera-cortina.oculto,
 .carrera-meta.oculto,
-.carrera-salir.oculto {
+.carrera-salir.oculto,
+.carrera-rivales.oculto {
     display: none !important;
 }
 
@@ -4046,6 +4075,54 @@ body.modo-manejo .atajo-pill {
     width: auto;
     margin: 0;
     padding: 10px 16px;
+}
+
+.carrera-rivales {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: min(32vh, 220px);
+    overflow-y: auto;
+}
+
+.carrera-rival {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    background: #f4f1ea;
+    border: 0;
+    border-radius: 12px;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    color: var(--tinta);
+}
+
+.carrera-rival strong {
+    display: block;
+    font-size: 13px;
+}
+
+.carrera-rival small {
+    display: block;
+    font-size: 11px;
+    color: var(--suave);
+}
+
+.carrera-rival em {
+    flex: 0 0 auto;
+    font-style: normal;
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--ambar);
+}
+
+.carrera-rivales-vacio {
+    margin: 0;
+    font-size: 12px;
+    color: var(--suave);
 }
 
 .carrera-pin span {
@@ -4316,6 +4393,8 @@ body.modo-manejo .atajo-pill {
 body.modo-carrera-setup .habla-mapa,
 body.modo-carrera-setup .hud-card,
 body.modo-carrera-setup .hud-acciones,
+body.modo-carrera-setup .btn-carrera-fab,
+body.modo-carrera-setup .dock-mapa,
 body.modo-carrera .habla-mapa,
 body.modo-carrera .hud-card,
 body.modo-carrera .hud-acciones,
@@ -4323,7 +4402,8 @@ body.modo-carrera .dock-mapa,
 body.modo-carrera .comms-panel,
 body.modo-carrera .radio-cerca,
 body.modo-carrera .aviso-gps,
-body.modo-carrera .marker-otro,
+body.modo-carrera .btn-carrera-fab,
+body.modo-carrera .marker-otro:not(.marker-carrera-rival),
 body.modo-carrera .marker-bandera,
 body.modo-carrera .ficha {
     display: none !important;

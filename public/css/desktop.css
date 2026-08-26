@@ -46,17 +46,22 @@
         min-height: 140px;
     }
 
-    .habla-mapa {
+    .mapa-atajos {
+        display: flex;
+    }
+
+    .btn-carrera-fab {
         left: 16px;
+        bottom: 24px;
+    }
+
+    .habla-mapa {
+        left: 76px;
         right: auto;
         bottom: 24px;
         max-width: 280px;
         flex-direction: column;
         align-items: flex-start;
-    }
-
-    .mapa-atajos {
-        display: flex;
     }
 
     .dock-mapa {

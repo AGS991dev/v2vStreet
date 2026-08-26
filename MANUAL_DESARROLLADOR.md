@@ -13,7 +13,7 @@ Radio de ruta (mapa + walkie). Frontend: HTML/CSS/JS (vanilla + Leaflet). Backen
 - App: `http://127.0.0.1:3000`
 - Salud: `http://127.0.0.1:3000/api/salud` → `{ ok, sql, redis, fase, shard, shards, enVivo }`
 - Si el 3000 está ocupado, matar ese Node y volver a arrancar.
-- Recarga dura: Ctrl+F5. Cache de assets: `?v=20260826k`.
+- Recarga dura: Ctrl+F5. Cache de assets: `?v=20260826m`.
 
 ## Railway (producción)
 
@@ -154,6 +154,10 @@ Producción (ejemplo, no es un servidor real): `https://ba.radiomap.ejemplo` y `
 | 5 | Hecha | Shards por latitud (ejemplo corte -40); redirect del cliente |
 
 Plan cerrado. Redis y el segundo shard son optativos: sin ellos el modo local no se rompe.
+
+## Carrera 1 vs 1
+
+Socket (RAM, no SQL): `carreraDesafiar` → el rival recibe `carreraInvitacion`. Si acepta (`carreraResponder`), ambos reciben `carreraInicio` con el mismo path y `tLargada`. Durante la carrera, `carreraEstado` replica la posición del rival. Primer meta gana (`carreraResultado`).
 
 ## No hacer
 
