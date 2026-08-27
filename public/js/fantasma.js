@@ -6,10 +6,15 @@
     "use strict";
 
     var TXT_WA = "Te comparto mi fantasma de RadioMap 👻. Desde este enlace podés seguir mi recorrido en tiempo real.";
+    var STORAGE_KEY = "radiomap_fantasma";
     var api = null;
     var tokenActivo = "";
+    var hostKeyActivo = "";
+    var expActivo = 0;
     var compartiendo = false;
     var timerHost = 0;
+    var timerReanudar = 0;
+    var reanudarEnVuelo = false;
     var trail = [];
     var capas = { path: null, pathFondo: null, trail: null, dest: null };
     var ecos = [];
@@ -171,6 +176,11 @@
         var snap = snapshotHost();
         if (!snap) return;
         api.socket.emit("fantasmaVista", snap);
+        var ahora = Date.now();
+        if (!emitirVista._save || ahora - emitirVista._save > 4000) {
+            emitirVista._save = ahora;
+            guardarSesion();
+        }
     }
 
     function lockMapa(si) {
@@ -324,18 +334,22 @@
         if (nom && snap.nombre) nom.textContent = snap.nombre;
     }
 
-    function setBannerInvitado(nombre, error) {
+    function setBannerInvitado(nombre, error, pausa) {
         var b = $("fantasmaBanner");
         var nom = $("fantasmaBannerNom");
         var sub = $("fantasmaBannerSub");
         mostrar(b, true);
         if (nom) nom.textContent = nombre || "alguien";
         if (sub) {
-            sub.textContent = error
-                ? error
-                : "Solo lectura · estás mirando su recorrido";
+            if (error) sub.textContent = error;
+            else if (pausa) sub.textContent = "Sin señal · el viaje sigue, cuando vuelva a RadioMap se retoma";
+            else sub.textContent = "Solo lectura · estás mirando su recorrido";
         }
-        if (b) b.classList.toggle("error", !!error);
+        if (b) {
+            b.classList.toggle("error", !!error);
+            b.classList.toggle("pausa", !!pausa && !error);
+        }
+        if (document.body) document.body.classList.toggle("fantasma-pausa", !!pausa && !error);
     }
 
     function iniciarHostTimer() {
@@ -351,34 +365,126 @@
         }
     }
 
-    function guardarToken(token) {
-        tokenActivo = token || "";
+    function guardarSesion() {
         try {
-            if (tokenActivo) sessionStorage.setItem("radiomap_fantasma", tokenActivo);
-            else sessionStorage.removeItem("radiomap_fantasma");
+            if (!tokenActivo) {
+                localStorage.removeItem(STORAGE_KEY);
+                sessionStorage.removeItem(STORAGE_KEY);
+                return;
+            }
+            var data = {
+                token: tokenActivo,
+                hostKey: hostKeyActivo || "",
+                exp: expActivo || (Date.now() + 8 * 60 * 60 * 1000),
+                trail: trail.slice(-80)
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            sessionStorage.removeItem(STORAGE_KEY);
         } catch (e) {}
     }
 
-    function leerTokenGuardado() {
-        try {
-            return sessionStorage.getItem("radiomap_fantasma") || "";
-        } catch (e) {
-            return "";
+    function leerSesionGuardada() {
+        var raw = "";
+        try { raw = localStorage.getItem(STORAGE_KEY) || ""; } catch (e) { raw = ""; }
+        if (!raw) {
+            try { raw = sessionStorage.getItem(STORAGE_KEY) || ""; } catch (e2) { raw = ""; }
         }
+        if (!raw) return null;
+        try {
+            if (raw.charAt(0) !== "{") {
+                return { token: raw, hostKey: "", exp: Date.now() + 8 * 60 * 60 * 1000, trail: [] };
+            }
+            var o = JSON.parse(raw);
+            if (!o || !o.token) return null;
+            if (o.exp && Date.now() > Number(o.exp)) return null;
+            return {
+                token: String(o.token),
+                hostKey: o.hostKey ? String(o.hostKey) : "",
+                exp: Number(o.exp) || 0,
+                trail: Array.isArray(o.trail) ? o.trail : []
+            };
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function aplicarSesion(ses) {
+        if (!ses || !ses.token) {
+            tokenActivo = "";
+            hostKeyActivo = "";
+            expActivo = 0;
+            return;
+        }
+        tokenActivo = ses.token;
+        hostKeyActivo = ses.hostKey || "";
+        expActivo = ses.exp || 0;
+        if (ses.trail && ses.trail.length) trail = ses.trail.slice(-80);
     }
 
     function cortarLocal() {
         compartiendo = false;
-        guardarToken("");
+        tokenActivo = "";
+        hostKeyActivo = "";
+        expActivo = 0;
         trail = [];
+        guardarSesion();
         detenerHostTimer();
         pintarBoton();
+    }
+
+    function hostListo() {
+        var pos = api && api.posicion ? api.posicion() : null;
+        return !!(pos && Number.isFinite(pos.lat) && api.socket && api.socket.connected);
+    }
+
+    function programarReanudar() {
+        if (timerReanudar || esInvitado() || !compartiendo || !tokenActivo) return;
+        timerReanudar = setTimeout(function () {
+            timerReanudar = 0;
+            reanudarHost();
+        }, 800);
+    }
+
+    function reanudarHost() {
+        if (esInvitado() || !compartiendo || !tokenActivo) return;
+        if (timerHost && api.socket && api.socket.connected) return;
+        if (!hostListo()) {
+            programarReanudar();
+            return;
+        }
+        if (reanudarEnVuelo) return;
+        reanudarEnVuelo = true;
+        api.socket.emit("fantasmaCrear", { token: tokenActivo, hostKey: hostKeyActivo }, function (res) {
+            reanudarEnVuelo = false;
+            if (res && res.ok && res.token) {
+                tokenActivo = res.token;
+                if (res.hostKey) hostKeyActivo = res.hostKey;
+                if (res.exp) expActivo = res.exp;
+                guardarSesion();
+                pintarBoton();
+                iniciarHostTimer();
+                return;
+            }
+            if (res && res.retry) {
+                programarReanudar();
+                return;
+            }
+            if (res && res.error && String(res.error).indexOf("ya no") >= 0) cortarLocal();
+            else programarReanudar();
+        });
+    }
+
+    function onGpsListo() {
+        if (compartiendo && tokenActivo && !timerHost) reanudarHost();
     }
 
     function compartir() {
         if (esInvitado()) return;
         if (compartiendo) {
-            if (!api.socket) return;
+            if (!api.socket) {
+                cortarLocal();
+                return;
+            }
             api.socket.emit("fantasmaCortar", {}, function () {
                 cortarLocal();
             });
@@ -393,17 +499,24 @@
             alert("Sin conexión. Probá de nuevo en un momento.");
             return;
         }
-        api.socket.emit("fantasmaCrear", {}, function (res) {
+        var ses = leerSesionGuardada();
+        api.socket.emit("fantasmaCrear", {
+            token: tokenActivo || (ses && ses.token) || "",
+            hostKey: hostKeyActivo || (ses && ses.hostKey) || ""
+        }, function (res) {
             if (!res || !res.ok || !res.token) {
                 alert((res && res.error) || "No se pudo compartir el fantasma.");
                 return;
             }
-            guardarToken(res.token);
+            tokenActivo = res.token;
+            hostKeyActivo = res.hostKey || hostKeyActivo;
+            expActivo = res.exp || (Date.now() + 8 * 60 * 60 * 1000);
             compartiendo = true;
-            trail = [];
+            if (!res.reanudado) trail = [];
+            guardarSesion();
             pintarBoton();
             iniciarHostTimer();
-            abrirWhatsApp(res.token);
+            if (!res.reanudado) abrirWhatsApp(res.token);
         });
     }
 
@@ -441,7 +554,7 @@
                 setBannerInvitado("RadioMap", (res && res.error) || "Ese fantasma ya no está al aire.");
                 return;
             }
-            setBannerInvitado(res.nombre || "alguien", "");
+            setBannerInvitado(res.nombre || "alguien", "", !!res.pausa);
         });
     }
 
@@ -451,34 +564,40 @@
         api.socket.on("fantasmaVista", function (snap) {
             if (!esInvitado()) return;
             aplicarVista(snap);
+            setBannerInvitado((snap && snap.nombre) || "alguien", "", snap && snap.vivo === false);
         });
-        api.socket.on("fantasmaFin", function () {
+        api.socket.on("fantasmaPausa", function (d) {
+            if (!esInvitado()) return;
+            setBannerInvitado((d && d.nombre) || "alguien", "", !!(d && d.pausa));
+        });
+        api.socket.on("fantasmaFin", function (d) {
+            var motivo = d && d.motivo ? String(d.motivo) : "";
             if (esInvitado()) {
-                setBannerInvitado("RadioMap", "El fantasma se cortó. Quien lo compartió dejó de emitir.");
-                quitarCapas();
+                if (motivo === "desconexion") {
+                    setBannerInvitado("alguien", "", true);
+                    return;
+                }
+                setBannerInvitado("RadioMap",
+                    motivo === "expiro"
+                        ? "Ese fantasma llegó al final del viaje (8 h). Pedile un enlace nuevo."
+                        : "El fantasma se cortó. Quien lo compartió dejó de emitir.",
+                    false);
                 return;
             }
             cortarLocal();
         });
         api.socket.on("connect", function () {
             if (esInvitado()) unirseComoInvitado();
-            else if (compartiendo && tokenActivo) {
-                api.socket.emit("fantasmaCrear", {}, function (res) {
-                    if (res && res.ok) {
-                        if (res.token) guardarToken(res.token);
-                        iniciarHostTimer();
-                    } else cortarLocal();
-                });
-            }
+            else reanudarHost();
         });
     }
 
     function init(opts) {
         api = opts || {};
         if (!esInvitado()) {
-            var saved = leerTokenGuardado();
+            var saved = leerSesionGuardada();
             if (saved) {
-                tokenActivo = saved;
+                aplicarSesion(saved);
                 compartiendo = true;
             }
         } else if (document.body) {
@@ -495,14 +614,23 @@
         if (salir) salir.addEventListener("click", salirInvitado);
         engancharSocket();
         if (esInvitado()) unirseComoInvitado();
-        else if (compartiendo && tokenActivo && api.socket && api.socket.connected) {
-            api.socket.emit("fantasmaCrear", {}, function (res) {
-                if (res && res.ok) {
-                    if (res.token) guardarToken(res.token);
-                    iniciarHostTimer();
-                } else cortarLocal();
-            });
-        }
+        else reanudarHost();
+        document.addEventListener("visibilitychange", function () {
+            if (document.visibilityState !== "visible") return;
+            if (esInvitado()) unirseComoInvitado();
+            else {
+                reanudarHost();
+                emitirVista();
+            }
+        });
+        window.addEventListener("online", function () {
+            if (esInvitado()) unirseComoInvitado();
+            else reanudarHost();
+        });
+        window.addEventListener("pageshow", function () {
+            if (esInvitado()) unirseComoInvitado();
+            else reanudarHost();
+        });
     }
 
     if (tokenDeUrl() && document.body) {
@@ -515,6 +643,7 @@
         init: init,
         esInvitado: esInvitado,
         activo: function () { return compartiendo; },
+        onGps: onGpsListo,
         consumeClick: function () { return esInvitado(); }
     };
 })(window);

@@ -236,7 +236,6 @@ const fantasmas = {};
 const fantasmaPorHost = {};
 const ultimoFantasmaVistaTs = {};
 const FANTASMA_TTL_MS = 8 * 60 * 60 * 1000;
-const FANTASMA_GRACE_MS = 10 * 60 * 1000;
 
 function listaEncuentrosDisco() {
     return Object.keys(encuentros).map(id => {
@@ -693,15 +692,16 @@ function aplicarVisibilidad(vehiculo) {
     if (!vehiculo) return [];
     const next = salasDeVehiculo(vehiculo);
     const prev = vehiculo.salasEmit || [];
+    const sids = socketsDelVehiculo(vehiculo.id);
     prev.forEach(function (sala) {
         if (next.indexOf(sala) >= 0) return;
-        if (vehiculo.socketId) io.to(sala).except(vehiculo.socketId).emit("vehiculo_desconectado", vehiculo.id);
+        if (sids.length) exceptuar(io.to(sala), sids).emit("vehiculo_desconectado", vehiculo.id);
         else io.to(sala).emit("vehiculo_desconectado", vehiculo.id);
     });
     emitirASalas(next, "telemetria", Object.assign(publicoDe(vehiculo, false), {
         enGrupo: false,
         grupo: vehiculo.grupo || ""
-    }), vehiculo.socketId);
+    }), sids);
     vehiculo.salasEmit = next;
     if (escala.activo()) {
         escala.publicar("upsert", Object.assign(publicoDe(vehiculo, false), {
@@ -801,6 +801,23 @@ function minMsAudio() {
     return 800;
 }
 
+function socketsDelVehiculo(id) {
+    const out = [];
+    if (!id) return out;
+    Object.keys(socketAVehiculo).forEach(function (sid) {
+        if (socketAVehiculo[sid] === id) out.push(sid);
+    });
+    return out;
+}
+
+function exceptuar(n, sids) {
+    const lista = Array.isArray(sids) ? sids : (sids ? [sids] : []);
+    lista.forEach(function (sid) {
+        if (sid) n = n.except(sid);
+    });
+    return n;
+}
+
 function emitirASalas(salas, evento, payload, exceptoSid) {
     const limpio = [];
     const visto = {};
@@ -810,9 +827,7 @@ function emitirASalas(salas, evento, payload, exceptoSid) {
         limpio.push(s);
     });
     if (!limpio.length) return;
-    let n = io.to(limpio);
-    if (exceptoSid) n = n.except(exceptoSid);
-    n.emit(evento, payload);
+    exceptuar(io.to(limpio), exceptoSid).emit(evento, payload);
 }
 
 function unirSalas(socket, v) {
@@ -843,18 +858,57 @@ function vehiculoDeSocket(socket) {
     return id ? vehiculos[id] : null;
 }
 
-function idOcupado(id, socketId) {
-    const v = vehiculos[id];
-    if (!v || !v.socketId || v.socketId === socketId) return false;
-    return io.sockets.sockets.has(v.socketId);
+function perfilCambioDe(v, raw) {
+    if (!v || !raw) return false;
+    const nom = sanitizarTexto(raw.nombre, 40);
+    const veh = sanitizarTexto(raw.vehiculo, 40);
+    const ix = sanitizarEntero(raw.iconoX, 0, 64, v.iconoX || 0);
+    const iy = sanitizarEntero(raw.iconoY, 0, 64, v.iconoY || 0);
+    if (raw.nombre != null && nom !== (v.nombre || "")) return true;
+    if (raw.vehiculo != null && veh !== (v.vehiculo || "")) return true;
+    if (ix !== (v.iconoX || 0) || iy !== (v.iconoY || 0)) return true;
+    return false;
+}
+
+function aplicarPerfilRaw(v, raw) {
+    if (!v || !raw) return;
+    if (raw.nombre != null) v.nombre = sanitizarTexto(raw.nombre, 40);
+    if (raw.vehiculo != null) v.vehiculo = sanitizarTexto(raw.vehiculo, 40);
+    if (raw.placa) v.placa = sanitizarTexto(raw.placa, 20);
+    if (raw.seguro) v.seguro = sanitizarTexto(raw.seguro, 40);
+    if (raw.contacto) v.contacto = sanitizarTexto(raw.contacto, 40);
+    v.iconoX = sanitizarEntero(raw.iconoX, 0, 64, v.iconoX || 0);
+    v.iconoY = sanitizarEntero(raw.iconoY, 0, 64, v.iconoY || 0);
+}
+
+function podarGemelosAusentes(vivo) {
+    if (!vivo || !vivo.id) return;
+    Object.keys(vehiculos).forEach(function (id) {
+        if (id === vivo.id) return;
+        const o = vehiculos[id];
+        if (!o) return;
+        if (o.socketId && io.sockets.sockets.has(o.socketId)) return;
+        if (socketsDelVehiculo(id).length) return;
+        const d = kmEntre(vivo, o) * 1000;
+        if (!Number.isFinite(d) || d > 35) return;
+        const nomVivo = sanitizarTexto(vivo.nombre, 40);
+        const nomOtro = sanitizarTexto(o.nombre, 40);
+        if (nomOtro && nomVivo && nomOtro !== nomVivo) return;
+        emitirASalas(salasDeVehiculo(o), "vehiculo_desconectado", id);
+        if (escala.activo()) escala.publicar("borrar", id);
+        sacarDeCelda(o);
+        sacarDeGrupoVivo(id, o.grupo);
+        delete vehiculos[id];
+    });
 }
 
 function resolverId(socket, claimed) {
     const actual = socketAVehiculo[socket.id];
     if (actual) return actual;
     let id = sanitizarTexto(claimed, 64);
-    if (!/^v[a-z0-9]+$/i.test(id) || idOcupado(id, socket.id)) {
+    if (!/^v[a-z0-9]+$/i.test(id)) {
         id = "v" + socket.id.replace(/[^a-z0-9]/gi, "").slice(0, 18);
+        socket.emit("identidad", { id: id });
     }
     socketAVehiculo[socket.id] = id;
     return id;
@@ -928,6 +982,21 @@ function cortarFantasma(rec, motivo) {
     io.to(salaFantasma(rec.token)).emit("fantasmaFin", { motivo: motivo || "cortado" });
     delete fantasmas[rec.token];
     if (rec.hostId && fantasmaPorHost[rec.hostId] === rec.token) delete fantasmaPorHost[rec.hostId];
+}
+
+function avisarPausaFantasma(rec, pausa) {
+    if (!rec || !rec.token) return;
+    io.to(salaFantasma(rec.token)).emit("fantasmaPausa", {
+        pausa: !!pausa,
+        nombre: rec.nombre || "Alguien"
+    });
+}
+
+function puedeReclamarFantasma(rec, yo, hostKey) {
+    if (!rec || !yo) return false;
+    if (rec.hostId === yo.id) return true;
+    const key = sanitizarTexto(hostKey, 40);
+    return !!(key && rec.hostKey && key === rec.hostKey);
 }
 
 function sanitizarPtsFantasma(raw, maxN) {
@@ -1122,7 +1191,8 @@ io.on("connection", socket => {
         const enRuta = raw.enRuta !== false;
         const ahora = Date.now();
 
-        if (prev && !socketCambio && radioAntes === radioKm && grupoAntes === grupo) {
+        if (prev && !socketCambio && radioAntes === radioKm && grupoAntes === grupo &&
+                !perfilCambioDe(prev, raw)) {
             const u = umbralGps(prev);
             const dt = ahora - (prev.ultimaActualizacion || 0);
             const dm = kmEntre(prev, { lat: lat, lng: lng }) * 1000;
@@ -1173,13 +1243,7 @@ io.on("connection", socket => {
             vehiculos[id] = v;
         } else {
             v.socketId = socket.id;
-            v.nombre = sanitizarTexto(raw.nombre, 40);
-            v.vehiculo = sanitizarTexto(raw.vehiculo, 40);
-            if (raw.placa) v.placa = sanitizarTexto(raw.placa, 20);
-            if (raw.seguro) v.seguro = sanitizarTexto(raw.seguro, 40);
-            if (raw.contacto) v.contacto = sanitizarTexto(raw.contacto, 40);
-            v.iconoX = sanitizarEntero(raw.iconoX, 0, 64, 0);
-            v.iconoY = sanitizarEntero(raw.iconoY, 0, 64, 0);
+            aplicarPerfilRaw(v, raw);
             v.lat = lat;
             v.lng = lng;
             v.velocidad = Number(raw.velocidad) || 0;
@@ -1200,6 +1264,7 @@ io.on("connection", socket => {
         ponerEnCelda(v);
         ponerEnGrupoVivo(v);
         unirSalas(socket, v);
+        if (eraNuevo || socketCambio) podarGemelosAusentes(v);
         if (grupo && (eraNuevo || grupoAntes !== grupo)) registrarMiembroGrupo(grupo, v);
 
         aplicarVisibilidad(v, prevSockets);
@@ -1741,22 +1806,29 @@ io.on("connection", socket => {
         }
     });
 
-    socket.on("fantasmaCrear", (_payload, ack) => {
+    socket.on("fantasmaCrear", (payload, ack) => {
         const yo = vehiculoDeSocket(socket);
         if (!yo) {
-            if (typeof ack === "function") ack({ ok: false, error: "Esperá a estar en el mapa." });
+            if (typeof ack === "function") ack({ ok: false, retry: true, error: "Esperá a estar en el mapa." });
             return;
         }
-        if (!rateOk(ultimoCarreraTs, socket.id, 600)) {
-            if (typeof ack === "function") ack({ ok: false, error: "Esperá un segundo." });
-            return;
-        }
+        const raw = payload && typeof payload === "object" ? payload : {};
+        const tokenIn = sanitizarTexto(raw.token, 40);
+        const hostKeyIn = sanitizarTexto(raw.hostKey, 40);
         let token = fantasmaPorHost[yo.id];
         let rec = recFantasmaVivo(token);
+        if (!rec && tokenIn) rec = recFantasmaVivo(tokenIn);
+        if (rec && !puedeReclamarFantasma(rec, yo, hostKeyIn)) rec = null;
+        const reanudado = !!rec;
+        if (!rec && !rateOk(ultimoCarreraTs, socket.id, 600)) {
+            if (typeof ack === "function") ack({ ok: false, retry: true, error: "Esperá un segundo." });
+            return;
+        }
         if (!rec) {
             token = tokenFantasmaNuevo();
             rec = {
                 token: token,
+                hostKey: tokenFantasmaNuevo(),
                 hostId: yo.id,
                 socketId: socket.id,
                 nombre: yo.nombre || "Alguien",
@@ -1765,16 +1837,29 @@ io.on("connection", socket => {
             fantasmas[token] = rec;
             fantasmaPorHost[yo.id] = token;
         } else {
+            if (rec.hostId && rec.hostId !== yo.id && fantasmaPorHost[rec.hostId] === rec.token) {
+                delete fantasmaPorHost[rec.hostId];
+            }
+            rec.hostId = yo.id;
             rec.socketId = socket.id;
             rec.nombre = yo.nombre || rec.nombre;
+            if (!rec.hostKey) rec.hostKey = tokenFantasmaNuevo();
             rec.exp = Date.now() + FANTASMA_TTL_MS;
             if (rec.corteTimer) {
                 clearTimeout(rec.corteTimer);
                 rec.corteTimer = null;
             }
+            fantasmaPorHost[yo.id] = rec.token;
+            token = rec.token;
+            avisarPausaFantasma(rec, false);
+            if (rec.ultimaVista) {
+                socket.to(salaFantasma(token)).emit("fantasmaVista", Object.assign({}, rec.ultimaVista, { vivo: true }));
+            }
         }
         socket.join(salaFantasma(token));
-        if (typeof ack === "function") ack({ ok: true, token: token, exp: rec.exp });
+        if (typeof ack === "function") {
+            ack({ ok: true, token: token, hostKey: rec.hostKey, exp: rec.exp, reanudado: reanudado });
+        }
     });
 
     socket.on("fantasmaCortar", (_payload, ack) => {
@@ -1793,9 +1878,16 @@ io.on("connection", socket => {
         socket.fantasmaToken = token;
         socket.join(salaFantasma(token));
         if (typeof ack === "function") {
-            ack({ ok: true, nombre: rec.nombre || "Alguien", exp: rec.exp });
+            ack({
+                ok: true,
+                nombre: rec.nombre || "Alguien",
+                exp: rec.exp,
+                pausa: !rec.socketId
+            });
         }
-        if (rec.ultimaVista) socket.emit("fantasmaVista", rec.ultimaVista);
+        if (rec.ultimaVista) {
+            socket.emit("fantasmaVista", Object.assign({}, rec.ultimaVista, { vivo: !!rec.socketId }));
+        }
     });
 
     socket.on("fantasmaVista", payload => {
@@ -1808,6 +1900,7 @@ io.on("connection", socket => {
         const vista = sanitizarVistaFantasma(payload);
         if (!vista) return;
         vista.nombre = yo.nombre || vista.nombre;
+        vista.vivo = true;
         rec.socketId = socket.id;
         rec.ultimaVista = vista;
         socket.to(salaFantasma(token)).emit("fantasmaVista", vista);
@@ -1821,7 +1914,12 @@ io.on("connection", socket => {
         if (!id || !vehiculos[id]) return;
 
         const v = vehiculos[id];
-        if (v.socketId !== socket.id) return;
+        const restantes = socketsDelVehiculo(id);
+        if (restantes.length) {
+            v.socketId = restantes[0];
+            v.ausente = false;
+            return;
+        }
         v.socketId = null;
         v.ausente = true;
         aplicarVisibilidad(v, v.vistoPor ? v.vistoPor.slice() : []);
@@ -1840,11 +1938,11 @@ io.on("connection", socket => {
         const fan = fantasmas[fantasmaPorHost[id]];
         if (fan) {
             fan.socketId = null;
-            if (fan.corteTimer) clearTimeout(fan.corteTimer);
-            fan.corteTimer = setTimeout(function () {
-                const actual = fantasmas[fan.token];
-                if (actual && !actual.socketId) cortarFantasma(actual, "desconexion");
-            }, FANTASMA_GRACE_MS);
+            if (fan.corteTimer) {
+                clearTimeout(fan.corteTimer);
+                fan.corteTimer = null;
+            }
+            avisarPausaFantasma(fan, true);
         }
     });
 });

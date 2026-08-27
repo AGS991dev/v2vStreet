@@ -4682,6 +4682,21 @@ body.modo-carrera .leaflet-control-attribution {
     background: rgba(54, 42, 42, 0.94);
 }
 
+.fantasma-banner.pausa {
+    background: rgba(48, 52, 44, 0.94);
+}
+
+.fantasma-banner.pausa .fantasma-banner-ico {
+    background: rgba(232, 196, 96, 0.2);
+    color: #f0d27a;
+}
+
+body.fantasma-pausa .marker-fantasma-vivo,
+body.fantasma-pausa .fantasma-halo,
+body.fantasma-pausa .fantasma-cuerpo {
+    opacity: 0.55;
+}
+
 .fantasma-banner-ico {
     flex: 0 0 36px;
     width: 36px;

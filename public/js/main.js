@@ -40,7 +40,9 @@
         }
     }
 
-    const miId = obtenerId();
+    let miId = obtenerId();
+    const idsPropios = {};
+    idsPropios[miId] = true;
     const socket = io({
         transports: ["websocket", "polling"],
         reconnection: true,
@@ -258,12 +260,34 @@
     // Identidad persistente (sobrevive reconexiones)
     // ===================================================
     function obtenerId() {
-        let id = localStorage.getItem("v2v_id");
-        if (!id) {
+        let id = "";
+        try { id = localStorage.getItem("v2v_id") || ""; } catch (e) { id = ""; }
+        if (!/^v[a-z0-9]+$/i.test(id)) {
             id = "v" + Math.random().toString(36).slice(2) + Date.now().toString(36);
-            localStorage.setItem("v2v_id", id);
+            try { localStorage.setItem("v2v_id", id); } catch (e) {}
         }
         return id;
+    }
+
+    function soyYoId(id) {
+        return !!id && (id === miId || !!idsPropios[id]);
+    }
+
+    function adoptarId(id) {
+        id = String(id || "");
+        if (!id || id === miId) return;
+        idsPropios[miId] = true;
+        idsPropios[id] = true;
+        const anterior = miId;
+        miId = id;
+        try { localStorage.setItem("v2v_id", id); } catch (e) {}
+        if (autos[anterior]) delete autos[anterior];
+        if (autos[id]) delete autos[id];
+        if (markers[anterior]) {
+            markers[id] = markers[anterior];
+            delete markers[anterior];
+        }
+        emitirTelemetria(true);
     }
 
     function esc(texto) {
@@ -305,7 +329,11 @@
     function datosPropios() {
         const data = { id: miId };
         CAMPOS.forEach(function (c) {
-            data[c] = $(c).value.trim();
+            const el = $(c);
+            const desdeInput = el && el.value ? String(el.value).trim() : "";
+            let guardado = "";
+            try { guardado = (localStorage.getItem(c) || "").trim(); } catch (e) { guardado = ""; }
+            data[c] = desdeInput || guardado;
         });
         const xy = leerIconoLocal();
         data.iconoX = xy.x;
@@ -796,6 +824,7 @@
             vel: extra.velocidad || 0
         };
         actualizarResumenPerfil();
+        if (window.RadioMapFantasma && RadioMapFantasma.onGps) RadioMapFantasma.onGps();
 
         const propio = Object.assign(datosPropios(), miPosicion, { id: miId });
         if (!markers[miId]) {
@@ -2464,7 +2493,7 @@
     // ===================================================
     function datosFichaDe(a) {
         if (!a) return { placa: "", seguro: "", contacto: "" };
-        if (a.id === miId) {
+        if (soyYoId(a.id)) {
             return {
                 placa: $("placa").value.trim(),
                 seguro: $("seguro").value.trim(),
@@ -2480,7 +2509,7 @@
     }
 
     function fichaHtml(a) {
-        const soyYo = a.id === miId;
+        const soyYo = soyYoId(a.id);
         const det = datosFichaDe(a);
         const placa = det ? det.placa : "";
         const telRaw = det ? det.contacto : "";
@@ -2635,6 +2664,10 @@
                 map.removeLayer(markers[a.id]);
                 delete markers[a.id];
             }
+            return;
+        }
+        if (soyYoId(a.id) && a.id !== miId) {
+            quitarVehiculo(a.id);
             return;
         }
         if (a.id !== miId && esBloqueado(a.id)) {
@@ -2794,10 +2827,10 @@
         autos = estado && typeof estado === "object" ? estado : {};
         if (fantasma) autos[FANTASMA_ID] = fantasma;
         Object.keys(markers).forEach(function (id) {
-            if (id !== miId && id !== FANTASMA_ID && !autos[id]) quitarVehiculo(id);
+            if (!soyYoId(id) && id !== FANTASMA_ID && !autos[id]) quitarVehiculo(id);
         });
         Object.keys(autos).forEach(function (id) {
-            if (id === FANTASMA_ID || id === miId) return;
+            if (id === FANTASMA_ID || soyYoId(id)) return;
             if (esBloqueado(id)) {
                 quitarVehiculo(id);
                 return;
@@ -2816,7 +2849,7 @@
     function obtenerListaCerca() {
         const lista = [];
         Object.keys(autos).forEach(function (id) {
-            if (id === miId) return;
+            if (soyYoId(id)) return;
             if (esBloqueado(id)) return;
             const a = autos[id];
             if (!a || !a.lat || !a.lng) return;
@@ -3050,7 +3083,7 @@
     }
 
     function actualizarResumenRed(cerca) {
-        const total = Object.keys(autos).filter(function (id) { return id !== miId; }).length;
+        const total = Object.keys(autos).filter(function (id) { return !soyYoId(id) && id !== FANTASMA_ID; }).length;
         const n = typeof cerca === "number" ? cerca : total;
         const det = $("grupoRadioDetalle");
         if (det) {
@@ -3072,7 +3105,7 @@
 
     function actualizarDestinoUI(cerca) {
         const radio = radioKmActual();
-        const n = typeof cerca === "number" ? cerca : Object.keys(autos).filter(function (id) { return id !== miId; }).length;
+        const n = typeof cerca === "number" ? cerca : Object.keys(autos).filter(function (id) { return !soyYoId(id) && id !== FANTASMA_ID; }).length;
         const detalle = "RADIO · " + radio + " km" + (n ? " · " + n + (n === 1 ? " auto" : " autos") : "");
         if ($("destinoNombre")) $("destinoNombre").textContent = detalle;
         if ($("destinoKicker")) $("destinoKicker").textContent = "Walkie y avisos van a";
@@ -4039,11 +4072,16 @@
         window.location.href = dest + (window.location.search || "");
     });
 
+    socket.on("identidad", function (d) {
+        if (!d || !d.id) return;
+        adoptarId(d.id);
+    });
+
     socket.on("telemetria_global", aplicarEstadoGlobal);
 
     socket.on("telemetria", function (auto) {
         if (esInvitadoFantasma()) return;
-        if (!auto || !auto.id || auto.id === miId) return;
+        if (!auto || !auto.id || soyYoId(auto.id)) return;
         if (esBloqueado(auto.id)) return;
         const prev = autos[auto.id];
         autos[auto.id] = prev ? Object.assign({}, prev, auto) : auto;
@@ -4055,7 +4093,7 @@
     });
 
     socket.on("vehiculo_desconectado", function (id) {
-        if (!id || id === miId || id === FANTASMA_ID) return;
+        if (!id || soyYoId(id) || id === FANTASMA_ID) return;
         quitarVehiculo(id);
     });
 
