@@ -3834,6 +3834,10 @@ body.modo-manejo .atajo-pill {
         display: none !important;
     }
 
+    .habla-mapa #btnPttMapa {
+        display: none;
+    }
+
     .radio-cerca {
         display: flex;
         position: fixed;
@@ -4756,8 +4760,13 @@ body.fantasma-pausa .fantasma-cuerpo {
 
 .leaflet-div-icon.marker-fantasma-vivo,
 .leaflet-div-icon.marker-fantasma-eco {
-    background: transparent;
-    border: none;
+    background: transparent !important;
+    border: none !important;
+    overflow: visible !important;
+}
+
+.marker-fantasma-vivo {
+    overflow: visible !important;
 }
 
 .fantasma-rot {
@@ -4768,28 +4777,96 @@ body.fantasma-pausa .fantasma-cuerpo {
     will-change: transform;
 }
 
+.marker-fantasma-vivo .auto-rot {
+    position: relative;
+    z-index: 2;
+    width: 44px;
+    height: 44px;
+    overflow: visible;
+    filter: drop-shadow(0 2px 6px rgba(20, 32, 48, 0.45));
+}
+
+.fantasma-auto {
+    position: absolute;
+    left: 50%;
+    top: 42%;
+    width: 44px;
+    height: 44px;
+    margin: -22px 0 0 -22px;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fantasma-auto-svg {
+    position: absolute;
+    inset: 2px;
+    width: 40px;
+    height: 40px;
+    z-index: 0;
+    filter: drop-shadow(0 2px 4px rgba(20, 32, 48, 0.4));
+}
+
+.marker-fantasma-vivo .fantasma-auto img.auto-cuerpo,
+.marker-fantasma-vivo .fantasma-auto .auto-cuerpo {
+    position: relative;
+    z-index: 2;
+    width: 40px !important;
+    height: 40px !important;
+    border: 0 !important;
+    display: block;
+    object-fit: contain;
+    background: none;
+}
+
 .fantasma-halo {
     position: absolute;
     left: 50%;
-    top: 14px;
-    width: 30px;
-    height: 30px;
-    margin-left: -15px;
+    top: 50%;
+    width: 48px;
+    height: 48px;
+    margin: -24px 0 0 -24px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.55) 0%, rgba(30, 75, 123, 0.16) 62%, transparent 70%);
+    border: 2px solid rgba(245, 166, 35, 0.95);
+    background: radial-gradient(circle, rgba(245, 166, 35, 0.38) 0%, rgba(30, 75, 123, 0.08) 58%, transparent 72%);
+    box-shadow: 0 0 18px rgba(245, 166, 35, 0.55);
     animation: fantasma-pulso 2.6s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.fantasma-etiqueta {
+    position: absolute;
+    left: 50%;
+    top: -6px;
+    transform: translate(-50%, -100%);
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: #1e4b7b;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.3;
+    box-shadow: 0 4px 14px rgba(28, 40, 55, 0.32);
+    pointer-events: none;
+    z-index: 3;
 }
 
 .fantasma-cuerpo {
     position: absolute;
     left: 50%;
-    top: 4px;
+    top: 8px;
     width: 22px;
     height: 34px;
     margin-left: -11px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(214, 228, 240, 0.28) 100%);
-    border: 1.4px solid rgba(255, 255, 255, 0.82);
-    box-shadow: 0 0 18px rgba(30, 75, 123, 0.32), inset 0 1px 8px rgba(255, 255, 255, 0.35);
+    background: linear-gradient(180deg, #5a8ab8 0%, #1e4b7b 100%);
+    border: 2px solid #fff;
+    box-shadow: 0 0 18px rgba(30, 75, 123, 0.45), inset 0 1px 8px rgba(255, 255, 255, 0.25);
     clip-path: polygon(14% 0, 86% 0, 100% 26%, 100% 76%, 84% 100%, 66% 86%, 50% 100%, 34% 86%, 16% 100%, 0 76%, 0 26%);
 }
 
@@ -4801,7 +4878,7 @@ body.fantasma-pausa .fantasma-cuerpo {
     width: 3px;
     height: 3px;
     border-radius: 50%;
-    background: rgba(30, 75, 123, 0.88);
+    background: #fff;
 }
 
 .fantasma-cuerpo::before {
@@ -4855,23 +4932,25 @@ body.modo-fantasma-invitado .hud-top {
 }
 
 body.modo-fantasma-invitado .habla-mapa {
-    opacity: 1;
-    filter: none;
-    pointer-events: none;
+    pointer-events: auto;
     user-select: none;
 }
 
-body.modo-fantasma-invitado .habla-mapa .mapa-atajos {
+body.modo-fantasma-invitado .mapa-atajos .atajo-pill {
     opacity: 0.42;
     filter: grayscale(0.55);
     pointer-events: none !important;
 }
 
 body.modo-fantasma-invitado .dock-mapa {
-    opacity: 1;
-    filter: none;
-    pointer-events: none;
+    pointer-events: auto;
     user-select: none;
+}
+
+body.modo-fantasma-invitado .dock-mapa .dock-item {
+    opacity: 0.42;
+    filter: grayscale(0.55);
+    pointer-events: none !important;
 }
 
 body.modo-fantasma-invitado .comms-panel,
@@ -4887,14 +4966,26 @@ body.modo-fantasma-invitado .carrera-ptt {
 
 body.modo-fantasma-invitado #btnPttMapa,
 body.modo-fantasma-invitado #btnPttDock {
-    opacity: 1;
-    filter: none;
+    opacity: 1 !important;
+    filter: none !important;
     pointer-events: auto !important;
     user-select: auto;
+    background: var(--ambar);
+    color: #fff;
+    box-shadow: 0 10px 28px rgba(245, 166, 35, 0.55);
 }
 
 body.modo-fantasma-invitado .leaflet-container {
     cursor: default;
+}
+
+body.modo-fantasma-invitado .leaflet-marker-pane,
+body.modo-fantasma-invitado .leaflet-overlay-pane {
+    overflow: visible;
+}
+
+body.modo-fantasma-invitado .marker-propio {
+    display: none !important;
 }
 
 body.modo-fantasma-invitado .fantasma-banner,

@@ -681,6 +681,7 @@
     }
 
     function empezarWatchGps() {
+        if (esInvitadoFantasma()) return;
         if (!navigator.geolocation) return;
         if (gpsWatchId != null) return;
         gpsWatchId = navigator.geolocation.watchPosition(function (pos) {
@@ -825,6 +826,7 @@
         };
         actualizarResumenPerfil();
         if (window.RadioMapFantasma && RadioMapFantasma.onGps) RadioMapFantasma.onGps();
+        if (esInvitadoFantasma()) return;
 
         const propio = Object.assign(datosPropios(), miPosicion, { id: miId });
         if (!markers[miId]) {
@@ -2657,6 +2659,10 @@
 
     function actualizarMarker(a) {
         if (!a || !Number.isFinite(Number(a.lat)) || !Number.isFinite(Number(a.lng))) return;
+        if (esInvitadoFantasma() && (a.id === miId || soyYoId(a.id))) {
+            if (markers[a.id]) quitarVehiculo(a.id);
+            return;
+        }
         if (window.RadioMapCarrera && RadioMapCarrera.bloqueaGps()) {
             if (a.id === miId) return;
             if (RadioMapCarrera.esRival && RadioMapCarrera.esRival(a.id)) return;
@@ -4595,6 +4601,7 @@
     function bindUi() {
         if (esInvitadoFantasma()) {
             $("portada").classList.add("oculto");
+            if (markers[miId]) quitarVehiculo(miId);
         } else if (yaEntroMapa()) {
             $("portada").classList.add("oculto");
         } else {
@@ -5004,6 +5011,14 @@
                     const n = el && el.value ? el.value.trim() : "";
                     return n || "Alguien";
                 },
+                vehiculo: function () {
+                    const el = $("vehiculo");
+                    return el && el.value ? el.value.trim() : "";
+                },
+                icono: function () {
+                    return leerIconoLocal();
+                },
+                crearIcono: crearIcono,
                 metrosEntre: function (a, b) {
                     return metrosEntre(a, b);
                 }

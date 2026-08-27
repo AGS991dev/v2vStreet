@@ -1047,8 +1047,64 @@ function sanitizarVistaFantasma(raw) {
         path: sanitizarPtsFantasma(raw.path, 120),
         trail: sanitizarPtsFantasma(raw.trail, 80),
         dest: sanitizarPuntoCarrera(raw.dest),
-        nombre: sanitizarTexto(raw.nombre, 40) || "Alguien"
+        nombre: sanitizarTexto(raw.nombre, 40) || "Alguien",
+        vehiculo: sanitizarTexto(raw.vehiculo, 40),
+        iconoX: sanitizarEntero(raw.iconoX, 0, 64, 0),
+        iconoY: sanitizarEntero(raw.iconoY, 0, 64, 0)
     };
+}
+
+function vistaDesdeVehiculoFantasma(v, rec, extras) {
+    if (!rec) return null;
+    const prev = rec.ultimaVista || {};
+    const extra = extras && typeof extras === "object" ? extras : {};
+    const lat = v && Number.isFinite(Number(v.lat)) ? Number(v.lat) : Number(prev.lat);
+    const lng = v && Number.isFinite(Number(v.lng)) ? Number(v.lng) : Number(prev.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    const rumboV = v && Number.isFinite(Number(v.rumbo)) ? Number(v.rumbo) : null;
+    return {
+        lat: lat,
+        lng: lng,
+        rumbo: rumboV != null ? rumboV : (Number.isFinite(Number(prev.rumbo)) ? Number(prev.rumbo) : null),
+        vel: (v && Number(v.velocidad)) || extra.vel || prev.vel || 0,
+        clat: lat,
+        clng: lng,
+        zoom: sanitizarEntero(extra.zoom != null ? extra.zoom : prev.zoom, 3, 20, 16),
+        bearing: 0,
+        navGps: extra.navGps != null ? !!extra.navGps : !!prev.navGps,
+        path: extra.path || prev.path || [],
+        trail: extra.trail || prev.trail || [],
+        dest: extra.dest !== undefined ? extra.dest : (prev.dest || null),
+        nombre: sanitizarTexto((v && v.nombre) || rec.nombre || prev.nombre, 40) || "Alguien",
+        vehiculo: sanitizarTexto((v && v.vehiculo) || extra.vehiculo || prev.vehiculo, 40),
+        iconoX: sanitizarEntero((v && v.iconoX) != null ? v.iconoX : prev.iconoX, 0, 64, 0),
+        iconoY: sanitizarEntero((v && v.iconoY) != null ? v.iconoY : prev.iconoY, 0, 64, 0),
+        vivo: !!rec.socketId
+    };
+}
+
+function guardarVistaFantasma(rec, vista) {
+    if (!rec || !vista) return null;
+    rec.ultimaVista = vista;
+    if (vista.nombre) rec.nombre = vista.nombre;
+    return vista;
+}
+
+function emitirVistaSalaFantasma(rec, vista) {
+    if (!rec || !vista) return;
+    io.to(salaFantasma(rec.token)).emit("fantasmaVista", vista);
+}
+
+function publicarPosicionFantasma(v) {
+    if (!v || !v.id) return;
+    const token = fantasmaPorHost[v.id];
+    const rec = recFantasmaVivo(token);
+    if (!rec) return;
+    const vista = vistaDesdeVehiculoFantasma(v, rec);
+    if (!vista) return;
+    guardarVistaFantasma(rec, vista);
+    if (!rateOk(ultimoFantasmaVistaTs, "host:" + v.id, 280)) return;
+    emitirVistaSalaFantasma(rec, vista);
 }
 
 function sanitizarPuntoCarrera(p) {
@@ -1219,6 +1275,7 @@ io.on("connection", socket => {
                     prev.encSyncLat = prev.lat;
                     prev.encSyncLng = prev.lng;
                 }
+                publicarPosicionFantasma(prev);
                 return;
             }
         }
@@ -1292,6 +1349,7 @@ io.on("connection", socket => {
             v.encSyncLat = v.lat;
             v.encSyncLng = v.lng;
         }
+        publicarPosicionFantasma(v);
     });
 
     socket.on("pedirFicha", (payload, ack) => {
@@ -1860,11 +1918,13 @@ io.on("connection", socket => {
             fantasmaPorHost[yo.id] = rec.token;
             token = rec.token;
             avisarPausaFantasma(rec, false);
-            if (rec.ultimaVista) {
-                socket.to(salaFantasma(token)).emit("fantasmaVista", Object.assign({}, rec.ultimaVista, { vivo: true }));
-            }
         }
         socket.join(salaFantasma(token));
+        const semilla = vistaDesdeVehiculoFantasma(yo, rec);
+        if (semilla) guardarVistaFantasma(rec, Object.assign({}, semilla, { vivo: true }));
+        if (reanudado && rec.ultimaVista) {
+            emitirVistaSalaFantasma(rec, Object.assign({}, rec.ultimaVista, { vivo: true }));
+        }
         if (typeof ack === "function") {
             ack({ ok: true, token: token, hostKey: rec.hostKey, exp: rec.exp, reanudado: reanudado });
         }
@@ -1886,17 +1946,22 @@ io.on("connection", socket => {
         socket.fantasmaToken = token;
         socket.fantasmaNombre = sanitizarTexto(payload && payload.nombre, 40);
         socket.join(salaFantasma(token));
+        const host = rec.hostId ? vehiculos[rec.hostId] : null;
+        const vista = vistaDesdeVehiculoFantasma(host, rec) || rec.ultimaVista || null;
+        if (vista) {
+            vista.vivo = !!rec.socketId;
+            guardarVistaFantasma(rec, vista);
+        }
         if (typeof ack === "function") {
             ack({
                 ok: true,
-                nombre: rec.nombre || "Alguien",
+                nombre: (vista && vista.nombre) || rec.nombre || "Alguien",
                 exp: rec.exp,
-                pausa: !rec.socketId
+                pausa: !rec.socketId,
+                vista: vista
             });
         }
-        if (rec.ultimaVista) {
-            socket.emit("fantasmaVista", Object.assign({}, rec.ultimaVista, { vivo: !!rec.socketId }));
-        }
+        if (vista) socket.emit("fantasmaVista", vista);
     });
 
     socket.on("fantasmaVista", payload => {
@@ -1909,8 +1974,12 @@ io.on("connection", socket => {
         const vista = sanitizarVistaFantasma(payload);
         if (!vista) return;
         vista.nombre = yo.nombre || vista.nombre;
+        vista.vehiculo = yo.vehiculo || vista.vehiculo;
+        vista.iconoX = sanitizarEntero(yo.iconoX, 0, 64, vista.iconoX || 0);
+        vista.iconoY = sanitizarEntero(yo.iconoY, 0, 64, vista.iconoY || 0);
         vista.vivo = true;
         rec.socketId = socket.id;
+        rec.nombre = vista.nombre;
         rec.ultimaVista = vista;
         socket.to(salaFantasma(token)).emit("fantasmaVista", vista);
     });

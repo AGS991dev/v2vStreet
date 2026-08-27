@@ -85,21 +85,38 @@
         }
     }
 
-    function iconoFantasma() {
+    function escHtml(s) {
+        return String(s || "").replace(/[&<>"']/g, function (c) {
+            return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
+        });
+    }
+
+    function iconoFantasma(snap) {
+        var nom = escHtml((snap && snap.nombre) || "Fantasma");
+        var svg = '<svg class="fantasma-auto-svg" viewBox="0 0 24 24" aria-hidden="true">' +
+            '<path d="M5 16.5h14l1.2-4.2c.2-.6 0-1.2-.5-1.6L16 8.2H8L4.3 10.7c-.5.4-.7 1-.5 1.6L5 16.5z" fill="#1e4b7b" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/>' +
+            '<circle cx="7.2" cy="16.6" r="1.7" fill="#243848" stroke="#fff" stroke-width="1.2"/>' +
+            '<circle cx="16.8" cy="16.6" r="1.7" fill="#243848" stroke="#fff" stroke-width="1.2"/>' +
+            "</svg>";
+        var inner = "";
+        if (api.crearIcono) {
+            var xy = { x: (snap && snap.iconoX) || 0, y: (snap && snap.iconoY) || 0 };
+            var icoTmp = api.crearIcono(false, xy);
+            inner = (icoTmp && icoTmp.options && icoTmp.options.html) || "";
+        }
         return L.divIcon({
-            className: "marker-fantasma-vivo",
-            html: '<div class="fantasma-rot">' +
-                '<span class="fantasma-halo" aria-hidden="true"></span>' +
-                '<span class="fantasma-cuerpo" aria-hidden="true"></span>' +
-                "</div>",
-            iconSize: [44, 52],
-            iconAnchor: [22, 30]
+            className: "marker-auto marker-otro marker-fantasma-vivo",
+            html: '<span class="fantasma-halo" aria-hidden="true"></span>' +
+                '<div class="fantasma-auto">' + svg + inner + "</div>" +
+                '<span class="fantasma-etiqueta">' + nom + "</span>",
+            iconSize: [64, 86],
+            iconAnchor: [32, 44]
         });
     }
 
     function rumboCss(el, deg) {
         if (!el || !Number.isFinite(Number(deg))) return;
-        var rot = el.querySelector(".fantasma-rot");
+        var rot = el.querySelector(".auto-rot") || el.querySelector(".fantasma-rot");
         if (rot) rot.style.transform = "rotate(" + Number(deg) + "deg)";
     }
 
@@ -148,26 +165,27 @@
         var pos = api.posicion ? api.posicion() : null;
         if (!pos || !Number.isFinite(pos.lat)) return null;
         pushTrail(pos.lat, pos.lng);
-        var c = api.map.getCenter();
-        var bearing = 0;
-        if (typeof api.map.getBearing === "function") bearing = api.map.getBearing();
         var nav = api.navegacion ? api.navegacion() : null;
         var dest = nav && nav.dest ? nav.dest : null;
         var path = nav && nav.path ? aligerar(nav.path, 120) : [];
+        var ico = api.icono ? api.icono() : { x: 0, y: 0 };
         return {
             lat: pos.lat,
             lng: pos.lng,
             rumbo: pos.rumbo,
             vel: pos.velocidad || 0,
-            clat: c.lat,
-            clng: c.lng,
-            zoom: api.map.getZoom(),
-            bearing: bearing,
+            clat: pos.lat,
+            clng: pos.lng,
+            zoom: 16,
+            bearing: 0,
             navGps: !!api.navGps(),
             path: path,
             trail: trail.slice(),
             dest: dest && dest.length >= 2 ? [dest[0], dest[1]] : null,
-            nombre: api.nombre ? api.nombre() : "Alguien"
+            nombre: api.nombre ? api.nombre() : "Alguien",
+            vehiculo: api.vehiculo ? api.vehiculo() : "",
+            iconoX: ico.x || 0,
+            iconoY: ico.y || 0
         };
     }
 
@@ -286,45 +304,59 @@
         }
     }
 
-    function asegurarEcos() {
-        if (ecos.length) return;
+    function asegurarEcos(ll) {
         var i;
-        for (i = 0; i < 3; i++) {
-            ecos.push(L.marker([0, 0], {
-                icon: L.divIcon({
-                    className: "marker-fantasma-eco eco-" + i,
-                    html: '<span class="fantasma-eco"></span>',
-                    iconSize: [18, 18],
-                    iconAnchor: [9, 9]
-                }),
-                interactive: false,
-                keyboard: false,
-                zIndexOffset: 800 - i
-            }).addTo(api.map));
+        if (!ecos.length) {
+            for (i = 0; i < 3; i++) {
+                ecos.push(L.marker(ll, {
+                    icon: L.divIcon({
+                        className: "marker-fantasma-eco eco-" + i,
+                        html: '<span class="fantasma-eco"></span>',
+                        iconSize: [18, 18],
+                        iconAnchor: [9, 9]
+                    }),
+                    interactive: false,
+                    keyboard: false,
+                    zIndexOffset: 800 - i
+                }).addTo(api.map));
+            }
+            return;
+        }
+        for (i = 0; i < ecos.length; i++) {
+            if (ecos[i] && ecos[i].getLatLng && ecos[i].getLatLng().lat === 0 && ecos[i].getLatLng().lng === 0) {
+                ecos[i].setLatLng(ll);
+            }
         }
     }
 
     function aplicarVista(snap) {
         if (!snap || !api.map) return;
-        if (Number.isFinite(snap.clat) && Number.isFinite(snap.clng)) {
-            api.map.setView([snap.clat, snap.clng], snap.zoom || api.map.getZoom(), { animate: false });
-        }
-        if (typeof api.map.setBearing === "function" && Number.isFinite(snap.bearing)) {
-            api.map.setBearing(snap.bearing);
-        }
-        var ll = [snap.lat, snap.lng];
+        var lat = Number(snap.lat);
+        var lng = Number(snap.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+        var ll = [lat, lng];
+        var z = Number(snap.zoom);
+        if (!Number.isFinite(z) || z < 15) z = 16;
+        if (z > 18) z = 18;
+        api.map.setView(ll, z, { animate: false });
         if (!markerVivo) {
             markerVivo = L.marker(ll, {
-                icon: iconoFantasma(),
-                zIndexOffset: 1400,
+                icon: iconoFantasma(snap),
+                zIndexOffset: 2400,
                 interactive: false,
                 keyboard: false,
                 title: snap.nombre || "Fantasma"
             }).addTo(api.map);
-            asegurarEcos();
+            markerVivo._iconKey = String(snap.iconoX || 0) + ":" + String(snap.iconoY || 0) + ":" + String(snap.nombre || "");
+            asegurarEcos(ll);
         } else {
             moverEcos(markerVivo.getLatLng());
             markerVivo.setLatLng(ll);
+            var key = String(snap.iconoX || 0) + ":" + String(snap.iconoY || 0) + ":" + String(snap.nombre || "");
+            if (markerVivo._iconKey !== key) {
+                markerVivo.setIcon(iconoFantasma(snap));
+                markerVivo._iconKey = key;
+            }
         }
         rumboCss(markerVivo.getElement(), snap.rumbo);
         pintarPath(snap.path);
@@ -531,14 +563,14 @@
     }
 
     function marcarChromeInerte(si) {
-        var sels = [".hud-top", ".comms-panel", ".radio-cerca", ".mapa-atajos"];
+        var sels = [".hud-top", ".comms-panel", ".radio-cerca"];
         var i;
         for (i = 0; i < sels.length; i++) {
             document.querySelectorAll(sels[i]).forEach(function (el) {
                 try { el.inert = !!si; } catch (e) {}
             });
         }
-        document.querySelectorAll(".dock-mapa .dock-item").forEach(function (el) {
+        document.querySelectorAll(".mapa-atajos .atajo-pill, .dock-mapa .dock-item").forEach(function (el) {
             try { el.inert = !!si; } catch (e2) {}
         });
     }
@@ -560,7 +592,12 @@
                 setBannerInvitado("RadioMap", (res && res.error) || "Ese fantasma ya no está al aire.");
                 return;
             }
-            setBannerInvitado(res.nombre || "alguien", "", !!res.pausa);
+            if (res.vista) aplicarVista(res.vista);
+            setBannerInvitado(res.nombre || (res.vista && res.vista.nombre) || "alguien", "", !!res.pausa);
+            if (!res.vista && !markerVivo) {
+                var sub = $("fantasmaBannerSub");
+                if (sub && !res.pausa) sub.textContent = "Buscando su punto en el mapa…";
+            }
         });
     }
 
