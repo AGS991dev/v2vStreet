@@ -14,9 +14,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-            <link rel="stylesheet" href="css/base.css?v=20260827a">
-<link rel="stylesheet" href="css/desktop.css?v=20260827a">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260827a">
+            <link rel="stylesheet" href="css/base.css?v=20260827b">
+<link rel="stylesheet" href="css/desktop.css?v=20260827b">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260827b">
 </head>
 
 <body>
@@ -707,6 +707,40 @@
     </div>
 </div>
 
+<div id="modalRetomarRuta" class="modal-salir oculto" role="dialog" aria-labelledby="tituloRetomarRuta" aria-modal="true">
+    <div class="modal-salir-fondo" id="fondoModalRetomarRuta"></div>
+    <div class="modal-salir-card">
+        <p class="marca">
+            <span class="marca-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 21s-6.2-4.4-6.2-10.2a6.2 6.2 0 1 1 12.4 0C18.2 16.6 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="12" cy="10.8" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M3.5 7.6a10 10 0 0 1 0 8.8M20.5 7.6a10 10 0 0 0 0 8.8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+            </span>
+            RadioMap
+        </p>
+        <h2 id="tituloRetomarRuta">¿Querés retomar la ruta?</h2>
+        <p class="mision" id="txtRetomarRuta">Tenés un viaje guardado. Si retomás, seguís al mismo destino sin cortar el mapa de los demás.</p>
+        <button type="button" class="btn-portada" id="btnRetomarRuta">Retomar la ruta</button>
+        <button type="button" class="btn-portada-sec" id="btnDescartarRuta">Descartar</button>
+    </div>
+</div>
+
+<div id="modalAvisosPendientes" class="modal-salir oculto" role="dialog" aria-labelledby="tituloAvisosPendientes" aria-modal="true">
+    <div class="modal-salir-fondo" id="fondoModalAvisosPendientes"></div>
+    <div class="modal-salir-card">
+        <p class="marca">
+            <span class="marca-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 21s-6.2-4.4-6.2-10.2a6.2 6.2 0 1 1 12.4 0C18.2 16.6 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="12" cy="10.8" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M3.5 7.6a10 10 0 0 1 0 8.8M20.5 7.6a10 10 0 0 0 0 8.8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+            </span>
+            RadioMap
+        </p>
+        <h2 id="tituloAvisosPendientes">Te llegaron avisos</h2>
+        <p class="mision" id="txtAvisosPendientes">Mientras no estabas recibiste mensajes. Los textos están en privado y los audios se pueden escuchar acá.</p>
+        <div id="listaAvisosPendientes" class="lista-avisos-pend"></div>
+        <button type="button" class="btn-portada" id="btnOirAvisosPendientes">Escuchar audios</button>
+        <button type="button" class="btn-portada" id="btnVerAvisosPrivado">Ver en privado</button>
+        <button type="button" class="btn-portada-sec" id="btnCerrarAvisosPendientes">Ahora no</button>
+    </div>
+</div>
+
 <div id="modalSalir" class="modal-salir oculto" role="dialog" aria-labelledby="tituloSalir" aria-modal="true">
     <div class="modal-salir-fondo" id="fondoModalSalir"></div>
     <div class="modal-salir-card">
@@ -726,8 +760,8 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
 <script src="/socket.io/socket.io.js"></script>
-<script src="js/carrera.js?v=20260827a"></script>
-<script src="js/fantasma.js?v=20260827a"></script>
-<script src="js/main.js?v=20260827a"></script>
+<script src="js/carrera.js?v=20260827b"></script>
+<script src="js/fantasma.js?v=20260827b"></script>
+<script src="js/main.js?v=20260827b"></script>
 </body>
 </html>

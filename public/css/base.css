@@ -728,6 +728,61 @@ body.modo-nav-gps .marker-propio {
     margin-bottom: 16px;
 }
 
+.lista-avisos-pend {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 220px;
+    overflow-y: auto;
+    margin: 0 0 16px;
+}
+
+.aviso-pend-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    background: #fff;
+    border: 1px solid var(--linea);
+    border-radius: 12px;
+}
+
+.aviso-pend-item p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+.aviso-pend-item small {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--suave);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.btn-oir-aviso,
+.btn-play-msg {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    cursor: pointer;
+    color: #fff;
+    background: var(--ambar, #f5a623);
+}
+
+.msg .btn-play-msg {
+    display: inline-block;
+    margin-top: 6px;
+}
+
 .modal-icono {
     position: fixed;
     inset: 0;

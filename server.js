@@ -219,6 +219,9 @@ let puertoActivo = Number(process.env.PORT || 3000) || 3000;
 
 const AUSENTE_MS = 18000;
 const BORRAR_MS = 90000;
+const INBOX_MAX = 8;
+const INBOX_AUDIO_MAX = 3;
+const INBOX_TTL_MS = 12 * 60 * 1000;
 const ENC_FILE = path.join(__dirname, "data", "encuentros.json");
 const GRUPOS_FILE = path.join(__dirname, "data", "grupos.json");
 
@@ -858,6 +861,78 @@ function vehiculoDeSocket(socket) {
     return id ? vehiculos[id] : null;
 }
 
+function socketVivo(v) {
+    return !!(v && v.socketId && io.sockets.sockets.has(v.socketId));
+}
+
+function clonarAudioInbox(audio) {
+    if (!audio) return null;
+    try {
+        if (Buffer.isBuffer(audio)) return Buffer.from(audio);
+        if (audio instanceof ArrayBuffer) return Buffer.from(new Uint8Array(audio));
+        if (ArrayBuffer.isView(audio)) return Buffer.from(audio.buffer, audio.byteOffset, audio.byteLength);
+    } catch (e) {
+        return null;
+    }
+    return null;
+}
+
+function podarInbox(v) {
+    if (!v || !Array.isArray(v.inbox)) return;
+    const ahora = Date.now();
+    v.inbox = v.inbox.filter(function (it) {
+        return it && (ahora - (it.ts || 0)) <= INBOX_TTL_MS;
+    });
+    while (v.inbox.length > INBOX_MAX) v.inbox.shift();
+    let audios = 0;
+    for (let i = v.inbox.length - 1; i >= 0; i--) {
+        if (v.inbox[i] && v.inbox[i].audio) {
+            audios += 1;
+            if (audios > INBOX_AUDIO_MAX) {
+                v.inbox[i].audio = null;
+                v.inbox[i].sinAudio = true;
+            }
+        }
+    }
+}
+
+function encolarInbox(v, item) {
+    if (!v || !item) return;
+    if (!v.inbox) v.inbox = [];
+    v.inbox.push({
+        evento: item.evento || "mensajeV2V",
+        de: item.de || "",
+        nombre: sanitizarTexto(item.nombre, 40) || "Alguien",
+        texto: sanitizarTexto(item.texto || item.mensaje, 500),
+        mensaje: sanitizarTexto(item.mensaje || item.texto, 500),
+        canal: item.canal || "",
+        mime: sanitizarTexto(item.mime, 40),
+        ts: item.ts || Date.now(),
+        privado: !!item.privado,
+        audio: item.audio ? clonarAudioInbox(item.audio) : null
+    });
+    podarInbox(v);
+}
+
+function entregarInbox(v, socket) {
+    if (!v || !socket) return;
+    podarInbox(v);
+    const lista = v.inbox;
+    if (!lista || !lista.length) return;
+    v.inbox = [];
+    socket.emit("avisosPendientes", lista);
+}
+
+function encolarParaAusentes(item, emisorId, acepta) {
+    Object.keys(vehiculos).forEach(function (id) {
+        if (!id || id === emisorId) return;
+        const dest = vehiculos[id];
+        if (!dest || socketVivo(dest)) return;
+        if (typeof acepta === "function" && !acepta(dest)) return;
+        encolarInbox(dest, item);
+    });
+}
+
 function perfilCambioDe(v, raw) {
     if (!v || !raw) return false;
     const nom = sanitizarTexto(raw.nombre, 40);
@@ -1230,9 +1305,29 @@ app.get("/api/salud", (_req, res) => {
     });
 });
 
+io.use((socket, next) => {
+    const claimed = sanitizarTexto(socket.handshake.auth && socket.handshake.auth.id, 64);
+    if (/^v[a-z0-9]+$/i.test(claimed)) socketAVehiculo[socket.id] = claimed;
+    next();
+});
+
 io.on("connection", socket => {
     socket.join("rm:all");
     socket.emit("telemetria_global", {});
+    const idSesion = socketAVehiculo[socket.id];
+    if (idSesion && vehiculos[idSesion]) {
+        vehiculos[idSesion].socketId = socket.id;
+        entregarInbox(vehiculos[idSesion], socket);
+    }
+
+    socket.on("sesion", payload => {
+        const id = resolverId(socket, payload && payload.id);
+        if (!id) return;
+        const v = vehiculos[id];
+        if (!v) return;
+        v.socketId = socket.id;
+        entregarInbox(v, socket);
+    });
 
     socket.on("telemetria", data => {
         const raw = data && typeof data === "object" ? data : {};
@@ -1350,6 +1445,7 @@ io.on("connection", socket => {
             v.encSyncLng = v.lng;
         }
         publicarPosicionFantasma(v);
+        entregarInbox(v, socket);
     });
 
     socket.on("pedirFicha", (payload, ack) => {
@@ -1593,6 +1689,17 @@ io.on("connection", socket => {
         } else {
             emitirASalas(salasRadioDe(v), "mensajeV2V", payloadZona(v, msg), socket.id);
         }
+        encolarParaAusentes({
+            evento: "mensajeV2V",
+            de: msg.de,
+            nombre: msg.nombre,
+            texto: msg.texto,
+            ts: msg.ts,
+            canal: canal
+        }, msg.de, function (dest) {
+            if (canal === "grupo") return !!(v && dest.grupo && dest.grupo === v.grupo);
+            return puedeHablarRadio(v, dest);
+        });
     });
 
     socket.on("mensajePrivado", payload => {
@@ -1603,15 +1710,29 @@ io.on("connection", socket => {
 
         const dest = vehiculos[destinoId];
         const origen = vehiculoDeSocket(socket);
-        if (!dest || !dest.socketId || !origen) return;
+        if (!dest || !origen) return;
         if (!puedeVer(origen, dest) && !puedeVer(dest, origen)) return;
 
-        io.to(dest.socketId).emit("mensajePrivado", {
+        const paquete = {
             de: origen.id,
             nombre: origen.nombre || "Anónimo",
             mensaje: mensaje,
             ts: Date.now()
-        });
+        };
+        if (socketVivo(dest)) {
+            io.to(dest.socketId).emit("mensajePrivado", paquete);
+        } else {
+            encolarInbox(dest, {
+                evento: "mensajePrivado",
+                de: paquete.de,
+                nombre: paquete.nombre,
+                mensaje: paquete.mensaje,
+                texto: paquete.mensaje,
+                ts: paquete.ts,
+                privado: true,
+                canal: "privado"
+            });
+        }
     });
 
     socket.on("audioV2V", (payload, ack) => {
@@ -1647,6 +1768,19 @@ io.on("connection", socket => {
         } else {
             emitirASalas(salasRadioDe(v), "audioV2V", payloadZona(v, paquete), socket.id);
         }
+        encolarParaAusentes({
+            evento: "audioV2V",
+            de: paquete.de,
+            nombre: paquete.nombre,
+            texto: paquete.texto,
+            mime: paquete.mime,
+            audio: paquete.audio,
+            ts: paquete.ts,
+            canal: canal
+        }, paquete.de, function (dest) {
+            if (canal === "grupo") return !!(v && dest.grupo && dest.grupo === v.grupo);
+            return puedeHablarRadio(v, dest);
+        });
         if (typeof ack === "function") ack({ ok: true });
     });
 
@@ -1660,19 +1794,34 @@ io.on("connection", socket => {
         }
         const dest = vehiculos[destinoId];
         const origen = vehiculoDeSocket(socket);
-        if (!dest || !dest.socketId || !origen || (!puedeVer(origen, dest) && !puedeVer(dest, origen))) {
+        if (!dest || !origen || (!puedeVer(origen, dest) && !puedeVer(dest, origen))) {
             if (typeof ack === "function") ack({ ok: false });
             return;
         }
         const meta = metaEmisor(socket);
-        io.to(dest.socketId).emit("audioPrivado", {
+        const paquete = {
             de: meta.de,
             nombre: meta.nombre,
             mime: sanitizarTexto(payload.mime, 40) || "audio/webm",
             texto: sanitizarTexto(payload.texto, 500),
             audio: audio,
             ts: Date.now()
-        });
+        };
+        if (socketVivo(dest)) {
+            io.to(dest.socketId).emit("audioPrivado", paquete);
+        } else {
+            encolarInbox(dest, {
+                evento: "audioPrivado",
+                de: paquete.de,
+                nombre: paquete.nombre,
+                texto: paquete.texto,
+                mime: paquete.mime,
+                audio: paquete.audio,
+                ts: paquete.ts,
+                privado: true,
+                canal: "privado"
+            });
+        }
         if (typeof ack === "function") ack({ ok: true });
     });
 
