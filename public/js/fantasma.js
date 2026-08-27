@@ -1,6 +1,6 @@
 // ===================================================
 // RadioMap – Compartir Fantasma
-// El anfitrión emite su vista; el invitado solo mira.
+// El anfitrión emite su vista; el invitado mira y puede hablar por walkie.
 // ===================================================
 (function (global) {
     "use strict";
@@ -342,8 +342,8 @@
         if (nom) nom.textContent = nombre || "alguien";
         if (sub) {
             if (error) sub.textContent = error;
-            else if (pausa) sub.textContent = "Sin señal · el viaje sigue, cuando vuelva a RadioMap se retoma";
-            else sub.textContent = "Solo lectura · estás mirando su recorrido";
+            else if (pausa) sub.textContent = "Sin señal · el walkie sigue; cuando vuelva se retoma";
+            else sub.textContent = "Walkie abierto · mantené el micrófono para hablarle";
         }
         if (b) {
             b.classList.toggle("error", !!error);
@@ -531,13 +531,16 @@
     }
 
     function marcarChromeInerte(si) {
-        var sels = [".hud-top", ".habla-mapa", ".dock-mapa", ".comms-panel", ".radio-cerca"];
+        var sels = [".hud-top", ".comms-panel", ".radio-cerca", ".mapa-atajos"];
         var i;
         for (i = 0; i < sels.length; i++) {
             document.querySelectorAll(sels[i]).forEach(function (el) {
                 try { el.inert = !!si; } catch (e) {}
             });
         }
+        document.querySelectorAll(".dock-mapa .dock-item").forEach(function (el) {
+            try { el.inert = !!si; } catch (e2) {}
+        });
     }
 
     function unirseComoInvitado() {
@@ -549,7 +552,10 @@
         setBannerInvitado("…", "");
         var portada = $("portada");
         if (portada) portada.classList.add("oculto");
-        api.socket.emit("fantasmaUnirse", { token: token }, function (res) {
+        api.socket.emit("fantasmaUnirse", {
+            token: token,
+            nombre: api.nombre ? api.nombre() : ""
+        }, function (res) {
             if (!res || !res.ok) {
                 setBannerInvitado("RadioMap", (res && res.error) || "Ese fantasma ya no está al aire.");
                 return;

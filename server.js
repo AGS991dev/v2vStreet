@@ -963,6 +963,14 @@ function salaFantasma(token) {
     return "fan:" + token;
 }
 
+function tokenFantasmaDeSocket(socket) {
+    if (socket.fantasmaToken && recFantasmaVivo(socket.fantasmaToken)) return socket.fantasmaToken;
+    const yo = vehiculoDeSocket(socket);
+    if (!yo) return "";
+    const t = fantasmaPorHost[yo.id];
+    return recFantasmaVivo(t) ? t : "";
+}
+
 function recFantasmaVivo(token) {
     const rec = token ? fantasmas[token] : null;
     if (!rec) return null;
@@ -1876,6 +1884,7 @@ io.on("connection", socket => {
             return;
         }
         socket.fantasmaToken = token;
+        socket.fantasmaNombre = sanitizarTexto(payload && payload.nombre, 40);
         socket.join(salaFantasma(token));
         if (typeof ack === "function") {
             ack({
@@ -1904,6 +1913,34 @@ io.on("connection", socket => {
         rec.socketId = socket.id;
         rec.ultimaVista = vista;
         socket.to(salaFantasma(token)).emit("fantasmaVista", vista);
+    });
+
+    socket.on("audioFantasma", (payload, ack) => {
+        const token = tokenFantasmaDeSocket(socket);
+        const rec = recFantasmaVivo(token);
+        const audio = payload && payload.audio;
+        const bytes = tamanioAudio(audio);
+        if (!rec || bytes < 200 || bytes > 400000 || !rateOk(ultimoAudioTs, socket.id, minMsAudio())) {
+            if (typeof ack === "function") ack({ ok: false });
+            return;
+        }
+        const yo = vehiculoDeSocket(socket);
+        const claimed = sanitizarTexto(payload && payload.id, 64);
+        const de = (yo && yo.id) || (/^v[a-z0-9]+$/i.test(claimed) ? claimed : socket.id);
+        const nombre = sanitizarTexto(
+            (yo && yo.nombre) || (payload && payload.nombre) || socket.fantasmaNombre,
+            40
+        ) || "Alguien";
+        socket.to(salaFantasma(token)).emit("audioFantasma", {
+            de: de,
+            nombre: nombre,
+            mime: sanitizarTexto(payload.mime, 40) || "audio/webm",
+            texto: sanitizarTexto(payload.texto, 500),
+            audio: audio,
+            ts: Date.now(),
+            canal: "fantasma"
+        });
+        if (typeof ack === "function") ack({ ok: true });
     });
 
     socket.on("disconnect", () => {

@@ -4854,8 +4854,26 @@ body.modo-fantasma-invitado .hud-top {
     user-select: none;
 }
 
-body.modo-fantasma-invitado .habla-mapa,
-body.modo-fantasma-invitado .dock-mapa,
+body.modo-fantasma-invitado .habla-mapa {
+    opacity: 1;
+    filter: none;
+    pointer-events: none;
+    user-select: none;
+}
+
+body.modo-fantasma-invitado .habla-mapa .mapa-atajos {
+    opacity: 0.42;
+    filter: grayscale(0.55);
+    pointer-events: none !important;
+}
+
+body.modo-fantasma-invitado .dock-mapa {
+    opacity: 1;
+    filter: none;
+    pointer-events: none;
+    user-select: none;
+}
+
 body.modo-fantasma-invitado .comms-panel,
 body.modo-fantasma-invitado .radio-cerca,
 body.modo-fantasma-invitado .aviso-gps,
@@ -4867,12 +4885,22 @@ body.modo-fantasma-invitado .carrera-ptt {
     user-select: none;
 }
 
+body.modo-fantasma-invitado #btnPttMapa,
+body.modo-fantasma-invitado #btnPttDock {
+    opacity: 1;
+    filter: none;
+    pointer-events: auto !important;
+    user-select: auto;
+}
+
 body.modo-fantasma-invitado .leaflet-container {
     cursor: default;
 }
 
 body.modo-fantasma-invitado .fantasma-banner,
-body.modo-fantasma-invitado .fantasma-banner * {
+body.modo-fantasma-invitado .fantasma-banner *,
+body.modo-fantasma-invitado #avisoAudio,
+body.modo-fantasma-invitado #ackWalkie {
     opacity: 1;
     filter: none;
     pointer-events: auto;

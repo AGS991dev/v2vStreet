@@ -3122,6 +3122,7 @@
         }
         const pttSmall = document.querySelector("#btnPttMapa .ptt-leyenda small");
         if (pttSmall) pttSmall.textContent = "Walkie a RADIO";
+        if (enWalkieFantasma()) pintarLeyendaPttFantasma();
         const btnRadio = $("btnEnviarV2V");
         if (btnRadio) {
             const txt = btnRadio.childNodes[btnRadio.childNodes.length - 1];
@@ -3758,6 +3759,33 @@
         if (el) el.classList.toggle("hablando", !!on);
     }
 
+    function enWalkieFantasma() {
+        return esInvitadoFantasma() || !!(window.RadioMapFantasma && RadioMapFantasma.activo());
+    }
+
+    function nombreWalkie() {
+        const el = $("nombre");
+        const n = el && el.value ? el.value.trim() : "";
+        if (n) return n;
+        try { return (localStorage.getItem("nombre") || "").trim() || "Alguien"; } catch (e) {
+            return "Alguien";
+        }
+    }
+
+    function pintarLeyendaPttFantasma() {
+        const txt = esInvitadoFantasma() ? "Walkie al fantasma" : "Walkie a RADIO y fantasma";
+        const titulo = esInvitadoFantasma()
+            ? "Mantené para hablarle a quien compartió el recorrido"
+            : "Mantené para hablar a RADIO y al fantasma";
+        document.querySelectorAll("#btnPttMapa .ptt-leyenda small, #btnPttDock .ptt-leyenda small").forEach(function (el) {
+            el.textContent = txt;
+        });
+        ["btnPttMapa", "btnPttDock"].forEach(function (id) {
+            const b = $(id);
+            if (b) b.title = titulo;
+        });
+    }
+
     function modoPttTab() {
         if (tabActiva === "privado") return "privado";
         if (tabActiva === "grupo") return "grupo";
@@ -3765,6 +3793,10 @@
     }
 
     function pintarCanalPtt() {
+        if (esInvitadoFantasma()) {
+            pintarLeyendaPttFantasma();
+            return;
+        }
         const canal = modoPttTab();
         const titulo = canal === "privado"
             ? "Mantené para hablar en privado"
@@ -3798,11 +3830,12 @@
         if (modo === "privado") return "privado";
         if (modo === "grupo") return "grupo";
         if (modo === "carrera") return "carrera";
+        if (modo === "fantasma") return "fantasma";
         return "general";
     }
 
     function empezarPtt(modo) {
-        if (esInvitadoFantasma()) return;
+        if (esInvitadoFantasma()) modo = "fantasma";
         if (resolverModoPtt(modo) === "privado" && esFantasma(contactoActivo)) {
             mostrarMensajeFantasma();
             return;
@@ -3847,6 +3880,9 @@
             if ($("destinoNombre")) $("destinoNombre").textContent = etiquetaGrupo() + " · " + miGrupo;
         } else if (canal === "carrera") {
             setAvisoAudio("Mantené para hablar a la carrera — soltá para enviar");
+        } else if (canal === "fantasma") {
+            setAvisoAudio("Mantené para hablar al fantasma — soltá para enviar");
+            pintarLeyendaPttFantasma();
         } else {
             setAvisoAudio("Mantené para hablar a RADIO — soltá para enviar");
             actualizarDestinoUI();
@@ -4004,9 +4040,26 @@
                     return;
                 }
                 emitirAudioConAck("audioCarrera", { carreraId: cid, mime: mime, audio: buf, texto: dicho });
+            } else if (pttModo === "fantasma") {
+                emitirAudioConAck("audioFantasma", {
+                    mime: mime,
+                    audio: buf,
+                    texto: dicho,
+                    nombre: nombreWalkie(),
+                    id: miId
+                });
             } else {
                 emitirAudioConAck("audioV2V", { mime: mime, audio: buf, texto: dicho, canal: "radio" });
                 agregarMensaje($("msgsV2V"), $("nombre").value.trim() || "Vos", texto, true, ts);
+                if (window.RadioMapFantasma && RadioMapFantasma.activo()) {
+                    socket.emit("audioFantasma", {
+                        mime: mime,
+                        audio: buf,
+                        texto: dicho,
+                        nombre: nombreWalkie(),
+                        id: miId
+                    });
+                }
             }
         }).catch(function () {
             avisarEnvioPtt(false);
@@ -4180,6 +4233,12 @@
     socket.on("audioCarrera", function (data) {
         if (data && data.de && data.de !== miId && esBloqueado(data.de)) return;
         if (!(window.RadioMapCarrera && RadioMapCarrera.activo())) return;
+        reproducirAudio(data);
+    });
+
+    socket.on("audioFantasma", function (data) {
+        if (!data) return;
+        if (data.de && (data.de === miId || soyYoId(data.de))) return;
         reproducirAudio(data);
     });
 
@@ -4805,6 +4864,7 @@
         bindPtt($("btnHablarRadio"), "general");
         bindPtt($("btnHablarGrupo"), "grupo");
         bindPtt($("btnCarreraPtt"), "carrera");
+        if (esInvitadoFantasma()) pintarLeyendaPttFantasma();
         restaurarRadioGuardado();
         const gUrl = codigoDesdeUrl();
         if (gUrl) {
