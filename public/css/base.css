@@ -4298,11 +4298,20 @@ body.modo-manejo .atajo-pill {
 }
 
 .carrera-choque img {
+    display: block;
+    pointer-events: none;
+}
+
+.carrera-explosion img {
     width: 72px;
     height: 72px;
-    display: block;
     mix-blend-mode: screen;
-    pointer-events: none;
+}
+
+.carrera-mecanico img {
+    width: 80px;
+    height: 80px;
+    mix-blend-mode: normal;
 }
 
 .carrera-vel {
@@ -4621,6 +4630,17 @@ body.modo-carrera-setup .ack-walkie {
     text-align: center;
 }
 
+.carrera-meta.choque {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    box-shadow: 0 16px 40px rgba(40, 30, 10, 0.12);
+}
+
+.carrera-meta.choque-fatal {
+    background: rgba(255, 255, 255, 0.78);
+}
+
 .carrera-meta h2 {
     margin: 0;
     font-size: 32px;
@@ -4635,6 +4655,10 @@ body.modo-carrera-setup .ack-walkie {
     display: block;
     margin: 8px 0 16px;
     font-size: 22px;
+}
+
+.carrera-meta.choque:not(.choque-fatal) .btn-portada {
+    display: none;
 }
 
 body.modo-carrera-setup .habla-mapa,

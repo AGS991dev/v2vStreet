@@ -17,7 +17,12 @@
     var CURVA_135_KMH = 60;
     var AVISO_CURVA_M = 260;
     var ZONA_CURVA_M = 9;
-    var GIF_CHOQUE = "img/explosin.gif";
+    var GIF_EXPLOSION = "img/explosion.gif";
+    var GIF_MECANICO = "img/mecanico.gif";
+    var CHOQUES_MAX = 3;
+    var CHOQUE_FRENO_S = 1;
+    var CHOQUE_EXPLOSION_MS = 2000;
+    var CHOQUE_MECANICO_MS = 2000;
 
     var api = null;
     var fase = "idle";
@@ -37,6 +42,11 @@
     var mapLock = null;
     var cuentaTimers = [];
     var velChoqueKmh = null;
+    var choques = 0;
+    var choqueFx = null;
+    var velFrenoInicio = 0;
+    var tFreno = 0;
+    var avisoChoque = null;
     var rival = null;
     var carreraId = null;
     var invitacionPendiente = null;
@@ -91,6 +101,8 @@
             velKmh: vehiculo ? vehiculo.velMs * 3.6 : 0,
             lat: ll ? ll[0] : null,
             lng: ll ? ll[1] : null,
+            choques: choques,
+            choqueFx: choqueFx,
             ts: Date.now()
         };
     }
@@ -355,10 +367,18 @@
         });
     }
 
-    function iconoChoque() {
+    function iconoFx(tipo) {
+        if (tipo === "mecanico") {
+            return L.divIcon({
+                className: "carrera-choque carrera-mecanico",
+                html: '<img src="' + GIF_MECANICO + '" alt="" width="80" height="80">',
+                iconSize: [80, 80],
+                iconAnchor: [40, 70]
+            });
+        }
         return L.divIcon({
-            className: "carrera-choque",
-            html: '<img src="' + GIF_CHOQUE + '" alt="" width="72" height="72">',
+            className: "carrera-choque carrera-explosion",
+            html: '<img src="' + GIF_EXPLOSION + '" alt="" width="72" height="72">',
             iconSize: [72, 72],
             iconAnchor: [36, 36]
         });
@@ -477,10 +497,16 @@
         mostrar($("carreraPedales"), fase === "corriendo");
         mostrar($("btnCarreraSalir"), fase === "corriendo");
         mostrar($("btnCarreraPtt"), fase === "corriendo" || fase === "esperando" || fase === "meta" || fase === "choque");
-        mostrar($("carreraMeta"), fase === "meta" || fase === "choque");
+        mostrar($("carreraMeta"), fase === "meta" || (fase === "choque" && choqueFx !== "frenando"));
         setHudSel(fase === "eligiendo_a" || fase === "eligiendo_b" || fase === "listo" || fase === "esperando");
         var hud = $("carreraHudSel");
         if (hud) hud.setAttribute("data-fase", fase || "");
+        var meta = $("carreraMeta");
+        if (meta) {
+            meta.classList.toggle("choque", fase === "choque");
+            meta.classList.toggle("choque-fatal", fase === "choque" && choques >= CHOQUES_MAX);
+        }
+        mostrar($("btnCarreraVolver"), fase === "meta" || (fase === "choque" && choques >= CHOQUES_MAX));
     }
 
     function escHtml(s) {
@@ -627,9 +653,25 @@
         }
         aplicarRumboMarker(rival.id, rumboSnap);
         marcarRivalEl(m);
-        if (snap.fase === "choque") {
-            m.setIcon(iconoChoque());
-            m._iconoSrc = null;
+        aplicarFxRival(m, snap);
+    }
+
+    function aplicarFxRival(m, snap) {
+        if (!m || !snap) return;
+        var fx = snap.choqueFx || (snap.fase === "choque" ? "explosion" : null);
+        if (fx === "explosion" || fx === "mecanico") {
+            if (m._carreraFx !== fx) {
+                m.setIcon(iconoFx(fx));
+                m._carreraFx = fx;
+                m._iconoSrc = null;
+            }
+            return;
+        }
+        if (m._carreraFx) {
+            var xy = api.iconoDeAuto ? api.iconoDeAuto(rival) : { x: rival.iconoX || 0, y: rival.iconoY || 0 };
+            if (api.crearIcono) m.setIcon(api.crearIcono(false, xy));
+            m._carreraFx = null;
+            marcarRivalEl(m);
         }
     }
 
@@ -646,7 +688,9 @@
             lat: ll[0],
             lng: ll[1],
             rumbo: ruta.rumboEn(vehiculo.s),
-            fase: fase
+            fase: fase,
+            choques: choques,
+            choqueFx: choqueFx
         });
     }
 
@@ -695,14 +739,15 @@
         return best ? best.curva : null;
     }
 
-    function ponerExplosion(ll) {
+    function ponerFx(tipo, ll) {
         var m = api.markers[api.miId];
         if (!m) return;
-        m.setIcon(iconoChoque());
-        m.setLatLng(ll);
+        m.setIcon(iconoFx(tipo));
+        if (ll) m.setLatLng(ll);
         m.setZIndexOffset(2500);
         if (m.closeTooltip) m.closeTooltip();
         m._iconoSrc = null;
+        m._carreraFx = tipo;
     }
 
     function restaurarIconoAuto() {
@@ -710,34 +755,158 @@
         if (!m || !api.crearIcono) return;
         m.setIcon(api.crearIcono(true, api.iconoDeAuto ? api.iconoDeAuto({ id: api.miId }) : null));
         m.setZIndexOffset(1000);
+        m._carreraFx = null;
         if (ruta) aplicarRumboMarker(api.miId, ruta.rumboEn(vehiculo ? vehiculo.s : 0));
     }
 
-    function chocar(aviso) {
-        if (fase !== "corriendo") return;
-        fase = "choque";
-        velChoqueKmh = Math.round((vehiculo && vehiculo.velMs ? vehiculo.velMs : 0) * 3.6);
-        if (raf) cancelAnimationFrame(raf);
-        raf = 0;
-        controles.acel = false;
-        controles.freno = false;
-        ponerExplosion(ruta.puntoEn(vehiculo.s));
-        pintarVel(null);
+    function pintarPopupChoque() {
         var tit = $("carreraMetaTitulo");
         var txt = $("carreraMetaTxt");
         var tiempo = $("carreraMetaTiempo");
+        var fatal = choques >= CHOQUES_MAX;
         if (tit) tit.textContent = "¡CHOQUE!";
         if (txt) {
-            txt.textContent = aviso && aviso.maxKmh
-                ? ("El giro máximo era a " + aviso.maxKmh + " km/h.")
+            var base = avisoChoque && avisoChoque.maxKmh
+                ? ("El giro máximo era a " + avisoChoque.maxKmh + " km/h.")
                 : "Pasaste el giro más rápido de lo permitido.";
+            txt.textContent = fatal
+                ? (base + " Se acabaron los choques.")
+                : (base + " Choque " + choques + " de " + CHOQUES_MAX + ".");
         }
-        if (tiempo) tiempo.textContent = velChoqueKmh + " km/h";
+        if (tiempo) tiempo.textContent = (velChoqueKmh != null ? velChoqueKmh : 0) + " km/h";
+    }
+
+    function chocar(aviso) {
+        if (fase !== "corriendo" || choqueFx) return;
+        choques += 1;
+        avisoChoque = aviso || null;
+        velChoqueKmh = Math.round((vehiculo && vehiculo.velMs ? vehiculo.velMs : 0) * 3.6);
+        velFrenoInicio = vehiculo && vehiculo.velMs ? vehiculo.velMs : 0;
+        tFreno = 0;
+        controles.acel = false;
+        controles.freno = false;
+        fase = "choque";
+        choqueFx = "frenando";
+        pintarVel(null);
+        claseCuerpo();
+        emitirEstado(true);
+        if (!raf) {
+            ultimoTs = 0;
+            raf = requestAnimationFrame(loop);
+        }
+    }
+
+    function iniciarExplosionChoque() {
+        if (fase !== "choque") return;
+        choqueFx = "explosion";
+        vehiculo.velMs = 0;
+        var ll = ruta.puntoEn(vehiculo.s);
+        ponerFx("explosion", ll);
+        pintarPopupChoque();
+        pintarVel(null);
+        claseCuerpo();
+        emitirEstado(true);
+        programar(function () {
+            if (fase !== "choque" || choqueFx !== "explosion") return;
+            if (choques >= CHOQUES_MAX) return;
+            iniciarMecanicoChoque();
+        }, CHOQUE_EXPLOSION_MS);
+    }
+
+    function iniciarMecanicoChoque() {
+        if (fase !== "choque") return;
+        choqueFx = "mecanico";
+        var ll = ruta.puntoEn(vehiculo.s);
+        ponerFx("mecanico", ll);
+        pintarPopupChoque();
+        claseCuerpo();
+        emitirEstado(true);
+        programar(function () {
+            if (fase !== "choque" || choqueFx !== "mecanico") return;
+            reanudarTrasChoque();
+        }, CHOQUE_MECANICO_MS);
+    }
+
+    function reanudarTrasChoque() {
+        if (fase !== "choque") return;
+        if (resultadoDuelo === "ganaste" || resultadoDuelo === "perdiste") {
+            cerrarChoquePorResultado();
+            return;
+        }
+        choqueFx = null;
+        avisoChoque = null;
+        velChoqueKmh = null;
+        fase = "corriendo";
+        vehiculo.velMs = 0;
+        controles.acel = false;
+        controles.freno = false;
+        restaurarIconoAuto();
+        moverAuto(ruta.puntoEn(vehiculo.s), ruta.rumboEn(vehiculo.s));
+        pintarVel(null);
+        claseCuerpo();
+        ultimoTs = 0;
+        if (raf) cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(loop);
+        emitirEstado(true);
+    }
+
+    function cerrarChoquePorResultado() {
+        if (raf) cancelAnimationFrame(raf);
+        raf = 0;
+        choqueFx = null;
+        velChoqueKmh = null;
+        vehiculo.velMs = 0;
+        controles.acel = false;
+        controles.freno = false;
+        restaurarIconoAuto();
+        fase = "meta";
+        tFin = Date.now();
+        var tit = $("carreraMetaTitulo");
+        var txt = $("carreraMetaTxt");
+        var tiempo = $("carreraMetaTiempo");
+        if (resultadoDuelo === "ganaste") {
+            if (tit) tit.textContent = "¡GANASTE!";
+            if (txt) txt.textContent = "El rival se bajó.";
+        } else {
+            if (tit) tit.textContent = "Segundo";
+            if (txt) txt.textContent = "El rival llegó antes.";
+        }
+        if (tiempo) tiempo.textContent = textoTiempo(tFin - t0);
         claseCuerpo();
         emitirEstado(true);
     }
 
     function loop(ts) {
+        if (fase === "choque" && choqueFx === "frenando") {
+            raf = requestAnimationFrame(loop);
+            if (!ultimoTs) {
+                ultimoTs = ts;
+                return;
+            }
+            var dtF = Math.min(0.05, (ts - ultimoTs) / 1000);
+            ultimoTs = ts;
+            tFreno += dtF;
+            var k = Math.min(1, tFreno / CHOQUE_FRENO_S);
+            vehiculo.velMs = Math.max(0, velFrenoInicio * (1 - k));
+            var ds = ruta.distM > 1 ? (vehiculo.velMs * dtF * SENSACION) / ruta.distM : 0;
+            vehiculo.s = Math.max(0, Math.min(1, vehiculo.s + ds));
+            moverAuto(ruta.puntoEn(vehiculo.s), ruta.rumboEn(vehiculo.s));
+            pintarVel(null);
+            emitirEstado(false);
+            if (vehiculo.s >= 1) {
+                if (raf) cancelAnimationFrame(raf);
+                raf = 0;
+                choqueFx = null;
+                terminar();
+                return;
+            }
+            if (k >= 1) {
+                if (raf) cancelAnimationFrame(raf);
+                raf = 0;
+                iniciarExplosionChoque();
+            }
+            return;
+        }
         if (fase !== "corriendo") return;
         raf = requestAnimationFrame(loop);
         if (!ultimoTs) {
@@ -765,8 +934,11 @@
     }
 
     function terminar() {
-        if (fase !== "corriendo") return;
+        if (fase !== "corriendo" && fase !== "choque") return;
+        if (fase === "choque" && choqueFx) return;
         fase = "meta";
+        choqueFx = null;
+        avisoChoque = null;
         velChoqueKmh = null;
         vehiculo.velMs = 0;
         vehiculo.s = 1;
@@ -775,6 +947,7 @@
         raf = 0;
         controles.acel = false;
         controles.freno = false;
+        restaurarIconoAuto();
         moverAuto(ruta.puntoEn(1), ruta.rumboEn(1));
         pintarVel();
         var tit = $("carreraMetaTitulo");
@@ -822,6 +995,11 @@
         ruta = r;
         vehiculo = { s: 0, velMs: 0 };
         velChoqueKmh = null;
+        choques = 0;
+        choqueFx = null;
+        avisoChoque = null;
+        velFrenoInicio = 0;
+        tFreno = 0;
         controles.acel = false;
         controles.freno = false;
         ultimoEmit = 0;
@@ -891,6 +1069,11 @@
         rutaSeq += 1;
         vehiculo = null;
         velChoqueKmh = null;
+        choques = 0;
+        choqueFx = null;
+        avisoChoque = null;
+        velFrenoInicio = 0;
+        tFreno = 0;
         rival = null;
         carreraId = null;
         resultadoDuelo = null;
@@ -899,6 +1082,11 @@
         quitarCapas();
         var caja = $("carreraVel");
         if (caja) caja.classList.remove("choque");
+        var meta = $("carreraMeta");
+        if (meta) {
+            meta.classList.remove("choque");
+            meta.classList.remove("choque-fatal");
+        }
         pintarVel(null);
     }
 
@@ -1083,6 +1271,19 @@
     function onResultado(data) {
         if (!data) return;
         resultadoDuelo = data.resultado || resultadoDuelo;
+        if (fase === "choque" && choqueFx && (resultadoDuelo === "ganaste" || resultadoDuelo === "perdiste")) {
+            limpiarCuenta();
+            cerrarChoquePorResultado();
+            if (resultadoDuelo === "ganaste") {
+                var txtWin = $("carreraMetaTxt");
+                if (txtWin) {
+                    txtWin.textContent = data.motivo === "abandono" || data.motivo === "desconexion"
+                        ? "El rival se bajó."
+                        : "Llegaste primero.";
+                }
+            }
+            return;
+        }
         if (fase === "meta" || fase === "choque") {
             var tit = $("carreraMetaTitulo");
             var txt = $("carreraMetaTxt");
@@ -1111,7 +1312,14 @@
         s.on("carreraCancelada", onCancelada);
         s.on("carreraRival", moverRivalSnap);
         s.on("carreraRivalChoque", function (d) {
-            if (d) moverRivalSnap({ lat: d.lat, lng: d.lng, rumbo: d.rumbo, fase: "choque" });
+            if (!d) return;
+            moverRivalSnap({
+                lat: d.lat,
+                lng: d.lng,
+                rumbo: d.rumbo,
+                fase: "choque",
+                choqueFx: d.choqueFx || "explosion"
+            });
         });
         s.on("carreraResultado", onResultado);
         s.on("carreraFin", onFin);

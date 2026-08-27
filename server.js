@@ -1835,7 +1835,9 @@ io.on("connection", socket => {
             lat: Number(payload.lat),
             lng: Number(payload.lng),
             rumbo: Number(payload.rumbo),
-            fase: sanitizarTexto(payload.fase, 20)
+            fase: sanitizarTexto(payload.fase, 20),
+            choques: Math.max(0, Math.min(3, Number(payload.choques) || 0)),
+            choqueFx: sanitizarTexto(payload.choqueFx, 20) || null
         };
         c.snapshots[yo.id] = snap;
         emitirAJugador(otro, "carreraRival", snap);
@@ -1850,8 +1852,15 @@ io.on("connection", socket => {
                 ganador: fichaCarrera(vehiculos[yo.id])
             });
         }
-        if (snap.fase === "choque") {
-            emitirAJugador(otro, "carreraRivalChoque", { id: yo.id, carreraId: c.id });
+        if (snap.fase === "choque" && (snap.choqueFx === "explosion" || snap.choqueFx === "mecanico")) {
+            emitirAJugador(otro, "carreraRivalChoque", {
+                id: yo.id,
+                carreraId: c.id,
+                lat: snap.lat,
+                lng: snap.lng,
+                rumbo: snap.rumbo,
+                choqueFx: snap.choqueFx
+            });
         }
     });
 
