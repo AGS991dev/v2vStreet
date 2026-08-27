@@ -1,5 +1,5 @@
-const CACHE = "radiomap-20260826z";
-const TILES = "radiomap-tiles-v1";
+const CACHE = "radiomap-20260827e";
+const TILES = "radiomap-tiles-v2";
 const TILES_MAX = 420;
 
 self.addEventListener("install", event => {
@@ -24,8 +24,7 @@ self.addEventListener("activate", event => {
 });
 
 function esTile(url) {
-    return url.hostname.indexOf("basemaps.cartocdn.com") >= 0 ||
-        url.hostname.indexOf("tile.openstreetmap.org") >= 0;
+    return url.hostname.indexOf("tile.openstreetmap.org") >= 0;
 }
 
 function recortarTiles(cache) {

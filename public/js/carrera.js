@@ -53,6 +53,9 @@
     var ultimoEmit = 0;
     var resultadoDuelo = null;
     var ultimoRivalSnap = null;
+    var linkTokenActivo = "";
+    var uniendoPorLink = false;
+    var TXT_WA_CARRERA = "Te desafío a una carrera en RadioMap 🏁. Tocá el link, aceptá y largamos juntos:";
 
     function $(id) {
         return api && api.$ ? api.$(id) : document.getElementById(id);
@@ -479,8 +482,84 @@
         mostrar($("carreraHudSel"), mostrarSel);
         mostrar($("btnCarreraLargar"), fase === "listo");
         mostrar($("btnCarreraRehacer"), fase === "listo");
+        mostrar($("btnCarreraWhatsApp"), fase === "listo");
         if (fase === "listo") pintarListaRivales();
         else mostrar($("carreraListaRivales"), false);
+    }
+
+    function tokenCarreraDeUrl() {
+        try {
+            return String(new URLSearchParams(window.location.search).get("carrera") || "").trim();
+        } catch (e) {
+            return "";
+        }
+    }
+
+    function urlCarreraPublica(token) {
+        var path = window.location.pathname || "/";
+        var origin = window.location.origin || "";
+        return origin + path.replace(/\?.*$/, "").replace(/#.*$/, "") + "?carrera=" + encodeURIComponent(token);
+    }
+
+    function abrirWhatsAppCarrera(token) {
+        var url = urlCarreraPublica(token);
+        var texto = TXT_WA_CARRERA + " " + url;
+        var wa = "https://api.whatsapp.com/send?text=" + encodeURIComponent(texto);
+        var win = window.open(wa, "_blank");
+        if (!win && navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(texto).then(function () {
+                alert("WhatsApp no se abrió. Copiamos el mensaje para que lo pegues.");
+            }).catch(function () {
+                prompt("Copiá este mensaje y envialo por WhatsApp:", texto);
+            });
+        } else if (!win) {
+            prompt("Copiá este mensaje y envialo por WhatsApp:", texto);
+        }
+    }
+
+    function iconoRandomLocal() {
+        var cols = 15;
+        var rows = 8;
+        if (api && api.iconoGrilla) {
+            var g = api.iconoGrilla();
+            if (g) {
+                cols = Math.max(1, g.cols || cols);
+                rows = Math.max(1, g.rows || rows);
+            }
+        }
+        return {
+            x: Math.floor(Math.random() * cols),
+            y: Math.floor(Math.random() * rows)
+        };
+    }
+
+    function prepararPerfilInvitadoCarrera() {
+        var nomEl = $("nombre");
+        var nom = "";
+        try { nom = (localStorage.getItem("nombre") || "").trim(); } catch (e) { nom = ""; }
+        if (nomEl && nomEl.value) nom = String(nomEl.value).trim() || nom;
+        if (nom) return false;
+        if (nomEl) nomEl.value = "Invitado";
+        try { localStorage.setItem("nombre", "Invitado"); } catch (e2) {}
+        var xy = iconoRandomLocal();
+        if (api && typeof api.guardarIconoLocal === "function") {
+            api.guardarIconoLocal(xy.x, xy.y);
+        } else {
+            try { localStorage.setItem("v2v_icono", JSON.stringify(xy)); } catch (e3) {}
+        }
+        if (api && typeof api.actualizarPerfilLocal === "function") api.actualizarPerfilLocal();
+        return true;
+    }
+
+    function entrarMapaParaCarrera() {
+        try {
+            localStorage.setItem("radiomap_entro", "1");
+            localStorage.setItem("baliza_entro", "1");
+        } catch (e) {}
+        var portada = $("portada");
+        if (portada) portada.classList.add("oculto");
+        if (api && typeof api.iniciarGps === "function") api.iniciarGps();
+        if (api && typeof api.emitirTelemetria === "function") api.emitirTelemetria(true);
     }
 
     function setupActivo() {
@@ -528,11 +607,11 @@
         var lista = api.conectados ? api.conectados() : [];
         caja.classList.remove("oculto");
         if (!lista.length) {
-            caja.innerHTML = '<p class="carrera-rivales-vacio">Nadie conectado cerca. Podés largar en práctica o esperar.</p>';
+            caja.innerHTML = '<p class="carrera-rivales-vacio">Nadie conectado cerca. Invitá por WhatsApp o largá en práctica.</p>';
             return;
         }
         caja.innerHTML = lista.map(function (p) {
-            var nom = escHtml(p.nombre || "Sin nombre");
+            var nom = escHtml(p.nombre || "Invitado");
             var extra = p.vehiculo ? ("<small>" + escHtml(p.vehiculo) + "</small>") : "";
             return '<button type="button" class="carrera-rival" data-id="' + escHtml(p.id) + '">' +
                 "<span><strong>" + nom + "</strong>" + extra + "</span><em>Desafiar</em></button>";
@@ -541,6 +620,58 @@
             btn.addEventListener("click", function () {
                 desafiar(btn.getAttribute("data-id"));
             });
+        });
+    }
+
+    function invitarPorWhatsApp() {
+        if (fase !== "listo" || !rutaArmada) return;
+        socketEmit("carreraInvitarLink", {
+            path: rutaArmada.puntos,
+            a: rutaArmada.a,
+            b: rutaArmada.b,
+            km: rutaArmada.km
+        }, function (res) {
+            if (!res || !res.ok || !res.token) {
+                setBanner(
+                    "Circuito listo",
+                    textoKm(rutaArmada.km) + " · desafiá a alguien o largá práctica",
+                    (res && res.error) || "No se pudo armar el link."
+                );
+                claseCuerpo();
+                return;
+            }
+            linkTokenActivo = res.token;
+            modo = "duelo";
+            rival = { id: "", nombre: "Invitado", vehiculo: "", link: true };
+            fase = "esperando";
+            setBanner(
+                "Esperando por WhatsApp",
+                "Cuando acepten el link, largan juntos el 1 vs 1."
+            );
+            claseCuerpo();
+            abrirWhatsAppCarrera(res.token);
+        });
+    }
+
+    function unirsePorLinkCarrera() {
+        var token = tokenCarreraDeUrl();
+        if (!token || !api || !api.socket || uniendoPorLink) return;
+        uniendoPorLink = true;
+        prepararPerfilInvitadoCarrera();
+        entrarMapaParaCarrera();
+        if (api && typeof api.emitirTelemetria === "function") api.emitirTelemetria(true);
+        socketEmit("carreraUnirseLink", { token: token }, function (res) {
+            uniendoPorLink = false;
+            if (!res || !res.ok) {
+                var err = (res && res.error) || "";
+                if (/mapa|conexión|conectado/i.test(err)) {
+                    setTimeout(unirsePorLinkCarrera, 900);
+                    return;
+                }
+                alert(err || "Ese desafío ya no está. Pedile un link nuevo.");
+                return;
+            }
+            if (res.invitacion && !invitacionPendiente) mostrarModalDuelo(res.invitacion);
         });
     }
 
@@ -587,6 +718,7 @@
         if (!m) return;
         m.setLatLng(ll);
         if (m.closeTooltip) m.closeTooltip();
+        if (m.closePopup) m.closePopup();
         aplicarRumboMarker(api.miId, rumbo);
         api.map.setView(ll, Math.max(api.map.getZoom(), 17), { animate: false });
     }
@@ -606,6 +738,7 @@
             m.setLatLng(ll);
             m.setZIndexOffset(2000);
             if (m.closeTooltip) m.closeTooltip();
+            if (m.closePopup) m.closePopup();
         }
         return m;
     }
@@ -633,6 +766,7 @@
             m.setZIndexOffset(1800);
         }
         if (m.closeTooltip) m.closeTooltip();
+        if (m.closePopup) m.closePopup();
         marcarRivalEl(m);
         if (ruta) aplicarRumboMarker(rival.id, ruta.rumboEn(vehiculo ? vehiculo.s : 0));
         return m;
@@ -746,6 +880,7 @@
         if (ll) m.setLatLng(ll);
         m.setZIndexOffset(2500);
         if (m.closeTooltip) m.closeTooltip();
+        if (m.closePopup) m.closePopup();
         m._iconoSrc = null;
         m._carreraFx = tipo;
     }
@@ -1094,11 +1229,15 @@
         if (raf) cancelAnimationFrame(raf);
         raf = 0;
         limpiarCuenta();
-        if (carreraId || rival) socketEmit("carreraSalir");
+        if (carreraId || rival || linkTokenActivo || fase === "esperando") socketEmit("carreraSalir");
         ocultarModalDuelo();
         invitacionPendiente = null;
+        linkTokenActivo = "";
         restaurarIconoAuto();
         fase = "idle";
+        modo = "practica";
+        rival = null;
+        carreraId = null;
         controles.acel = false;
         controles.freno = false;
         lockMapa(false);
@@ -1185,11 +1324,12 @@
                 claseCuerpo();
                 return;
             }
+            linkTokenActivo = "";
             modo = "duelo";
-            rival = res.rival || ficha || { id: id, nombre: "Rival" };
+            rival = res.rival || ficha || { id: id, nombre: "Invitado" };
             fase = "esperando";
             setBanner(
-                "Esperando a " + (rival.nombre || "tu rival"),
+                "Esperando a " + (rival.nombre || "Invitado"),
                 "Si acepta, largan juntos el 1 vs 1."
             );
             claseCuerpo();
@@ -1230,6 +1370,7 @@
         if (!data || !data.path) return;
         ocultarModalDuelo();
         invitacionPendiente = null;
+        linkTokenActivo = "";
         if (api.cerrarComms) api.cerrarComms();
         if (api.cerrarModales) api.cerrarModales();
         modo = "duelo";
@@ -1258,13 +1399,30 @@
         if (fase === "esperando") {
             modo = "practica";
             rival = null;
+            linkTokenActivo = "";
             fase = "listo";
+            var motivo = data && data.motivo;
+            var aviso = "El desafío se canceló.";
+            if (motivo === "rechazo") aviso = "No aceptó el desafío.";
+            else if (motivo === "timeout") aviso = "Se agotó el tiempo de espera.";
+            else if (motivo === "expiro") aviso = "El link de WhatsApp venció.";
             setBanner(
                 "Circuito listo",
                 rutaArmada ? (textoKm(rutaArmada.km) + " · desafiá a alguien o largá práctica") : "Elegí de nuevo",
-                (data && data.motivo === "rechazo") ? "No aceptó el desafío." : "El desafío se canceló."
+                aviso
             );
             claseCuerpo();
+        }
+    }
+
+    function onLinkListo(data) {
+        if (fase !== "esperando") return;
+        if (data && data.rival) {
+            rival = data.rival;
+            setBanner(
+                "Esperando a " + (rival.nombre || "Invitado"),
+                "Abrió el link. Si acepta, largan juntos."
+            );
         }
     }
 
@@ -1310,6 +1468,7 @@
         s.on("carreraInvitacion", onInvitacion);
         s.on("carreraInicio", entrarDuelo);
         s.on("carreraCancelada", onCancelada);
+        s.on("carreraLinkListo", onLinkListo);
         s.on("carreraRival", moverRivalSnap);
         s.on("carreraRivalChoque", function (d) {
             if (!d) return;
@@ -1323,6 +1482,9 @@
         });
         s.on("carreraResultado", onResultado);
         s.on("carreraFin", onFin);
+        s.on("connect", function () {
+            if (tokenCarreraDeUrl()) unirsePorLinkCarrera();
+        });
     }
 
     function refrescarRivales() {
@@ -1433,6 +1595,8 @@
         if (rehacer) rehacer.addEventListener("click", empezarPractica);
         var largarBtn = $("btnCarreraLargar");
         if (largarBtn) largarBtn.addEventListener("click", largar);
+        var waBtn = $("btnCarreraWhatsApp");
+        if (waBtn) waBtn.addEventListener("click", invitarPorWhatsApp);
         var volver = $("btnCarreraVolver");
         if (volver) volver.addEventListener("click", salir);
         var salirRun = $("btnCarreraSalir");
@@ -1446,6 +1610,11 @@
         var fondo = $("fondoCarreraDuelo");
         if (fondo) fondo.addEventListener("click", function () { responderDuelo(false); });
         engancharSocket();
+        if (tokenCarreraDeUrl()) {
+            prepararPerfilInvitadoCarrera();
+            entrarMapaParaCarrera();
+            if (api.socket && api.socket.connected) unirsePorLinkCarrera();
+        }
         claseCuerpo();
     }
 

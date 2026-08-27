@@ -16,7 +16,7 @@
     const RUTA_MIN_M = 40;
     const MIC_OPTS = { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } };
     const ICONO_KEY = "v2v_icono";
-    const ICONO_CACHE = "20260821c";
+    const ICONO_CACHE = "20260827e";
     const ICO_MIC = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
     const ICO_SENAL = '<svg viewBox="0 0 20 16" aria-hidden="true"><rect x="1" y="10" width="3" height="5" rx="0.6" fill="currentColor"/><rect x="6" y="7" width="3" height="8" rx="0.6" fill="currentColor"/><rect x="11" y="4" width="3" height="11" rx="0.6" fill="currentColor"/><rect x="16" y="1" width="3" height="14" rx="0.6" fill="currentColor"/></svg>';
     const ICO_PIN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.6-7-11a7 7 0 1 1 14 0c0 6.4-7 11-7 11z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.2" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>';
@@ -77,8 +77,9 @@
             if (autos[id]) actualizarMarker(autos[id]);
         });
     });
-    const capaTiles = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-        attribution: "&copy; OpenStreetMap &copy; CARTO",
+    const capaTiles = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>",
+        subdomains: "abc",
         maxZoom: 19,
         keepBuffer: 2,
         updateWhenIdle: true,
@@ -86,11 +87,24 @@
         crossOrigin: true
     }).addTo(map);
 
-    const FICHA_BASE = {
+    const FICHA_POPUP = {
+        closeButton: false,
+        autoClose: false,
+        closeOnClick: false,
+        autoPan: false,
+        className: "ficha-popup",
+        maxWidth: 280,
+        minWidth: 228,
+        offset: [0, -4]
+    };
+
+    const NOMBRE_TIP = {
         permanent: true,
-        interactive: true,
+        direction: "bottom",
+        offset: [0, 8],
         opacity: 1,
-        className: "ficha"
+        interactive: true,
+        className: "nombre-conductor"
     };
 
     const markers = {};
@@ -120,7 +134,7 @@
     let pttReconocimiento = null;
     let audioCtxPtt = null;
     let pttAckHecho = false;
-    let popupsVisibles = true;
+    let popupsVisibles = false;
     let fichasForzadas = {};
     let radioCercaAbierta = false;
     const RADIO_CERCA_MAX = 9;
@@ -191,11 +205,20 @@
         return popupsVisibles;
     }
 
+    function debeMostrarNombre(id) {
+        if (modoNavGps && id === miId) return false;
+        if (debeMostrarFicha(id)) return false;
+        const marker = markers[id];
+        if (marker && marker.isPopupOpen && marker.isPopupOpen()) return false;
+        return true;
+    }
+
     function abrirFicha(id) {
         fichasForzadas[id] = "abierta";
         const marker = markers[id];
         if (!marker) return;
-        marker.openTooltip();
+        if (marker.closeTooltip) marker.closeTooltip();
+        if (marker.openPopup) marker.openPopup();
         silenciarHoverFicha(marker, id);
         requestAnimationFrame(function () { engancharFicha(marker, id); });
         if (id !== miId) pedirFicha(id);
@@ -204,7 +227,27 @@
     function cerrarFicha(id) {
         fichasForzadas[id] = "cerrada";
         const marker = markers[id];
-        if (marker) marker.closeTooltip();
+        if (!marker) return;
+        if (marker.closePopup) marker.closePopup();
+        if (debeMostrarNombre(id) && marker.openTooltip) marker.openTooltip();
+    }
+
+    function silenciarClickPopupLeaflet(marker) {
+        if (!marker || !marker._openPopup) return;
+        marker.off("click", marker._openPopup);
+    }
+
+    function engancharPopupCapa(marker, id) {
+        if (!marker || marker._popCapa) return;
+        marker._popCapa = true;
+        marker.on("popupopen", function () {
+            if (marker.closeTooltip) marker.closeTooltip();
+            requestAnimationFrame(function () { engancharFicha(marker, id); });
+        });
+        marker.on("popupclose", function () {
+            if (fichasForzadas[id] === "abierta") fichasForzadas[id] = "cerrada";
+            if (debeMostrarNombre(id) && marker.openTooltip) marker.openTooltip();
+        });
     }
 
     function engancharClickMarker(marker, id) {
@@ -212,12 +255,21 @@
         marker._clickFicha = true;
         marker.on("click", function (ev) {
             L.DomEvent.stopPropagation(ev);
-            if (id === miId && fichasForzadas[id] === "abierta") {
+            if (marker.isPopupOpen && marker.isPopupOpen()) {
                 cerrarFicha(id);
                 return;
             }
             abrirFicha(id);
         });
+        const tip = marker.getTooltip && marker.getTooltip();
+        if (tip && !tip._clickNombre) {
+            tip._clickNombre = true;
+            tip.on("click", function (ev) {
+                L.DomEvent.stopPropagation(ev);
+                if (marker.isPopupOpen && marker.isPopupOpen()) cerrarFicha(id);
+                else abrirFicha(id);
+            });
+        }
     }
 
     function silenciarHoverFicha(marker, id) {
@@ -227,13 +279,26 @@
         marker.off("mousemove");
     }
 
-    function fichaOpts(soyYo, a) {
+    function nombreConductor(a) {
+        if (!a) return "Sin nombre";
+        return soyYoId(a.id) ? "YO" : (a.nombre || "Sin nombre");
+    }
+
+    function nombreHtml(a) {
+        return esc(nombreConductor(a));
+    }
+
+    function nombreOpts(soyYo, a) {
         const sos = !!(a && a.asistencia && a.asistencia.activo);
-        return Object.assign({}, FICHA_BASE, {
-            direction: soyYo ? "bottom" : "top",
-            offset: soyYo ? [0, 14] : [0, -16],
-            permanent: !soyYo,
-            className: "ficha" + (soyYo ? " ficha-propia" : " ficha-radio") + (sos ? " ficha-sos" : "")
+        return Object.assign({}, NOMBRE_TIP, {
+            className: "nombre-conductor" + (soyYo ? " nombre-propio" : "") + (sos ? " nombre-sos" : "")
+        });
+    }
+
+    function fichaPopupOpts(soyYo, a) {
+        const sos = !!(a && a.asistencia && a.asistencia.activo);
+        return Object.assign({}, FICHA_POPUP, {
+            className: "ficha-popup" + (soyYo ? " ficha-propia" : " ficha-radio") + (sos ? " ficha-sos" : "")
         });
     }
 
@@ -241,11 +306,15 @@
         xy = clampIcono(xy && xy.x, xy && xy.y);
         const rec = recorteCelda(xy.x, xy.y);
         const size = tamanioMarker(rec.w, rec.h);
+        const ax = Math.round(size[0] / 2);
+        const ay = Math.round(size[1] / 2);
         return L.divIcon({
             className: "marker-auto" + (soyYo ? " marker-propio" : " marker-otro"),
             html: '<div class="auto-rot"><img class="auto-cuerpo" alt="" width="' + size[0] + '" height="' + size[1] + '" src="' + rec.url + '"></div>',
             iconSize: size,
-            iconAnchor: [Math.round(size[0] / 2), Math.round(size[1] / 2)]
+            iconAnchor: [ax, ay],
+            popupAnchor: [0, -ay],
+            tooltipAnchor: [0, ay]
         });
     }
 
@@ -1430,7 +1499,6 @@
     function prefetchTilesRuta(path) {
         if (!path || path.length < 2 || !navigator.onLine) return;
         const z = Math.max(14, Math.min(18, map.getZoom() || 16));
-        const retina = (window.devicePixelRatio || 1) >= 1.5 ? "@2x" : "";
         const step = Math.max(1, Math.floor(path.length / 36));
         const vistos = {};
         for (let i = 0; i < path.length; i += step) {
@@ -1438,7 +1506,7 @@
             const clave = z + "/" + t.x + "/" + t.y;
             if (vistos[clave]) continue;
             vistos[clave] = true;
-            const url = "https://a.basemaps.cartocdn.com/light_all/" + clave + retina + ".png";
+            const url = "https://a.tile.openstreetmap.org/" + clave + ".png";
             fetch(url, { mode: "cors", credentials: "omit", cache: "force-cache" }).catch(function () {});
         }
     }
@@ -1553,7 +1621,7 @@
     function mostrarModalMapaClick() {
         Object.keys(markers).forEach(function (id) {
             const m = markers[id];
-            if (m && m.isTooltipOpen && m.isTooltipOpen()) m.closeTooltip();
+            if (m && m.isPopupOpen && m.isPopupOpen()) m.closePopup();
         });
         $("modalMapaClick").classList.remove("oculto");
     }
@@ -2489,7 +2557,6 @@
             if (metrosEntre(p, adelantado) > 0.4) aplicarRumbo(id, rumboEntre(p, adelantado));
             marker.setLatLng(p);
             if (soyYo && circuloRadio) circuloRadio.setLatLng(p);
-            if (debeMostrarFicha(id) && !marker.isTooltipOpen()) marker.openTooltip();
             if (soyYo && (seguirMe || modoNavGps)) setVistaSeguir(p);
             if (t < 1) {
                 est.raf = requestAnimationFrame(frame);
@@ -2640,7 +2707,7 @@
         const placa = det ? det.placa : "";
         const telRaw = det ? det.contacto : "";
         const tel = (telRaw || "").replace(/[^\d+]/g, "");
-        const nombre = soyYo ? "YO" : (a.nombre || "Sin nombre");
+        const nombre = nombreConductor(a);
         const sos = !!(a.asistencia && a.asistencia.activo) || (soyYo && asistenciaActiva);
         const ausente = !soyYo && !!a.ausente;
         const vehiculo = a.vehiculo || "Vehículo";
@@ -2704,8 +2771,8 @@
     }
 
     function engancharFicha(marker, id) {
-        const tip = marker.getTooltip();
-        const root = tip && tip.getElement();
+        const pop = marker.getPopup && marker.getPopup();
+        const root = pop && pop.getElement();
         if (!root) return;
         root.querySelectorAll("[data-accion]").forEach(function (btn) {
             const accion = btn.getAttribute("data-accion");
@@ -2817,12 +2884,14 @@
         if (!markers[a.id]) {
             const marker = L.marker(latlng, {
                 icon: crearIcono(soyYo, iconoDeAuto(a)),
-                zIndexOffset: soyYo ? 1000 : 0,
-                title: a.nombre || (soyYo ? "YO" : "Vehículo")
+                zIndexOffset: soyYo ? 1000 : 0
             }).addTo(map);
-            marker.bindTooltip(fichaHtml(a), fichaOpts(soyYo, a));
+            marker.bindTooltip(nombreHtml(a), nombreOpts(soyYo, a));
+            marker.bindPopup(fichaHtml(a), fichaPopupOpts(soyYo, a));
+            silenciarClickPopupLeaflet(marker);
             markers[a.id] = marker;
             engancharClickMarker(marker, a.id);
+            engancharPopupCapa(marker, a.id);
             silenciarHoverFicha(marker, a.id);
             aplicarIconoEnMarker(a.id, iconoDeAuto(a));
             marcarSosMarker(a.id, !!(a.asistencia && a.asistencia.activo));
@@ -2831,12 +2900,7 @@
                 aplicarRumbo(a.id, a.rumbo);
                 aplicarIconoEnMarker(a.id, iconoDeAuto(a));
                 marcarAusente(a.id, !!a.ausente);
-                if (debeMostrarFicha(a.id)) {
-                    marker.openTooltip();
-                    engancharFicha(marker, a.id);
-                } else {
-                    marker.closeTooltip();
-                }
+                aplicarVisibilidadCapa(marker, a.id);
             });
             if (soyYo) asegurarTickGps();
             return;
@@ -2864,48 +2928,66 @@
         refrescarFicha(a.id, a);
     }
 
-    function refrescarFicha(id, a) {
-        const m = markers[id];
-        if (!m || pttActivo) return;
-        const opts = fichaOpts(id === miId, a);
-        const tip = m.getTooltip();
-        const misma = tip && tip.options && tip.options.className === opts.className;
-        if (!tip || !misma) {
-            const abierta = m.isTooltipOpen && m.isTooltipOpen();
-            m.unbindTooltip();
-            m.bindTooltip(fichaHtml(a), opts);
-            silenciarHoverFicha(m, id);
-            if (debeMostrarFicha(id) || (abierta && id !== miId)) {
-                m.openTooltip();
-                requestAnimationFrame(function () { engancharFicha(m, id); });
-            } else {
-                m.closeTooltip();
-            }
+    function aplicarClasesCapa(marker, id, a) {
+        const sos = !!(a && a.asistencia && a.asistencia.activo) || (id === miId && asistenciaActiva);
+        const pop = marker.getPopup && marker.getPopup();
+        const popClass = "ficha-popup" + (id === miId ? " ficha-propia" : " ficha-radio") + (sos ? " ficha-sos" : "");
+        if (pop) pop.options.className = popClass;
+        const popEl = pop && pop.getElement && pop.getElement();
+        if (popEl) {
+            popEl.classList.toggle("ficha-propia", id === miId);
+            popEl.classList.toggle("ficha-radio", id !== miId);
+            popEl.classList.toggle("ficha-sos", sos);
+        }
+        const tip = marker.getTooltip && marker.getTooltip();
+        const tipClass = "nombre-conductor" + (id === miId ? " nombre-propio" : "") + (sos ? " nombre-sos" : "");
+        if (tip) tip.options.className = tipClass;
+        const tipEl = tip && tip.getElement && tip.getElement();
+        if (tipEl) {
+            tipEl.classList.toggle("nombre-propio", id === miId);
+            tipEl.classList.toggle("nombre-sos", sos);
+        }
+    }
+
+    function aplicarVisibilidadCapa(marker, id) {
+        if (!marker) return;
+        if (debeMostrarFicha(id)) {
+            if (marker.closeTooltip) marker.closeTooltip();
+            if (marker.openPopup && !(marker.isPopupOpen && marker.isPopupOpen())) marker.openPopup();
+            requestAnimationFrame(function () { engancharFicha(marker, id); });
             return;
         }
-        m.setTooltipContent(fichaHtml(a));
-        if (debeMostrarFicha(id)) {
-            m.openTooltip();
-            requestAnimationFrame(function () { engancharFicha(m, id); });
-        } else {
-            m.closeTooltip();
+        if (marker.isPopupOpen && marker.isPopupOpen()) marker.closePopup();
+        if (debeMostrarNombre(id)) {
+            if (marker.openTooltip && !(marker.isTooltipOpen && marker.isTooltipOpen())) marker.openTooltip();
+        } else if (marker.closeTooltip) {
+            marker.closeTooltip();
         }
+    }
+
+    function refrescarFicha(id, a) {
+        const m = markers[id];
+        if (!m || pttActivo || !a) return;
+        if (!m.getTooltip()) {
+            m.bindTooltip(nombreHtml(a), nombreOpts(id === miId, a));
+        } else {
+            m.setTooltipContent(nombreHtml(a));
+        }
+        if (!m.getPopup()) {
+            m.bindPopup(fichaHtml(a), fichaPopupOpts(id === miId, a));
+            silenciarClickPopupLeaflet(m);
+            engancharPopupCapa(m, id);
+        } else {
+            m.setPopupContent(fichaHtml(a));
+        }
+        silenciarHoverFicha(m, id);
+        aplicarClasesCapa(m, id, a);
+        aplicarVisibilidadCapa(m, id);
     }
 
     function aplicarVisibilidadPopups() {
         Object.keys(markers).forEach(function (id) {
-            const m = markers[id];
-            if (!m) return;
-            if (debeMostrarFicha(id)) {
-                m.openTooltip();
-                requestAnimationFrame(function () {
-                    engancharFicha(m, id);
-                    const tip = m.getTooltip();
-                    if (tip) tip.update();
-                });
-            } else {
-                m.closeTooltip();
-            }
+            aplicarVisibilidadCapa(markers[id], id);
         });
     }
 
@@ -3280,7 +3362,7 @@
         pintarHistorialPrivado(id);
         if (!silencioso && !pttActivo) renderizarContactos();
         if (!silencioso && markers[id]) {
-            if (debeMostrarFicha(id)) markers[id].openTooltip();
+            if (debeMostrarFicha(id)) markers[id].openPopup();
             map.setView([a.lat, a.lng], Math.max(map.getZoom(), 15));
         }
     }
@@ -3905,7 +3987,10 @@
                 navGpsZoomPendiente = true;
                 iniciarGps();
             }
-            if (markers[miId] && markers[miId].closeTooltip) markers[miId].closeTooltip();
+            if (markers[miId]) {
+                if (markers[miId].closePopup) markers[miId].closePopup();
+                if (markers[miId].closeTooltip) markers[miId].closeTooltip();
+            }
             aplicarVisibilidadPopups();
             if (!navGpsRaf) navGpsRaf = requestAnimationFrame(tickNavGps);
         } else {
@@ -5039,6 +5124,7 @@
             mostrarPasoIntro(0);
         });
         aplicarModoTransito();
+        popupsVisibles = !!$("chkPopups").checked;
         $("chkPopups").addEventListener("change", function () {
             popupsVisibles = $("chkPopups").checked;
             aplicarVisibilidadPopups();
@@ -5368,6 +5454,17 @@
                 setMapaBearing: setMapaBearing,
                 detenerPtt: detenerPtt,
                 calcularDistanciaKm: calcularDistanciaKm,
+                iniciarGps: iniciarGps,
+                emitirTelemetria: emitirTelemetria,
+                guardarIconoLocal: guardarIconoLocal,
+                iconoGrilla: function () {
+                    return { cols: iconoCfg.cols || 15, rows: iconoCfg.rows || 8 };
+                },
+                actualizarPerfilLocal: function () {
+                    actualizarResumenPerfil();
+                    aplicarIconoEnMarker(miId, leerIconoLocal());
+                    emitirTelemetria(true);
+                },
                 rutaPorCalle: function (a, b) {
                     return rutaPorCalle(a, b, false).then(function (res) {
                         if (Array.isArray(res)) return res;
@@ -5383,7 +5480,7 @@
                         const a = autos[id];
                         return {
                             id: id,
-                            nombre: a.nombre || "Sin nombre",
+                            nombre: a.nombre || "Invitado",
                             vehiculo: a.vehiculo || "",
                             iconoX: a.iconoX,
                             iconoY: a.iconoY

@@ -76,13 +76,18 @@
     .dock-mapa {
         padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
         gap: 0;
+        justify-content: space-between;
     }
 
     .dock-mapa .dock-item {
         min-width: 0;
-        flex: 1;
+        flex: 1 1 0;
         font-size: 10px;
         padding: 4px 2px;
+    }
+
+    .dock-mapa #btnPttDock {
+        flex: 0 0 auto;
     }
 
     .btn-crear-grupo {

@@ -234,11 +234,14 @@ const ultimoMsgTs = {};
 const encuentros = {};
 const desafiosCarrera = {};
 const carreras1v1 = {};
+const invitesCarreraLink = {};
+const inviteCarreraPorHost = {};
 const ultimoCarreraTs = {};
 const fantasmas = {};
 const fantasmaPorHost = {};
 const ultimoFantasmaVistaTs = {};
 const FANTASMA_TTL_MS = 8 * 60 * 60 * 1000;
+const CARRERA_LINK_TTL_MS = 30 * 60 * 1000;
 
 function listaEncuentrosDisco() {
     return Object.keys(encuentros).map(id => {
@@ -1206,11 +1209,49 @@ function fichaCarrera(v) {
     if (!v) return null;
     return {
         id: v.id,
-        nombre: v.nombre || "Anónimo",
+        nombre: (v.nombre && String(v.nombre).trim()) || "Invitado",
         vehiculo: v.vehiculo || "",
         iconoX: sanitizarEntero(v.iconoX, 0, 64, 0),
         iconoY: sanitizarEntero(v.iconoY, 0, 64, 0)
     };
+}
+
+function tokenCarreraNuevo() {
+    return tokenFantasmaNuevo();
+}
+
+function recInviteCarrera(token) {
+    const rec = token ? invitesCarreraLink[token] : null;
+    if (!rec) return null;
+    if (Date.now() > rec.exp) {
+        borrarInviteCarrera(token, "expiro");
+        return null;
+    }
+    return rec;
+}
+
+function borrarInviteCarrera(token, motivo) {
+    const rec = token ? invitesCarreraLink[token] : null;
+    if (!rec) return;
+    delete invitesCarreraLink[token];
+    if (rec.hostId && inviteCarreraPorHost[rec.hostId] === token) {
+        delete inviteCarreraPorHost[rec.hostId];
+    }
+    if (motivo && rec.hostId) {
+        emitirAJugador(rec.hostId, "carreraCancelada", { motivo: motivo || "cancelada", link: true });
+    }
+}
+
+function borrarInviteDeHost(hostId) {
+    const token = hostId ? inviteCarreraPorHost[hostId] : "";
+    if (!token) return;
+    const rec = invitesCarreraLink[token];
+    if (rec) {
+        delete invitesCarreraLink[token];
+        delete inviteCarreraPorHost[hostId];
+    } else {
+        delete inviteCarreraPorHost[hostId];
+    }
 }
 
 function carreraDeJugador(id) {
@@ -1244,6 +1285,7 @@ function emitirAJugador(id, evento, payload) {
 function limpiarDesafioCarrera(d, motivo) {
     if (!d) return;
     if (desafiosCarrera[d.para] === d) delete desafiosCarrera[d.para];
+    if (d.linkToken) borrarInviteCarrera(d.linkToken, null);
     emitirAJugador(d.de, "carreraCancelada", { motivo: motivo || "cancelada" });
     emitirAJugador(d.para, "carreraCancelada", { motivo: motivo || "cancelada" });
 }
@@ -1887,10 +1929,11 @@ io.on("connection", socket => {
             if (typeof ack === "function") ack({ ok: false, error: "Alguien ya está en una carrera." });
             return;
         }
-        if (desafioDeJugador(origen.id) || desafiosCarrera[dest.id]) {
+        if (desafioDeJugador(origen.id) || desafiosCarrera[dest.id] || inviteCarreraPorHost[origen.id]) {
             if (typeof ack === "function") ack({ ok: false, error: "Ya hay un desafío en curso." });
             return;
         }
+        borrarInviteDeHost(origen.id);
         const d = {
             de: origen.id,
             para: dest.id,
@@ -1903,7 +1946,7 @@ io.on("connection", socket => {
         desafiosCarrera[dest.id] = d;
         emitirAJugador(dest.id, "carreraInvitacion", {
             de: origen.id,
-            nombre: origen.nombre || "Anónimo",
+            nombre: (origen.nombre && String(origen.nombre).trim()) || "Invitado",
             vehiculo: origen.vehiculo || "",
             km: d.km,
             path: path,
@@ -1911,6 +1954,118 @@ io.on("connection", socket => {
             b: b
         });
         if (typeof ack === "function") ack({ ok: true, rival: fichaCarrera(dest) });
+    });
+
+    socket.on("carreraInvitarLink", (payload, ack) => {
+        const origen = vehiculoDeSocket(socket);
+        const path = sanitizarPathCarrera(payload && payload.path);
+        const a = sanitizarPuntoCarrera(payload && payload.a);
+        const b = sanitizarPuntoCarrera(payload && payload.b);
+        const km = Number(payload && payload.km);
+        if (!origen) {
+            if (typeof ack === "function") ack({ ok: false, error: "Sin conexión." });
+            return;
+        }
+        if (!rateOk(ultimoCarreraTs, socket.id, 800)) {
+            if (typeof ack === "function") ack({ ok: false, error: "Esperá un segundo." });
+            return;
+        }
+        if (!path || !a || !b) {
+            if (typeof ack === "function") ack({ ok: false, error: "Falta el circuito." });
+            return;
+        }
+        if (carreraDeJugador(origen.id) || desafioDeJugador(origen.id)) {
+            if (typeof ack === "function") ack({ ok: false, error: "Ya hay un desafío en curso." });
+            return;
+        }
+        borrarInviteDeHost(origen.id);
+        const token = tokenCarreraNuevo();
+        const ahora = Date.now();
+        invitesCarreraLink[token] = {
+            token: token,
+            hostId: origen.id,
+            path: path,
+            a: a,
+            b: b,
+            km: Number.isFinite(km) ? Math.max(0.05, Math.min(5, km)) : 0,
+            ts: ahora,
+            exp: ahora + CARRERA_LINK_TTL_MS,
+            nombreHost: (origen.nombre && String(origen.nombre).trim()) || "Invitado"
+        };
+        inviteCarreraPorHost[origen.id] = token;
+        if (typeof ack === "function") {
+            ack({
+                ok: true,
+                token: token,
+                exp: ahora + CARRERA_LINK_TTL_MS,
+                nombreHost: invitesCarreraLink[token].nombreHost
+            });
+        }
+    });
+
+    socket.on("carreraUnirseLink", (payload, ack) => {
+        const yo = vehiculoDeSocket(socket);
+        const token = sanitizarTexto(payload && payload.token, 40);
+        const rec = recInviteCarrera(token);
+        if (!yo) {
+            if (typeof ack === "function") ack({ ok: false, error: "Esperá a estar en el mapa." });
+            return;
+        }
+        if (!rec) {
+            if (typeof ack === "function") ack({ ok: false, error: "Ese desafío ya no está. Pedile un link nuevo." });
+            return;
+        }
+        if (rec.hostId === yo.id) {
+            if (typeof ack === "function") ack({ ok: false, error: "Ese link lo creaste vos." });
+            return;
+        }
+        if (carreraDeJugador(yo.id) || carreraDeJugador(rec.hostId)) {
+            if (typeof ack === "function") ack({ ok: false, error: "Alguien ya está en una carrera." });
+            return;
+        }
+        if (desafiosCarrera[yo.id] || desafioDeJugador(yo.id)) {
+            if (typeof ack === "function") ack({ ok: false, error: "Ya tenés un desafío en curso." });
+            return;
+        }
+        const host = vehiculos[rec.hostId];
+        if (!host || !host.socketId) {
+            borrarInviteCarrera(token, "no_disponible");
+            if (typeof ack === "function") ack({ ok: false, error: "Quien te desafió ya no está conectado." });
+            return;
+        }
+        const prev = Object.keys(desafiosCarrera).find(function (para) {
+            const d = desafiosCarrera[para];
+            return d && d.linkToken === token;
+        });
+        if (prev && prev !== yo.id) {
+            if (typeof ack === "function") ack({ ok: false, error: "Alguien más ya abrió este desafío." });
+            return;
+        }
+        const d = {
+            de: rec.hostId,
+            para: yo.id,
+            path: rec.path,
+            a: rec.a,
+            b: rec.b,
+            km: rec.km,
+            ts: Date.now(),
+            linkToken: token,
+            link: true
+        };
+        desafiosCarrera[yo.id] = d;
+        const invitacion = {
+            de: rec.hostId,
+            nombre: rec.nombreHost || (host.nombre && String(host.nombre).trim()) || "Invitado",
+            vehiculo: host.vehiculo || "",
+            km: d.km,
+            path: d.path,
+            a: d.a,
+            b: d.b,
+            link: true
+        };
+        emitirAJugador(yo.id, "carreraInvitacion", invitacion);
+        emitirAJugador(rec.hostId, "carreraLinkListo", { rival: fichaCarrera(yo) });
+        if (typeof ack === "function") ack({ ok: true, invitacion: invitacion });
     });
 
     socket.on("carreraResponder", (payload, ack) => {
@@ -1926,6 +2081,7 @@ io.on("connection", socket => {
             return;
         }
         delete desafiosCarrera[yo.id];
+        if (d.linkToken) borrarInviteCarrera(d.linkToken, null);
         const host = vehiculos[d.de];
         if (!aceptar) {
             emitirAJugador(d.de, "carreraCancelada", { motivo: "rechazo", de: yo.id });
@@ -2016,6 +2172,7 @@ io.on("connection", socket => {
     socket.on("carreraSalir", () => {
         const yo = vehiculoDeSocket(socket);
         if (!yo) return;
+        borrarInviteDeHost(yo.id);
         const d = desafioDeJugador(yo.id);
         if (d) limpiarDesafioCarrera(d, "salio");
         const c = carreraDeJugador(yo.id);
@@ -2187,6 +2344,7 @@ io.on("connection", socket => {
         v.socketId = null;
         v.ausente = true;
         aplicarVisibilidad(v, v.vistoPor ? v.vistoPor.slice() : []);
+        borrarInviteDeHost(id);
         const d = desafioDeJugador(id);
         if (d) limpiarDesafioCarrera(d, "desconexion");
         const c = carreraDeJugador(id);
@@ -2232,7 +2390,13 @@ setInterval(() => {
     });
     Object.keys(desafiosCarrera).forEach(function (para) {
         const d = desafiosCarrera[para];
-        if (d && ahora - d.ts > 28000) limpiarDesafioCarrera(d, "timeout");
+        if (!d) return;
+        const limite = d.link ? 90000 : 28000;
+        if (ahora - d.ts > limite) limpiarDesafioCarrera(d, "timeout");
+    });
+    Object.keys(invitesCarreraLink).forEach(function (token) {
+        const rec = invitesCarreraLink[token];
+        if (rec && ahora > rec.exp) borrarInviteCarrera(token, "expiro");
     });
     Object.keys(fantasmas).forEach(function (token) {
         const rec = fantasmas[token];

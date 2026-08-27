@@ -311,7 +311,8 @@ body {
     display: none !important;
 }
 
-body.modo-nav-gps .ficha-propia {
+body.modo-nav-gps .ficha-propia,
+body.modo-nav-gps .nombre-propio {
     display: none !important;
 }
 
@@ -2037,6 +2038,76 @@ body.mosaico-listo .marker-otro .auto-cuerpo {
 .leaflet-tooltip-bottom.ficha::before {
     border-bottom-color: rgba(255, 250, 244, 0.88);
     border-top-color: transparent;
+}
+
+.leaflet-tooltip.nombre-conductor {
+    background: rgba(255, 250, 244, 0.94);
+    color: var(--tinta);
+    border: 0;
+    border-radius: 999px;
+    box-shadow: 0 4px 12px rgba(28, 24, 16, 0.16);
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.2;
+    white-space: nowrap;
+    pointer-events: auto;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.leaflet-tooltip.nombre-conductor::before {
+    border-bottom-color: rgba(255, 250, 244, 0.94);
+}
+
+.leaflet-tooltip-bottom.nombre-conductor::before {
+    border-bottom-color: rgba(255, 250, 244, 0.94);
+    border-top-color: transparent;
+}
+
+.leaflet-tooltip.nombre-sos {
+    background: #fff4f2;
+    color: #c0392b;
+}
+
+.leaflet-tooltip.nombre-sos::before,
+.leaflet-tooltip-bottom.nombre-sos::before {
+    border-bottom-color: #fff4f2;
+}
+
+.leaflet-popup.ficha-popup .leaflet-popup-content-wrapper {
+    background: rgba(255, 250, 244, 0.92);
+    color: var(--tinta);
+    border: 0;
+    border-radius: 22px;
+    box-shadow: 0 12px 32px rgba(28, 24, 16, 0.16);
+    padding: 0;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.leaflet-popup.ficha-popup .leaflet-popup-content {
+    margin: 0;
+    min-width: 228px;
+    width: auto !important;
+}
+
+.leaflet-popup.ficha-popup .leaflet-popup-tip {
+    background: rgba(255, 250, 244, 0.92);
+}
+
+.leaflet-popup.ficha-popup.ficha-propia .leaflet-popup-content-wrapper {
+    box-shadow: 0 12px 32px rgba(28, 24, 16, 0.16), 0 0 0 1px rgba(245, 166, 35, 0.35);
+}
+
+.leaflet-popup.ficha-popup.ficha-sos .leaflet-popup-content-wrapper,
+.leaflet-popup.ficha-popup.ficha-sos .leaflet-popup-tip {
+    box-shadow: 0 10px 24px rgba(192, 57, 43, 0.2);
+}
+
+.leaflet-popup.ficha-popup a.leaflet-popup-close-button {
+    display: none;
 }
 
 .ficha-propia {
@@ -3913,12 +3984,27 @@ body.modo-manejo .atajo-pill {
 
     .dock-mapa {
         display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
     }
 
     .dock-mapa .dock-item {
         color: #8b93a0;
-        min-width: 52px;
+        min-width: 0;
+        flex: 1 1 0;
     }
+
+    /* Mapa · Radio · Avisos · MIC · Ayuda · Carrera · Fantasma */
+    .dock-mapa #btnMapaDock { order: 1; }
+    .dock-mapa #btnRadioDock { order: 2; }
+    .dock-mapa #btnAvisosDock { order: 3; }
+    .dock-mapa #btnPttDock {
+        flex: 0 0 auto;
+        order: 4;
+    }
+    .dock-mapa #btnAyudaDock { order: 5; }
+    .dock-mapa #btnCarreraDock { order: 6; }
+    .dock-mapa #btnFantasmaDock { order: 7; }
 
     .dock-mapa .dock-item.on {
         color: var(--ambar);
@@ -4310,6 +4396,39 @@ body.modo-manejo .atajo-pill {
     margin: 0;
     font-size: 12px;
     color: var(--suave);
+}
+
+.carrera-btn-wa {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin: 4px 0 2px;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 12px;
+    background: #1fad5b;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(31, 173, 91, 0.28);
+}
+
+.carrera-btn-wa svg {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+}
+
+.carrera-btn-wa:active {
+    transform: translateY(1px);
+}
+
+.carrera-btn-wa.oculto {
+    display: none;
 }
 
 .carrera-pin span {
@@ -4729,7 +4848,9 @@ body.modo-carrera .radio-cerca,
 body.modo-carrera .aviso-gps,
 body.modo-carrera .marker-otro:not(.marker-carrera-rival),
 body.modo-carrera .marker-bandera,
-body.modo-carrera .ficha {
+body.modo-carrera .ficha,
+body.modo-carrera .nombre-conductor,
+body.modo-carrera .ficha-popup {
     display: none !important;
 }
 
