@@ -320,6 +320,12 @@ body.modo-nav-gps .marker-propio {
     z-index: 1200;
 }
 
+/* Nav GPS: nariz del auto siempre arriba; no rota el marker, rota el mapa. */
+body.modo-nav-gps .marker-propio .auto-rot {
+    transform: rotate(0deg) !important;
+    transition: none !important;
+}
+
 /* ================= HUD ================= */
 
 .hud-top {

@@ -73,6 +73,9 @@
     });
     map.on("moveend zoomend", function () {
         mapaOcupado = false;
+        // En nav GPS el tick mueve el mapa cada frame: no re-pintar todos los markers
+        // (eso pelea con el bearing y genera tirones / “fuerza que empuja de vuelta”).
+        if (modoNavGps) return;
         Object.keys(autos).forEach(function (id) {
             if (autos[id]) actualizarMarker(autos[id]);
         });
@@ -867,10 +870,9 @@
         const yo = punto || (miPosicion ? [miPosicion.lat, miPosicion.lng] : navegacion.path[0]);
         if (!yo) return null;
         const info = infoSobreRuta(yo, navegacion.path);
-        // En nav GPS miramos un poco más adelante en la ruta para anticipar curvas
-        // y que el mapa gire con el sentido del camino (nariz del auto fija arriba).
+        // Look-ahead corto: anticipa suave sin tironear el bearing en cada curva lejana.
         if (modoNavGps && info && Number.isFinite(info.idx)) {
-            const look = rumboLookAhead(navegacion.path, info.idx, info.t, 40);
+            const look = rumboLookAhead(navegacion.path, info.idx, info.t, 24);
             if (Number.isFinite(look)) return look;
         }
         if (Number.isFinite(info.rumboPath)) return info.rumboPath;
@@ -1048,9 +1050,13 @@
         let vis = Number(deg);
         const enCarrera = window.RadioMapCarrera && RadioMapCarrera.bloqueaGps();
         if (modoNavGps && !enCarrera) {
+            // Marker propio: nariz siempre arriba (fijo). Los demás compensan el bearing del mapa.
             vis = id === miId ? 0 : ((vis - rumboNavSuave) + 360) % 360;
         }
-        if (Number.isFinite(vis)) rot.style.transform = "rotate(" + vis + "deg)";
+        if (Number.isFinite(vis)) {
+            rot.style.transform = "rotate(" + vis + "deg)";
+            if (id === miId && modoNavGps) rot.style.transition = "none";
+        }
     }
 
     function aplicarRumbo(id, deg) {
@@ -1258,7 +1264,7 @@
         return { punto: q, t: t, dist: metrosEntre(p, q) };
     }
 
-    function rumboLookAhead(path, idx, tSeg, metrosAdelante) {
+    function puntoEnPathLookAhead(path, idx, tSeg, metrosAdelante) {
         if (!path || path.length < 2) return null;
         let i = Math.min(Math.max(0, idx), path.length - 2);
         let t = Number.isFinite(tSeg) ? tSeg : 0;
@@ -1273,22 +1279,33 @@
             const queda = seg * (1 - t);
             if (leftover <= queda) {
                 const t2 = t + leftover / seg;
-                const a = [
-                    path[i][0] + (path[i + 1][0] - path[i][0]) * t,
-                    path[i][1] + (path[i + 1][1] - path[i][1]) * t
-                ];
-                const b = [
+                return [
                     path[i][0] + (path[i + 1][0] - path[i][0]) * t2,
                     path[i][1] + (path[i + 1][1] - path[i][1]) * t2
                 ];
-                return rumboEntre(a, b);
             }
             leftover -= queda;
             i += 1;
             t = 0;
         }
-        const j = Math.min(path.length - 1, Math.max(1, i));
-        return rumboEntre(path[j - 1], path[j]);
+        return path[path.length - 1].slice();
+    }
+
+    function rumboLookAhead(path, idx, tSeg, metrosAdelante) {
+        if (!path || path.length < 2) return null;
+        let i = Math.min(Math.max(0, idx), path.length - 2);
+        let t = Number.isFinite(tSeg) ? tSeg : 0;
+        const a = [
+            path[i][0] + (path[i + 1][0] - path[i][0]) * t,
+            path[i][1] + (path[i + 1][1] - path[i][1]) * t
+        ];
+        const b = puntoEnPathLookAhead(path, idx, tSeg, metrosAdelante || 18);
+        if (!b) return null;
+        if (metrosEntre(a, b) < 0.4) {
+            const j = Math.min(path.length - 1, Math.max(1, i + 1));
+            return rumboEntre(path[j - 1], path[j]);
+        }
+        return rumboEntre(a, b);
     }
 
     function infoSobreRuta(yo, path) {
@@ -1393,28 +1410,19 @@
 
     function metrosCamaraAdelante(lat) {
         const hPx = (map.getSize() && map.getSize().y) || 640;
-        // Fracción del alto desde el centro hacia abajo: el auto queda cerca del bottom
-        // con espacio notable debajo (estilo navegador GPS).
         let frac = 0.22;
-        if (modoNavGps && navegacion && navegacion.path) frac = 0.32;
-        else if (modoNavGps) frac = 0.28;
-        else if (navegacion && seguirMe) frac = 0.2;
+        if (navegacion && seguirMe) frac = 0.2;
         const m = hPx * frac * metrosPorPixelMapa(lat);
         return Math.max(56, Math.min(480, m));
     }
 
     function debeCamaraAdelante() {
-        return !!(modoNavGps || (navegacion && seguirMe));
+        // En modo nav GPS el anclaje es por píxeles de pantalla (no metros geográficos).
+        return !!(!modoNavGps && navegacion && seguirMe);
     }
 
     function rumboCamara() {
-        if (modoNavGps) {
-            const m = markers[miId];
-            const p = m ? [m.getLatLng().lat, m.getLatLng().lng] : null;
-            const viaje = rumboDeViaje(p);
-            if (Number.isFinite(viaje)) return Number.isFinite(rumboNavSuave) ? rumboNavSuave : viaje;
-        }
-        if (Number.isFinite(rumboNavSuave) && (modoNavGps || rumboNavSuave)) return rumboNavSuave;
+        if (Number.isFinite(rumboNavSuave) && rumboNavSuave) return rumboNavSuave;
         if (miPosicion && Number.isFinite(miPosicion.rumbo)) return miPosicion.rumbo;
         return 0;
     }
@@ -1425,7 +1433,42 @@
         return puntoHacia(lat, lng, h, metrosCamaraAdelante(lat));
     }
 
+    /** Posición fija en pantalla del auto en nav GPS (0 = top, 1 = bottom). */
+    function anclaYNavGps() {
+        // Un poco más arriba para no taparlo con el HUD de ruta.
+        return 0.68;
+    }
+
+    function fijarVistaNavGps(latlng, zoom) {
+        const lat = latlng.lat != null ? latlng.lat : latlng[0];
+        const lng = latlng.lng != null ? latlng.lng : latlng[1];
+        const z = zoom != null ? zoom : map.getZoom();
+        const yo = L.latLng(lat, lng);
+
+        // 1) Pivot en el auto (el mapa rota alrededor del vehículo).
+        map.setView(yo, z, { animate: false });
+
+        // 2) Rumbo geográfico → bearing leaflet-rotate (convención invertida, ver setMapaBearing).
+        if (Number.isFinite(rumboNavSuave)) setMapaBearing(rumboNavSuave);
+
+        // 3) Anclar marker abajo (solo traslación; el auto no rota).
+        const size = map.getSize();
+        if (!size || !size.x || !size.y) return;
+
+        const target = L.point(size.x / 2, size.y * anclaYNavGps());
+        const actual = map.latLngToContainerPoint(yo);
+        const dx = actual.x - target.x;
+        const dy = actual.y - target.y;
+        if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+            map.panBy([dx, dy], { animate: false });
+        }
+    }
+
     function setVistaSeguir(latlng, zoom) {
+        if (modoNavGps) {
+            fijarVistaNavGps(latlng, zoom);
+            return;
+        }
         const lat = latlng.lat != null ? latlng.lat : latlng[0];
         const lng = latlng.lng != null ? latlng.lng : latlng[1];
         const z = zoom != null ? zoom : map.getZoom();
@@ -3948,7 +3991,10 @@
 
     function setMapaBearing(deg) {
         if (!map || typeof map.setBearing !== "function") return;
-        map.setBearing(((deg % 360) + 360) % 360);
+        // rumbo geográfico (0=N, 90=E): dirección que debe quedar arriba en pantalla.
+        // leaflet-rotate aplica rotate() CSS horario; para heading-up hay que invertir.
+        const geo = ((Number(deg) % 360) + 360) % 360;
+        map.setBearing((360 - geo) % 360);
     }
 
     function refrescarRumbosMarcadores() {
@@ -3960,6 +4006,7 @@
         });
     }
 
+    /** Solo rumbo geográfico de la ruta / movimiento. Sin feedback de pantalla (evita spins). */
     function rumboDestinoNavGps() {
         const m = markers[miId];
         const p = m
@@ -3984,22 +4031,27 @@
         const pos = m
             ? m.getLatLng()
             : (miPosicion ? L.latLng(miPosicion.lat, miPosicion.lng) : null);
+        if (!pos || map._animatingZoom || (map.touchGestures && map.touchGestures._zooming)) {
+            navGpsRaf = requestAnimationFrame(tickNavGps);
+            return;
+        }
+
         const destino = rumboDestinoNavGps();
         if (Number.isFinite(destino)) {
             const diff = anguloDiff(rumboNavSuave, destino);
-            rumboNavSuave = lerpAngulo(rumboNavSuave, destino, diff > 40 ? 0.14 : 0.28);
-            setMapaBearing(rumboNavSuave);
-            // Con ruta: el rumbo del mapa = sentido del camino; el marker propio
-            // queda con nariz fija arriba (pintarRumbo fuerza 0°).
-            if (miPosicion && Number.isFinite(destino) && navegacion && navegacion.path) {
+            // Suavizado estable (sin correcciones de pantalla que peleen entre sí).
+            const t = diff > 45 ? 0.12 : 0.22;
+            rumboNavSuave = lerpAngulo(rumboNavSuave, destino, t);
+            if (miPosicion && Number.isFinite(destino)) {
                 miPosicion.rumbo = destino;
                 if (posGpsObjetivo) posGpsObjetivo.rumbo = destino;
             }
-            refrescarRumbosMarcadores();
         }
-        if (pos && !map._animatingZoom && !(map.touchGestures && map.touchGestures._zooming)) {
-            setVistaSeguir(pos);
-        }
+
+        fijarVistaNavGps(pos);
+        pintarRumbo(miId, 0);
+        refrescarRumbosMarcadores();
+
         navGpsRaf = requestAnimationFrame(tickNavGps);
     }
 
@@ -4010,8 +4062,8 @@
             btn.classList.toggle("on", modoNavGps);
             btn.setAttribute("aria-pressed", modoNavGps ? "true" : "false");
             btn.title = modoNavGps
-                ? "Navegación GPS activa: auto abajo con nariz fija; el mapa gira con el rumbo/ruta"
-                : "Navegación GPS: tu auto queda abajo con nariz fija y el mapa gira con el rumbo";
+                ? "Navegación GPS activa: auto fijo; mapa y ruta giran (estilo GPS)"
+                : "Navegación GPS: auto fijo abajo; el mapa gira y la ruta queda hacia arriba";
         }
         if (modoNavGps) {
             seguirMe = true;
@@ -4020,16 +4072,15 @@
             if (map.dragging) map.dragging.disable();
             if (miPosicion) {
                 navGpsZoomPendiente = false;
-                const viaje = rumboDeViaje();
-                if (Number.isFinite(viaje)) {
-                    rumboNavSuave = viaje;
-                    miPosicion.rumbo = viaje;
-                    if (posGpsObjetivo) posGpsObjetivo.rumbo = viaje;
-                } else if (Number.isFinite(miPosicion.rumbo)) {
-                    rumboNavSuave = miPosicion.rumbo;
-                }
-                setMapaBearing(rumboNavSuave);
-                setVistaSeguir([miPosicion.lat, miPosicion.lng], Math.max(map.getZoom(), 17));
+                const pos = markers[miId]
+                    ? markers[miId].getLatLng()
+                    : L.latLng(miPosicion.lat, miPosicion.lng);
+                const viaje = rumboDeViaje([pos.lat, pos.lng]);
+                if (Number.isFinite(viaje)) rumboNavSuave = viaje;
+                else if (Number.isFinite(miPosicion.rumbo)) rumboNavSuave = miPosicion.rumbo;
+                rumboVisual = 0;
+                fijarVistaNavGps(pos, Math.max(map.getZoom(), 17));
+                pintarRumbo(miId, 0);
                 refrescarRumbosMarcadores();
             } else {
                 navGpsZoomPendiente = true;
