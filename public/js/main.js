@@ -4119,8 +4119,8 @@
             btn.classList.toggle("on", modoTransito === "pie");
             btn.setAttribute("aria-pressed", modoTransito === "pie" ? "true" : "false");
             btn.title = modoTransito === "pie"
-                ? "Modo a pie: la ruta no respeta el sentido de las calles"
-                : "Modo auto: la ruta respeta las manos de las calles";
+                ? "Modo a pie: la ruta no respeta el sentido de las calles. Tocá para ir en auto."
+                : "Modo auto: la ruta respeta las manos de las calles. Tocá para ir a pie.";
         }
     }
 
@@ -5273,27 +5273,17 @@
             }
             cerrarModalIcono();
         });
-        $("btnCentrar").addEventListener("click", function () {
-            vistaRadio = false;
-            seguirMe = true;
-            if (miPosicion) setVistaSeguir([miPosicion.lat, miPosicion.lng], modoNavGps ? map.getZoom() : 16);
-            else iniciarGps();
-        });
-        if ($("btnZoomIn")) $("btnZoomIn").addEventListener("click", function () { map.zoomIn(); });
-        if ($("btnZoomOut")) $("btnZoomOut").addEventListener("click", function () { map.zoomOut(); });
-        if ($("btnHerramientas")) {
-            $("btnHerramientas").addEventListener("click", function (ev) {
+        if ($("btnCentrar")) {
+            $("btnCentrar").addEventListener("click", function (ev) {
                 ev.stopPropagation();
-                toggleHerramientas();
+                vistaRadio = false;
+                seguirMe = true;
+                if (miPosicion) setVistaSeguir([miPosicion.lat, miPosicion.lng], modoNavGps ? map.getZoom() : 16);
+                else iniciarGps();
             });
         }
-        document.addEventListener("click", function (ev) {
-            const menu = $("menuHerramientas");
-            const btn = $("btnHerramientas");
-            if (!menu || menu.classList.contains("oculto")) return;
-            if (menu.contains(ev.target) || (btn && btn.contains(ev.target))) return;
-            cerrarHerramientas();
-        });
+        if ($("btnZoomIn")) $("btnZoomIn").addEventListener("click", function () { map.zoomIn(); });
+        if ($("btnZoomOut")) $("btnZoomOut").addEventListener("click", function () { map.zoomOut(); });
         $("btnToggleComms").addEventListener("click", function () {
             if (commsAbierto()) {
                 cerrarComms();
@@ -5348,14 +5338,12 @@
                 alternarAsistencia();
             });
         }
-        if ($("btnHudCerca")) {
-            $("btnHudCerca").addEventListener("click", function () {
-                mostrarVistaComms("avisos");
-                abrirComms();
-            });
-        }
-        if ($("btnHudAvisos")) {
-            $("btnHudAvisos").addEventListener("click", function () {
+        if ($("btnHudComms")) {
+            $("btnHudComms").addEventListener("click", function () {
+                if (commsAbierto()) {
+                    cerrarComms();
+                    return;
+                }
                 mostrarVistaComms("avisos");
                 abrirComms();
             });
@@ -5398,9 +5386,13 @@
             });
         }
         if ($("btnSosMapa")) $("btnSosMapa").addEventListener("click", alternarAsistencia);
-        if ($("btnManejo")) $("btnManejo").addEventListener("click", alternarModoManejo);
         if ($("btnNavGps")) $("btnNavGps").addEventListener("click", alternarModoNavGps);
-        if ($("btnModoTransito")) $("btnModoTransito").addEventListener("click", alternarModoTransito);
+        if ($("btnModoTransito")) {
+            $("btnModoTransito").addEventListener("click", function (ev) {
+                ev.stopPropagation();
+                alternarModoTransito();
+            });
+        }
         if ($("btnTestFantasma")) $("btnTestFantasma").addEventListener("click", alternarFantasma);
         if ($("btnBuscar")) $("btnBuscar").addEventListener("click", abrirModalBuscar);
         if ($("btnCerrarBuscar")) $("btnCerrarBuscar").addEventListener("click", cerrarModalBuscar);
@@ -5688,29 +5680,6 @@
             $("tabGrupo").classList.add("oculto");
         }
         pintarDock();
-    }
-
-    function toggleHerramientas() {
-        const menu = $("menuHerramientas");
-        if (!menu) return;
-        if (menu.classList.contains("oculto")) {
-            menu.classList.remove("oculto");
-            if ($("btnHerramientas")) {
-                $("btnHerramientas").classList.add("on");
-                $("btnHerramientas").setAttribute("aria-expanded", "true");
-            }
-        } else {
-            cerrarHerramientas();
-        }
-    }
-
-    function cerrarHerramientas() {
-        const menu = $("menuHerramientas");
-        if (menu) menu.classList.add("oculto");
-        if ($("btnHerramientas")) {
-            $("btnHerramientas").classList.remove("on");
-            $("btnHerramientas").setAttribute("aria-expanded", "false");
-        }
     }
 
     function mostrarVistaComms(vista) {

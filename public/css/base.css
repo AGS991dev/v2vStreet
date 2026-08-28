@@ -398,6 +398,14 @@ body.modo-nav-gps .marker-propio .auto-rot {
     padding: 10px 12px;
 }
 
+.perfil-lado-avatar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+}
+
 .perfil-handy {
     width: 42px;
     height: 42px;
@@ -574,18 +582,25 @@ body.modo-nav-gps .marker-propio .auto-rot {
 }
 
 .perfil-centrar {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-    flex: 0 0 32px;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    flex: 0 0 34px;
     margin: 0;
     padding: 0;
     border: 0;
     border-radius: 50%;
-    background: transparent;
-    box-shadow: none;
-    color: var(--azul);
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(28, 40, 60, 0.12);
+    color: var(--navy);
     justify-content: center;
+}
+
+.perfil-centrar svg {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    color: var(--navy);
 }
 
 .perfil-form {
@@ -693,6 +708,66 @@ body.modo-nav-gps .marker-propio .auto-rot {
 
 .btn-accion:active {
     transform: scale(0.98);
+}
+
+.switch-ir-modo {
+    width: 100%;
+    padding: 6px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 22px rgba(28, 20, 8, 0.16);
+    cursor: pointer;
+    color: var(--navy);
+}
+
+.switch-ir-modo-pista {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    width: 100%;
+}
+
+.switch-ir-modo-op {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 42px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: #4b5563;
+    background: transparent;
+}
+
+.switch-ir-modo-op svg {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    display: block;
+}
+
+.switch-ir-modo .switch-ir-auto {
+    background: #fff;
+    color: var(--navy);
+    box-shadow: 0 2px 8px rgba(28, 40, 60, 0.12);
+}
+
+body.modo-a-pie .switch-ir-modo .switch-ir-auto {
+    background: transparent;
+    color: #4b5563;
+    box-shadow: none;
+}
+
+body.modo-a-pie .switch-ir-modo .switch-ir-pie {
+    background: #fff;
+    color: var(--navy);
+    box-shadow: 0 2px 8px rgba(28, 40, 60, 0.12);
 }
 
 .modal-salir {
@@ -1044,10 +1119,7 @@ body.modo-nav-gps .marker-propio .auto-rot {
     gap: 6px;
 }
 
-.hud-btn svg,
 .estado svg,
-.switch-popups svg,
-#btnQueEs svg,
 .btn-toggle-comms svg,
 .btn-cerrar-comms svg {
     width: 14px;
@@ -1097,14 +1169,14 @@ body.modo-nav-gps .marker-propio .auto-rot {
 
 .hud-ico {
     position: relative;
-    width: 42px;
-    height: 42px;
-    min-width: 42px;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
     padding: 0;
     border: 0;
     border-radius: 50%;
     background: #fff;
-    color: var(--azul);
+    color: var(--navy);
     box-shadow: var(--sombra);
     justify-content: center;
     letter-spacing: 0;
@@ -1113,13 +1185,13 @@ body.modo-nav-gps .marker-propio .auto-rot {
 }
 
 .hud-ico svg {
-    width: 18px;
-    height: 18px;
-    flex: 0 0 18px;
-    color: var(--azul);
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+    color: var(--navy);
 }
 
-.hud-ico > span:not(.switch-transito-ico):not(.badge-hud):not(.ico):not(.ptt-leyenda):not(.ptt-mic):not(.ptt-txt) {
+.hud-ico > span:not(.badge-hud):not(.ico):not(.ptt-leyenda):not(.ptt-mic):not(.ptt-txt) {
     position: absolute;
     right: calc(100% + 8px);
     top: 50%;
@@ -1146,42 +1218,15 @@ body.modo-nav-gps .marker-propio .auto-rot {
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
 }
 
-.hud-ico:hover > span:not(.switch-transito-ico):not(.badge-hud):not(.ico):not(.ptt-leyenda):not(.ptt-mic):not(.ptt-txt),
-.hud-ico:focus > span:not(.switch-transito-ico):not(.badge-hud):not(.ico):not(.ptt-leyenda):not(.ptt-mic):not(.ptt-txt),
-.hud-ico:focus-visible > span:not(.switch-transito-ico):not(.badge-hud):not(.ico):not(.ptt-leyenda):not(.ptt-mic):not(.ptt-txt),
-.hud-ico:active > span:not(.switch-transito-ico):not(.badge-hud):not(.ico):not(.ptt-leyenda):not(.ptt-mic):not(.ptt-txt) {
+.hud-ico:hover > span:not(.badge-hud):not(.ico):not(.ptt-leyenda):not(.ptt-mic):not(.ptt-txt),
+.hud-ico:focus > span:not(.badge-hud):not(.ico):not(.ptt-leyenda):not(.ptt-mic):not(.ptt-txt),
+.hud-ico:focus-visible > span:not(.badge-hud):not(.ico):not(.ptt-leyenda):not(.ptt-mic):not(.ptt-txt),
+.hud-ico:active > span:not(.badge-hud):not(.ico):not(.ptt-leyenda):not(.ptt-mic):not(.ptt-txt) {
     opacity: 1;
-}
-
-.hud-ico > span.switch-transito-ico {
-    position: static;
-    width: auto;
-    height: auto;
-    margin: 0;
-    overflow: visible;
-    clip: auto;
-    white-space: normal;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1px;
-    line-height: 0;
 }
 
 .hud-mob {
     display: none;
-}
-
-.menu-herramientas {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 8px;
-    padding: 8px;
-    background: #fff;
-    border-radius: 22px;
-    box-shadow: var(--sombra);
 }
 
 .badge-hud {
@@ -1216,51 +1261,29 @@ body.modo-nav-gps .marker-propio .auto-rot {
     opacity: 0.75;
 }
 
-.switch-transito-ico svg {
-    width: 13px;
-    height: 13px;
-    flex: 0 0 13px;
-}
-
-.switch-transito-ico .ico-transito-pie {
-    opacity: 0.28;
-}
-
-body.modo-a-pie .switch-transito-ico .ico-transito-auto {
-    opacity: 0.28;
-}
-
-body.modo-a-pie .switch-transito-ico .ico-transito-pie {
-    opacity: 1;
-}
-
-#btnModoTransito.on {
-    background: #eef4fb;
-    box-shadow: 0 0 0 2px var(--azul), var(--sombra);
-}
-
 .switch-popups:has(input:checked) {
     background: #eef4fb;
+    box-shadow: 0 0 0 2px var(--navy), var(--sombra);
 }
 
-#btnManejo.on,
 #btnNavGps.on,
-#btnTestFantasma.on,
-#btnHerramientas.on {
+#btnTestFantasma.on {
     background: #eef4fb;
-    box-shadow: 0 0 0 2px var(--azul), var(--sombra);
+    box-shadow: 0 0 0 2px var(--navy), var(--sombra);
 }
 
 .hud-ico.perfil-centrar {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-    background: transparent;
-    box-shadow: none;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
 }
 
 .hud-ico.perfil-centrar:hover {
     background: #fff8ee;
+}
+
+.hud-ico.perfil-centrar > span {
+    display: none;
 }
 
 .punto-rec {
@@ -2685,7 +2708,6 @@ body.mosaico-listo .marker-otro .auto-cuerpo {
     color: var(--suave);
 }
 
-#btnManejo.on,
 #btnNavGps.on,
 #btnTestFantasma.on {
     background: #fff8ee;
@@ -3919,11 +3941,28 @@ body.modo-manejo .atajo-pill {
     }
 
     .hud-ico {
-        color: #6b7280;
+        color: var(--navy);
     }
 
     .hud-ico svg {
-        color: #6b7280;
+        color: var(--navy);
+    }
+
+    .perfil-lado-avatar {
+        gap: 3px;
+    }
+
+    .perfil-centrar,
+    .hud-ico.perfil-centrar {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+    }
+
+    .perfil-centrar svg {
+        width: 16px;
+        height: 16px;
+        flex: 0 0 16px;
     }
 
     .perfil-senal svg:not(.perfil-chevron) {
@@ -3943,22 +3982,6 @@ body.modo-manejo .atajo-pill {
     .perfil-senal.estado-off::before {
         background: var(--suave);
         box-shadow: none;
-    }
-
-    .perfil-senal em {
-        font-size: 0;
-        letter-spacing: 0;
-    }
-
-    .perfil-senal em::after {
-        content: "EN VIVO";
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.4px;
-    }
-
-    .perfil-senal.estado-off em::after {
-        content: "SIN SEÑAL";
     }
 
     .mapa-atajos,

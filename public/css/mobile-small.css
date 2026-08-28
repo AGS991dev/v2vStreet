@@ -50,9 +50,15 @@
     }
 
     .hud-ico {
-        width: 36px;
-        height: 36px;
-        min-width: 36px;
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+    }
+
+    .hud-ico svg {
+        width: 20px;
+        height: 20px;
+        flex: 0 0 20px;
     }
 
     .radio-cerca {
