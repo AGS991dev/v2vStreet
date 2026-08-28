@@ -867,6 +867,12 @@
         const yo = punto || (miPosicion ? [miPosicion.lat, miPosicion.lng] : navegacion.path[0]);
         if (!yo) return null;
         const info = infoSobreRuta(yo, navegacion.path);
+        // En nav GPS miramos un poco más adelante en la ruta para anticipar curvas
+        // y que el mapa gire con el sentido del camino (nariz del auto fija arriba).
+        if (modoNavGps && info && Number.isFinite(info.idx)) {
+            const look = rumboLookAhead(navegacion.path, info.idx, info.t, 40);
+            if (Number.isFinite(look)) return look;
+        }
         if (Number.isFinite(info.rumboPath)) return info.rumboPath;
         if (navegacion.dest) return rumboEntre(yo, navegacion.dest);
         return null;
@@ -1379,12 +1385,22 @@
         return [lat2 * 180 / Math.PI, ((lng2 * 180 / Math.PI + 540) % 360) - 180];
     }
 
-    function metrosCamaraAdelante() {
+    function metrosPorPixelMapa(lat) {
         const z = map.getZoom();
-        if (z >= 18) return 38;
-        if (z >= 17) return 68;
-        if (z >= 16) return 105;
-        return 150;
+        const latRad = Number(lat) * Math.PI / 180;
+        return 156543.03392 * Math.cos(latRad) / Math.pow(2, z);
+    }
+
+    function metrosCamaraAdelante(lat) {
+        const hPx = (map.getSize() && map.getSize().y) || 640;
+        // Fracción del alto desde el centro hacia abajo: el auto queda cerca del bottom
+        // con espacio notable debajo (estilo navegador GPS).
+        let frac = 0.22;
+        if (modoNavGps && navegacion && navegacion.path) frac = 0.32;
+        else if (modoNavGps) frac = 0.28;
+        else if (navegacion && seguirMe) frac = 0.2;
+        const m = hPx * frac * metrosPorPixelMapa(lat);
+        return Math.max(56, Math.min(480, m));
     }
 
     function debeCamaraAdelante() {
@@ -1392,6 +1408,12 @@
     }
 
     function rumboCamara() {
+        if (modoNavGps) {
+            const m = markers[miId];
+            const p = m ? [m.getLatLng().lat, m.getLatLng().lng] : null;
+            const viaje = rumboDeViaje(p);
+            if (Number.isFinite(viaje)) return Number.isFinite(rumboNavSuave) ? rumboNavSuave : viaje;
+        }
         if (Number.isFinite(rumboNavSuave) && (modoNavGps || rumboNavSuave)) return rumboNavSuave;
         if (miPosicion && Number.isFinite(miPosicion.rumbo)) return miPosicion.rumbo;
         return 0;
@@ -1400,7 +1422,7 @@
     function centroCamaraNav(lat, lng) {
         const h = rumboCamara();
         if (!Number.isFinite(h)) return [lat, lng];
-        return puntoHacia(lat, lng, h, metrosCamaraAdelante());
+        return puntoHacia(lat, lng, h, metrosCamaraAdelante(lat));
     }
 
     function setVistaSeguir(latlng, zoom) {
@@ -3938,6 +3960,17 @@
         });
     }
 
+    function rumboDestinoNavGps() {
+        const m = markers[miId];
+        const p = m
+            ? [m.getLatLng().lat, m.getLatLng().lng]
+            : (miPosicion ? [miPosicion.lat, miPosicion.lng] : null);
+        const viaje = rumboDeViaje(p);
+        if (Number.isFinite(viaje)) return viaje;
+        if (Number.isFinite(miPosicion && miPosicion.rumbo)) return miPosicion.rumbo;
+        return rumboNavSuave;
+    }
+
     function tickNavGps() {
         if (!modoNavGps) {
             navGpsRaf = null;
@@ -3951,17 +3984,21 @@
         const pos = m
             ? m.getLatLng()
             : (miPosicion ? L.latLng(miPosicion.lat, miPosicion.lng) : null);
-        if (pos && !map._animatingZoom && !(map.touchGestures && map.touchGestures._zooming)) {
-            setVistaSeguir(pos);
-        }
-        const destino = Number.isFinite(miPosicion && miPosicion.rumbo)
-            ? miPosicion.rumbo
-            : rumboNavSuave;
+        const destino = rumboDestinoNavGps();
         if (Number.isFinite(destino)) {
             const diff = anguloDiff(rumboNavSuave, destino);
             rumboNavSuave = lerpAngulo(rumboNavSuave, destino, diff > 40 ? 0.14 : 0.28);
             setMapaBearing(rumboNavSuave);
+            // Con ruta: el rumbo del mapa = sentido del camino; el marker propio
+            // queda con nariz fija arriba (pintarRumbo fuerza 0°).
+            if (miPosicion && Number.isFinite(destino) && navegacion && navegacion.path) {
+                miPosicion.rumbo = destino;
+                if (posGpsObjetivo) posGpsObjetivo.rumbo = destino;
+            }
             refrescarRumbosMarcadores();
+        }
+        if (pos && !map._animatingZoom && !(map.touchGestures && map.touchGestures._zooming)) {
+            setVistaSeguir(pos);
         }
         navGpsRaf = requestAnimationFrame(tickNavGps);
     }
@@ -3972,6 +4009,9 @@
         if (btn) {
             btn.classList.toggle("on", modoNavGps);
             btn.setAttribute("aria-pressed", modoNavGps ? "true" : "false");
+            btn.title = modoNavGps
+                ? "Navegación GPS activa: auto abajo con nariz fija; el mapa gira con el rumbo/ruta"
+                : "Navegación GPS: tu auto queda abajo con nariz fija y el mapa gira con el rumbo";
         }
         if (modoNavGps) {
             seguirMe = true;
@@ -3980,9 +4020,17 @@
             if (map.dragging) map.dragging.disable();
             if (miPosicion) {
                 navGpsZoomPendiente = false;
-                if (Number.isFinite(miPosicion.rumbo)) rumboNavSuave = miPosicion.rumbo;
-                setVistaSeguir([miPosicion.lat, miPosicion.lng], Math.max(map.getZoom(), 17));
+                const viaje = rumboDeViaje();
+                if (Number.isFinite(viaje)) {
+                    rumboNavSuave = viaje;
+                    miPosicion.rumbo = viaje;
+                    if (posGpsObjetivo) posGpsObjetivo.rumbo = viaje;
+                } else if (Number.isFinite(miPosicion.rumbo)) {
+                    rumboNavSuave = miPosicion.rumbo;
+                }
                 setMapaBearing(rumboNavSuave);
+                setVistaSeguir([miPosicion.lat, miPosicion.lng], Math.max(map.getZoom(), 17));
+                refrescarRumbosMarcadores();
             } else {
                 navGpsZoomPendiente = true;
                 iniciarGps();
