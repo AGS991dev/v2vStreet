@@ -117,6 +117,9 @@
     const cacheRuta = {};
     let autos = {};
     let miPosicion = null;
+    let cortinaMapaActiva = false;
+    let cortinaMapaTimer = null;
+    let cortinaMapaFadeTimer = null;
     let contactoActivo = null;
     let yaCentramos = false;
     let seguirMe = true;
@@ -943,6 +946,7 @@
             map.setView([lat, lng], 16);
             map.invalidateSize();
             actualizarCirculoRadio(false);
+            ocultarCortinaMapa();
         }
 
         if (modoNavGps) seguirMe = true;
@@ -5115,11 +5119,50 @@
         }, 8000);
     }
 
+    function mostrarCortinaMapa() {
+        const el = $("cortinaMapa");
+        if (!el || esInvitadoFantasma()) return;
+        if (cortinaMapaFadeTimer) {
+            clearTimeout(cortinaMapaFadeTimer);
+            cortinaMapaFadeTimer = null;
+        }
+        if (cortinaMapaTimer) {
+            clearTimeout(cortinaMapaTimer);
+            cortinaMapaTimer = null;
+        }
+        cortinaMapaActiva = true;
+        el.classList.remove("oculto", "fade-out");
+        el.setAttribute("aria-hidden", "false");
+        if (yaCentramos && miPosicion) {
+            cortinaMapaTimer = setTimeout(ocultarCortinaMapa, 180);
+        } else {
+            cortinaMapaTimer = setTimeout(ocultarCortinaMapa, 5000);
+        }
+    }
+
+    function ocultarCortinaMapa() {
+        const el = $("cortinaMapa");
+        if (!el || !cortinaMapaActiva) return;
+        cortinaMapaActiva = false;
+        if (cortinaMapaTimer) {
+            clearTimeout(cortinaMapaTimer);
+            cortinaMapaTimer = null;
+        }
+        el.classList.add("fade-out");
+        cortinaMapaFadeTimer = setTimeout(function () {
+            cortinaMapaFadeTimer = null;
+            el.classList.add("oculto");
+            el.classList.remove("fade-out");
+            el.setAttribute("aria-hidden", "true");
+        }, 280);
+    }
+
     function entrarAlMapa() {
         taparBarraPermisos();
         localStorage.setItem("radiomap_entro", "1");
         localStorage.setItem("baliza_entro", "1");
         $("portada").classList.add("oculto");
+        mostrarCortinaMapa();
         ctxPtt();
         pedirWakeLock();
         asegurarTrampaAtras();
@@ -5245,6 +5288,7 @@
             if (markers[miId]) quitarVehiculo(miId);
         } else if (yaEntroMapa()) {
             $("portada").classList.add("oculto");
+            mostrarCortinaMapa();
         } else {
             mostrarPasoIntro(0);
         }
