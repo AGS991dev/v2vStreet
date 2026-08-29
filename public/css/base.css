@@ -1262,11 +1262,14 @@ body.modo-a-pie .switch-ir-modo .switch-ir-pie {
     cursor: pointer;
 }
 
-.hud-ico svg {
+.hud-ico svg,
+.hud-ico img {
     width: 22px;
     height: 22px;
     flex: 0 0 22px;
     color: var(--navy);
+    object-fit: contain;
+    display: block;
 }
 
 .hud-ico > span:not(.badge-hud):not(.ico):not(.ptt-leyenda):not(.ptt-mic):not(.ptt-txt) {
@@ -1962,10 +1965,12 @@ body.modo-a-pie .switch-ir-modo .switch-ir-pie {
     cursor: pointer;
 }
 
-.dock-item svg {
+.dock-item svg,
+.dock-item img {
     width: 22px;
     height: 22px;
     display: block;
+    object-fit: contain;
 }
 
 .dock-item.on {
@@ -4050,7 +4055,8 @@ body.modo-manejo .atajo-pill {
         color: var(--navy);
     }
 
-    .hud-ico svg {
+    .hud-ico svg,
+    .hud-ico img {
         color: var(--navy);
     }
 
