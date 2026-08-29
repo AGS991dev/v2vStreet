@@ -357,6 +357,28 @@ body.modo-nav-gps .marker-propio .auto-rot {
     justify-content: space-between;
 }
 
+@media (max-width: 1023px) {
+    .hud-top {
+        left: 8px;
+        right: 8px;
+        top: 8px;
+        display: block;
+    }
+
+    .hud-card {
+        width: 100%;
+        max-width: none;
+        border-radius: 18px;
+    }
+
+    .hud-acciones {
+        position: absolute;
+        top: 72px;
+        right: 0;
+        align-items: flex-end;
+    }
+}
+
 .marca-mini {
     display: flex;
     justify-content: space-between;
@@ -394,16 +416,12 @@ body.modo-nav-gps .marker-propio .auto-rot {
 .perfil-cabeza {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     padding: 10px 12px;
 }
 
 .perfil-lado-avatar {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    flex: 0 0 auto;
+    display: none;
 }
 
 .perfil-handy {
@@ -463,7 +481,7 @@ body.modo-nav-gps .marker-propio .auto-rot {
     min-width: 0;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 8px;
     text-align: left;
     background: transparent;
@@ -471,6 +489,19 @@ body.modo-nav-gps .marker-propio .auto-rot {
     color: var(--tinta);
     padding: 0;
     cursor: pointer;
+}
+
+.perfil-senal-btn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 4px 2px 4px 4px;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    color: inherit;
 }
 
 .perfil-datos {
@@ -505,7 +536,7 @@ body.modo-nav-gps .marker-propio .auto-rot {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 140px;
+    max-width: min(52vw, 220px);
 }
 
 .perfil-senal {
@@ -588,10 +619,10 @@ body.modo-nav-gps .marker-propio .auto-rot {
     flex: 0 0 34px;
     margin: 0;
     padding: 0;
-    border: 0;
+    border: 1px solid var(--linea);
     border-radius: 50%;
     background: #fff;
-    box-shadow: 0 2px 8px rgba(28, 40, 60, 0.12);
+    box-shadow: none;
     color: var(--navy);
     justify-content: center;
 }
@@ -3948,10 +3979,6 @@ body.modo-manejo .atajo-pill {
         color: var(--navy);
     }
 
-    .perfil-lado-avatar {
-        gap: 3px;
-    }
-
     .perfil-centrar,
     .hud-ico.perfil-centrar {
         width: 32px;
@@ -4023,17 +4050,15 @@ body.modo-manejo .atajo-pill {
         flex: 1 1 0;
     }
 
-    /* Mapa · Radio · Avisos · MIC · Ayuda · Carrera · Fantasma */
+    /* Mapa · Radio · MIC · Ayuda · Más (Carrera / Fantasma) */
     .dock-mapa #btnMapaDock { order: 1; }
     .dock-mapa #btnRadioDock { order: 2; }
-    .dock-mapa #btnAvisosDock { order: 3; }
     .dock-mapa #btnPttDock {
         flex: 0 0 auto;
-        order: 4;
+        order: 3;
     }
-    .dock-mapa #btnAyudaDock { order: 5; }
-    .dock-mapa #btnCarreraDock { order: 6; }
-    .dock-mapa #btnFantasmaDock { order: 7; }
+    .dock-mapa #btnAyudaDock { order: 4; }
+    .dock-mapa .dock-mas { order: 5; }
 
     .dock-mapa .dock-item.on {
         color: var(--ambar);
@@ -4057,6 +4082,74 @@ body.modo-manejo .atajo-pill {
     .dock-mapa .dock-fantasma.activo {
         background: #e8eef5;
         color: #24384c;
+    }
+
+    .dock-mas {
+        position: relative;
+        flex: 1 1 0;
+        min-width: 0;
+        display: flex;
+        justify-content: center;
+    }
+
+    .dock-mas > .dock-item {
+        width: 100%;
+    }
+
+    .dock-mas-menu {
+        position: absolute;
+        right: 0;
+        bottom: calc(100% + 10px);
+        min-width: 168px;
+        padding: 6px;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 10px 28px rgba(28, 40, 60, 0.18);
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        z-index: 2600;
+    }
+
+    .dock-mas-menu.oculto {
+        display: none;
+    }
+
+    .dock-mas-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 10px 12px;
+        border: 0;
+        border-radius: 12px;
+        background: transparent;
+        color: var(--tinta);
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: left;
+    }
+
+    .dock-mas-item svg {
+        width: 22px;
+        height: 22px;
+        flex: 0 0 22px;
+        color: var(--navy);
+    }
+
+    .dock-mas-item:hover,
+    .dock-mas-item:focus {
+        background: #f3f6fa;
+        outline: none;
+    }
+
+    .dock-mas-item.activo {
+        background: #e8eef5;
+    }
+
+    .dock-mapa #btnRadioDock {
+        position: relative;
     }
 
     .dock-mapa .btn-ptt-mapa {

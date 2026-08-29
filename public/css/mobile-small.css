@@ -33,8 +33,12 @@
     }
 
     .hud-card {
-        width: min(228px, 64vw);
-        border-radius: 18px;
+        width: 100%;
+        border-radius: 16px;
+    }
+
+    .hud-acciones {
+        top: 68px;
     }
 
     .perfil-avatar {

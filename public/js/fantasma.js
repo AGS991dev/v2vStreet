@@ -570,7 +570,7 @@
                 try { el.inert = !!si; } catch (e) {}
             });
         }
-        document.querySelectorAll(".mapa-atajos .atajo-pill, .dock-mapa .dock-item").forEach(function (el) {
+        document.querySelectorAll(".mapa-atajos .atajo-pill, .dock-mapa .dock-item, .dock-mas-item").forEach(function (el) {
             try { el.inert = !!si; } catch (e2) {}
         });
     }

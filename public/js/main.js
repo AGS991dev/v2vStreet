@@ -822,7 +822,8 @@
 
         const lat0 = cruda.lat;
         const lng0 = cruda.lng;
-        anclarACalle(lat0, lng0).then(function (snap) {
+        const perfilSnap = (navegacion && modoTransito === "pie") ? "walking" : "driving";
+        anclarACalle(lat0, lng0, perfilSnap).then(function (snap) {
             if (!ultimoGpsCrudo) return;
             if (metrosEntre([ultimoGpsCrudo.lat, ultimoGpsCrudo.lng], [lat0, lng0]) > 20) return;
             if (navegacion && navegacion.path &&
@@ -1134,11 +1135,12 @@
         return Number(lat).toFixed(4) + "," + Number(lng).toFixed(4);
     }
 
-    function anclarACalle(lat, lng) {
-        const clave = clavePunto(lat, lng);
+    function anclarACalle(lat, lng, perfil) {
+        const modo = perfil || "driving";
+        const clave = clavePunto(lat, lng) + ":" + modo;
         if (cacheSnap[clave]) return Promise.resolve(cacheSnap[clave]);
         const lnglat = Number(lng) + "," + Number(lat);
-        return fetch("/api/osrm/nearest?lnglat=" + encodeURIComponent(lnglat))
+        return fetch("/api/osrm/nearest?lnglat=" + encodeURIComponent(lnglat) + "&perfil=" + encodeURIComponent(modo))
             .then(function (r) { return r.json(); })
             .then(function (j) {
                 if (!j || j.code !== "Ok" || !j.waypoints || !j.waypoints[0]) {
@@ -1155,7 +1157,7 @@
             .catch(function () { return [lat, lng]; });
     }
 
-    function elegirMejorRuta(j) {
+    function elegirMejorRuta(j, aPie) {
         if (!j || j.code !== "Ok" || !j.routes || !j.routes[0]) return null;
         let best = j.routes[0];
         for (let i = 1; i < j.routes.length; i++) {
@@ -1164,8 +1166,14 @@
             const d = Number(r.distance) || 0;
             const bt = Number(best.duration) || 0;
             const bd = Number(best.distance) || 0;
-            if (t < bt - 5) best = r;
-            else if (Math.abs(t - bt) <= 5 && d < bd) best = r;
+            if (aPie) {
+                if (d + 1 < bd) best = r;
+                else if (Math.abs(d - bd) <= 1 && t < bt) best = r;
+            } else if (t < bt - 5) {
+                best = r;
+            } else if (Math.abs(t - bt) <= 5 && d < bd) {
+                best = r;
+            }
         }
         return best;
     }
@@ -1537,7 +1545,8 @@
                 distance: raw.distance || 0,
                 duration: raw.duration || 0,
                 dest: raw.dest,
-                sinMarker: !!raw.sinMarker
+                sinMarker: !!raw.sinMarker,
+                modo: raw.modo === "pie" ? "pie" : "auto"
             };
         } catch (e) {
             return null;
@@ -1545,7 +1554,7 @@
     }
 
     function rutaCachePorDestino(hasta) {
-        const suf = ">" + clavePunto(hasta[0], hasta[1]) + ":n";
+        const suf = ">" + clavePunto(hasta[0], hasta[1]) + ":n:" + perfilRutaNav();
         const keys = Object.keys(cacheRuta);
         for (let i = keys.length - 1; i >= 0; i--) {
             if (keys[i].indexOf(suf) === keys[i].length - suf.length) return cacheRuta[keys[i]];
@@ -1593,7 +1602,7 @@
                 return r.json();
             })
             .then(function (j) {
-                const ruta = elegirMejorRuta(j);
+                const ruta = elegirMejorRuta(j, perfil === "walking");
                 if (!ruta || !ruta.geometry || !ruta.geometry.coordinates) {
                     return nav ? null : [desde, hasta];
                 }
@@ -1617,7 +1626,11 @@
             })
             .catch(function () {
                 if (!nav) return [desde, hasta];
-                return rutaCachePorDestino(hasta) || leerRutaGuardada(hasta);
+                const cached = rutaCachePorDestino(hasta);
+                if (cached) return cached;
+                const guardada = leerRutaGuardada(hasta);
+                if (guardada && guardada.modo === modoTransito) return guardada;
+                return null;
             });
     }
 
@@ -2041,6 +2054,7 @@
                 capa: previa && previa.capa,
                 markerDest: previa && previa.markerDest
             };
+            if (primera) activarNavGpsAlComenzar();
             dibujarRuta(path, hasta, !!opts.sinMarker, primera && !modoNavGps);
             if (primera || modoNavGps) seguirMe = true;
             actualizarHudRuta();
@@ -2888,8 +2902,13 @@
                 const auto = autos[id] || (id === miId ? Object.assign(datosPropios(), miPosicion, { id: miId }) : null);
                 if (!auto) return;
                 if (accion === "centrar") {
-                    map.setView([auto.lat, auto.lng], Math.max(map.getZoom(), 16));
-                    if (id === miId) seguirMe = true;
+                    if (id === miId) {
+                        desactivarNavGpsSiActivo();
+                        seguirMe = true;
+                        map.setView([auto.lat, auto.lng], Math.max(map.getZoom(), 16));
+                    } else {
+                        volarHastaAuto(auto.lat, auto.lng, Math.max(map.getZoom(), 16));
+                    }
                 }
                 if (accion === "mensaje") {
                     seleccionarContacto(id);
@@ -3214,12 +3233,10 @@
         btnAuto.addEventListener("click", function (ev) {
             ev.preventDefault();
             ev.stopPropagation();
-            seleccionarContacto(item.id);
+            seleccionarContacto(item.id, true);
             abrirFicha(item.id);
             const a = item.a;
-            if (a && Number.isFinite(Number(a.lat)) && Number.isFinite(Number(a.lng))) {
-                map.setView([a.lat, a.lng], Math.max(map.getZoom(), 16));
-            }
+            if (a) volarHastaAuto(a.lat, a.lng, Math.max(map.getZoom(), 16));
         });
         engancharWalkieCerca(fila.querySelector(".radio-cerca-mic"), item.id);
         return fila;
@@ -3428,7 +3445,7 @@
         if (!silencioso && !pttActivo) renderizarContactos();
         if (!silencioso && markers[id]) {
             if (debeMostrarFicha(id)) markers[id].openPopup();
-            map.setView([a.lat, a.lng], Math.max(map.getZoom(), 15));
+            volarHastaAuto(a.lat, a.lng, Math.max(map.getZoom(), 15));
         }
     }
 
@@ -4110,6 +4127,36 @@
     function alternarModoNavGps() {
         modoNavGps = !modoNavGps;
         aplicarModoNavGps();
+    }
+
+    function desactivarNavGpsSiActivo() {
+        if (!modoNavGps) return;
+        const btn = $("btnNavGps");
+        if (btn) btn.click();
+        else {
+            modoNavGps = false;
+            aplicarModoNavGps();
+        }
+    }
+
+    function volarHastaAuto(lat, lng, zoom) {
+        if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) return;
+        desactivarNavGpsSiActivo();
+        seguirMe = false;
+        vistaRadio = false;
+        const z = zoom != null ? zoom : Math.max(map.getZoom(), 16);
+        if (typeof map.flyTo === "function") {
+            map.flyTo([Number(lat), Number(lng)], z, { duration: 0.85, easeLinearity: 0.25 });
+        } else {
+            map.setView([Number(lat), Number(lng)], z);
+        }
+    }
+
+    function activarNavGpsAlComenzar() {
+        if (modoNavGps) return;
+        const btn = $("btnNavGps");
+        if (btn) btn.click();
+        else alternarModoNavGps();
     }
 
     function aplicarModoTransito() {
@@ -5229,9 +5276,13 @@
             aplicarVisibilidadPopups();
             setTimeout(aplicarVisibilidadPopups, 80);
         });
-        $("btnTogglePerfil").addEventListener("click", function () {
+        function toggleFormPerfil() {
             $("formPerfil").classList.toggle("oculto");
-        });
+        }
+        $("btnTogglePerfil").addEventListener("click", toggleFormPerfil);
+        if ($("btnTogglePerfilCola")) {
+            $("btnTogglePerfilCola").addEventListener("click", toggleFormPerfil);
+        }
         $("btnElegirIcono").addEventListener("click", function (ev) {
             ev.stopPropagation();
             abrirModalIcono();
@@ -5319,25 +5370,49 @@
         }
         if ($("btnMapaDock")) {
             $("btnMapaDock").addEventListener("click", function () {
+                cerrarMenuMasDock();
                 cerrarComms();
             });
         }
         if ($("btnRadioDock")) {
             $("btnRadioDock").addEventListener("click", function () {
-                $("btnToggleComms").click();
-            });
-        }
-        if ($("btnAvisosDock")) {
-            $("btnAvisosDock").addEventListener("click", function () {
+                cerrarMenuMasDock();
+                if (commsAbierto()) {
+                    cerrarComms();
+                    return;
+                }
                 mostrarVistaComms("avisos");
                 abrirComms();
             });
         }
         if ($("btnAyudaDock")) {
             $("btnAyudaDock").addEventListener("click", function () {
+                cerrarMenuMasDock();
                 alternarAsistencia();
             });
         }
+        if ($("btnMasDock")) {
+            $("btnMasDock").addEventListener("click", function (ev) {
+                ev.stopPropagation();
+                alternarMenuMasDock();
+            });
+        }
+        if ($("btnCarreraDock")) {
+            $("btnCarreraDock").addEventListener("click", function () {
+                cerrarMenuMasDock();
+            });
+        }
+        if ($("btnFantasmaDock")) {
+            $("btnFantasmaDock").addEventListener("click", function () {
+                cerrarMenuMasDock();
+            });
+        }
+        document.addEventListener("click", function (ev) {
+            const mas = document.querySelector(".dock-mas");
+            if (!mas || !menuMasDockAbierto()) return;
+            if (mas.contains(ev.target)) return;
+            cerrarMenuMasDock();
+        });
         if ($("btnHudComms")) {
             $("btnHudComms").addEventListener("click", function () {
                 if (commsAbierto()) {
@@ -5720,6 +5795,31 @@
         pintarDock();
     }
 
+    function menuMasDockAbierto() {
+        const menu = $("menuMasDock");
+        return !!(menu && !menu.classList.contains("oculto"));
+    }
+
+    function cerrarMenuMasDock() {
+        const menu = $("menuMasDock");
+        const btn = $("btnMasDock");
+        if (menu) menu.classList.add("oculto");
+        if (btn) {
+            btn.classList.remove("on");
+            btn.setAttribute("aria-expanded", "false");
+        }
+    }
+
+    function alternarMenuMasDock() {
+        const menu = $("menuMasDock");
+        const btn = $("btnMasDock");
+        if (!menu || !btn) return;
+        const abrir = menu.classList.contains("oculto");
+        menu.classList.toggle("oculto", !abrir);
+        btn.classList.toggle("on", abrir);
+        btn.setAttribute("aria-expanded", abrir ? "true" : "false");
+    }
+
     function pintarDock() {
         const radio = $("btnToggleComms");
         const mapa = $("btnDockMapa");
@@ -5727,7 +5827,6 @@
         const avisos = $("btnDockAvisos");
         const mapaDock = $("btnMapaDock");
         const radioDock = $("btnRadioDock");
-        const avisosDock = $("btnAvisosDock");
         const abierto = !commsEsOverlay() || commsAbierto();
         const vista = tabActiva || "general";
         if (radio) radio.classList.toggle("on", commsAbierto());
@@ -5736,7 +5835,7 @@
         if (avisos) avisos.classList.toggle("on", abierto && vista !== "grupo");
         if (mapaDock) mapaDock.classList.toggle("on", !commsAbierto());
         if (radioDock) radioDock.classList.toggle("on", commsAbierto());
-        if (avisosDock) avisosDock.classList.toggle("on", commsAbierto() && vista !== "grupo");
+        if (commsAbierto()) cerrarMenuMasDock();
         pintarCanalPtt();
     }
 

@@ -14,9 +14,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-            <link rel="stylesheet" href="css/base.css?v=20260828f">
+            <link rel="stylesheet" href="css/base.css?v=20260829b">
 <link rel="stylesheet" href="css/desktop.css?v=20260827g">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260828f">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260829b">
 </head>
 
 <body>
@@ -78,20 +78,20 @@
 <div class="hud-top">
     <div class="hud-card" id="cardPerfil">
         <div class="perfil-cabeza">
-            <div class="perfil-lado-avatar">
-                <button type="button" id="btnAvatarPerfil" class="perfil-avatar" title="Elegir el icono de tu auto">
-                    <span id="iconoPreviewCabeza" class="icono-preview" aria-hidden="true"></span>
-                </button>
-                <button type="button" id="btnCentrar" class="hud-btn hud-ico perfil-centrar" title="Centrar el mapa en mi posición">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
-                    <span>Centrar en mi posición</span>
-                </button>
-            </div>
+            <button type="button" id="btnAvatarPerfil" class="perfil-avatar" title="Elegir el icono de tu auto">
+                <span id="iconoPreviewCabeza" class="icono-preview" aria-hidden="true"></span>
+            </button>
             <button type="button" id="btnTogglePerfil" class="perfil-resumen">
                 <span class="perfil-datos">
                     <span id="perfilNombre">Tu perfil</span>
                     <small id="perfilHint">Tocá para completar tus datos</small>
                 </span>
+            </button>
+            <button type="button" id="btnCentrar" class="hud-btn hud-ico perfil-centrar" title="Centrar el mapa en mi posición">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                <span>Centrar en mi posición</span>
+            </button>
+            <button type="button" id="btnTogglePerfilCola" class="perfil-senal-btn" title="Abrir o cerrar tus datos" aria-label="Abrir o cerrar tus datos">
                 <span id="estadoConexion" class="perfil-senal estado-off">
                     <svg viewBox="0 0 20 16" aria-hidden="true"><rect x="1" y="10" width="3" height="5" rx="0.6" fill="currentColor"/><rect x="6" y="7" width="3" height="8" rx="0.6" fill="currentColor"/><rect x="11" y="4" width="3" height="11" rx="0.6" fill="currentColor"/><rect x="16" y="1" width="3" height="14" rx="0.6" fill="currentColor"/></svg>
                     <em id="perfilSenalTxt" class="sr-only">EN LÍNEA</em>
@@ -558,13 +558,9 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5 9.5 4 14.5 6.5 20 4v13.5L14.5 20 9.5 17.5 4 20V6.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M9.5 4v13.5M14.5 6.5V20" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
         <span>Mapa</span>
     </button>
-    <button type="button" id="btnRadioDock" class="dock-item" title="Radio del grupo">
+    <button type="button" id="btnRadioDock" class="dock-item" title="Radio, walkie y avisos">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v5M8.2 21h7.6M12 8l-6.5 13M12 8l6.5 13M7.2 14h9.6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span>Radio</span>
-    </button>
-    <button type="button" id="btnAvisosDock" class="dock-item" title="Avisos y mensajes">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 5 2 6.5 2 6.5H4S6 13 6 8zM10 18.5a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>
-        <span>Avisos</span>
         <span id="badgeAvisosDock" class="badge-dock oculto">0</span>
     </button>
     <button type="button" id="btnPttDock" class="btn-ptt-mapa" title="Mantené para hablar a RADIO">
@@ -580,14 +576,22 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8.5h14l-1.2 8.2a2 2 0 0 1-2 1.7H8.2a2 2 0 0 1-2-1.7L5 8.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M9 8.5V6.6a3 3 0 0 1 6 0v1.9M8 12.5h.01M12 12.5h.01M16 12.5h.01" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
         <span>Ayuda</span>
     </button>
-    <button type="button" id="btnCarreraDock" class="dock-item dock-carrera" title="Armar una carrera">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7l1.2 3H20v7H4V7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8" cy="17.2" r="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16.2" cy="17.2" r="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13.2 10 15 7h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
-        <span>Carrera</span>
-    </button>
-    <button type="button" id="btnFantasmaDock" class="dock-item dock-fantasma" title="Compartir tu recorrido por WhatsApp">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.2 10.2c0-2.4 1.7-5.2 3.8-5.2s3.8 2.8 3.8 5.2v6.6c0 .7-.5.9-.9.4-.5-.6-1.1-.6-1.6 0-.5.6-1.1.6-1.6 0-.5-.6-1.1-.6-1.6 0-.4.5-.9.3-.9-.4V10.2z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="10.4" cy="10.4" r="0.8" fill="currentColor"/><circle cx="13.6" cy="10.4" r="0.8" fill="currentColor"/></svg>
-        <span>Fantasma</span>
-    </button>
+    <div class="dock-mas">
+        <button type="button" id="btnMasDock" class="dock-item" title="Más opciones" aria-haspopup="menu" aria-expanded="false" aria-controls="menuMasDock">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="19" r="1.7" fill="currentColor"/></svg>
+            <span>Más</span>
+        </button>
+        <div id="menuMasDock" class="dock-mas-menu oculto" role="menu" aria-label="Más opciones">
+            <button type="button" id="btnCarreraDock" class="dock-mas-item dock-carrera" role="menuitem" title="Armar una carrera">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7l1.2 3H20v7H4V7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8" cy="17.2" r="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16.2" cy="17.2" r="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13.2 10 15 7h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                <span>Carrera</span>
+            </button>
+            <button type="button" id="btnFantasmaDock" class="dock-mas-item dock-fantasma" role="menuitem" title="Compartir tu recorrido por WhatsApp">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.2 10.2c0-2.4 1.7-5.2 3.8-5.2s3.8 2.8 3.8 5.2v6.6c0 .7-.5.9-.9.4-.5-.6-1.1-.6-1.6 0-.5.6-1.1.6-1.6 0-.5-.6-1.1-.6-1.6 0-.4.5-.9.3-.9-.4V10.2z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="10.4" cy="10.4" r="0.8" fill="currentColor"/><circle cx="13.6" cy="10.4" r="0.8" fill="currentColor"/></svg>
+                <span>Fantasma</span>
+            </button>
+        </div>
+    </div>
 </nav>
 
 <div id="modalIcono" class="modal-icono oculto">
@@ -759,7 +763,7 @@
 <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script src="js/carrera.js?v=20260827g"></script>
-<script src="js/fantasma.js?v=20260827b"></script>
-<script src="js/main.js?v=20260828f"></script>
+<script src="js/fantasma.js?v=20260829b"></script>
+<script src="js/main.js?v=20260829c"></script>
 </body>
 </html>

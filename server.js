@@ -51,10 +51,25 @@ function parLngLat(valor) {
     return m ? (m[1] + "," + m[3]) : null;
 }
 
-function proxyOsrm(res, ruta) {
-    const reqUp = https.get("https://router.project-osrm.org" + ruta, {
-        headers: { "User-Agent": "v2vstreet/1.0" },
-        timeout: 8000
+function perfilOsrm(raw) {
+    const p = String(raw || "driving").toLowerCase();
+    if (p === "foot" || p === "walking" || p === "pie") return "walking";
+    return "driving";
+}
+
+function urlOsrm(perfil, servicio, coords, query) {
+    // El demo de project-osrm sirve walking con el grafo de auto (respeta manos).
+    // A pie usamos la instancia peatonal de OSM, que ignora sentido y busca el camino más corto.
+    if (perfil === "walking") {
+        return "https://routing.openstreetmap.de/routed-foot/" + servicio + "/v1/driving/" + coords + query;
+    }
+    return "https://router.project-osrm.org/" + servicio + "/v1/driving/" + coords + query;
+}
+
+function proxyOsrm(res, url) {
+    const reqUp = https.get(url, {
+        headers: { "User-Agent": "RadioMap/1.0" },
+        timeout: 10000
     }, up => {
         res.status(up.statusCode || 200);
         res.setHeader("Content-Type", "application/json");
@@ -66,17 +81,11 @@ function proxyOsrm(res, ruta) {
     });
 }
 
-function perfilOsrm(raw) {
-    const p = String(raw || "driving").toLowerCase();
-    if (p === "foot" || p === "walking" || p === "pie") return "walking";
-    return "driving";
-}
-
 app.get("/api/osrm/nearest", (req, res) => {
     const par = parLngLat(req.query.lnglat);
     if (!par) return res.status(400).json({ code: "Error" });
     const perfil = perfilOsrm(req.query.perfil);
-    proxyOsrm(res, "/nearest/v1/" + perfil + "/" + par + "?number=1");
+    proxyOsrm(res, urlOsrm(perfil, "nearest", par, "?number=1"));
 });
 
 app.get("/api/osrm/ruta", (req, res) => {
@@ -88,7 +97,7 @@ app.get("/api/osrm/ruta", (req, res) => {
     const extra = nav
         ? "&alternatives=true&steps=true"
         : "&continue_straight=true";
-    proxyOsrm(res, "/route/v1/" + perfil + "/" + from + ";" + to + "?overview=full&geometries=geojson" + extra);
+    proxyOsrm(res, urlOsrm(perfil, "route", from + ";" + to, "?overview=full&geometries=geojson" + extra));
 });
 
 let ultimoGeoTs = 0;
