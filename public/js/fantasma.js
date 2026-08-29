@@ -462,6 +462,7 @@
         guardarSesion();
         detenerHostTimer();
         pintarBoton();
+        avisarCambio(false);
     }
 
     function hostListo() {
@@ -495,6 +496,7 @@
                 guardarSesion();
                 pintarBoton();
                 iniciarHostTimer();
+                avisarCambio(true, { abrir: false });
                 return;
             }
             if (res && res.retry) {
@@ -548,6 +550,7 @@
             guardarSesion();
             pintarBoton();
             iniciarHostTimer();
+            avisarCambio(true, { abrir: !res.reanudado });
             if (!res.reanudado) abrirWhatsApp(res.token);
         });
     }
@@ -562,8 +565,14 @@
         }
     }
 
+    function avisarCambio(activo, opts) {
+        if (api && typeof api.onFantasmaCambio === "function") {
+            try { api.onFantasmaCambio(!!activo, opts || {}); } catch (e) {}
+        }
+    }
+
     function marcarChromeInerte(si) {
-        var sels = [".hud-top", ".comms-panel", ".radio-cerca"];
+        var sels = [".hud-top", ".radio-cerca"];
         var i;
         for (i = 0; i < sels.length; i++) {
             document.querySelectorAll(sels[i]).forEach(function (el) {
@@ -571,8 +580,16 @@
             });
         }
         document.querySelectorAll(".mapa-atajos .atajo-pill, .dock-mapa .dock-item, .dock-mas-item").forEach(function (el) {
+            if (el && (el.id === "btnToggleComms" || el.id === "btnRadioDock" || el.id === "btnPttDock" || el.id === "btnPttMapa")) {
+                try { el.inert = false; } catch (e3) {}
+                return;
+            }
             try { el.inert = !!si; } catch (e2) {}
         });
+        var panel = $("commsPanel");
+        if (panel) {
+            try { panel.inert = false; } catch (e4) {}
+        }
     }
 
     function unirseComoInvitado() {
@@ -598,6 +615,7 @@
                 var sub = $("fantasmaBannerSub");
                 if (sub && !res.pausa) sub.textContent = "Buscando su punto en el mapa…";
             }
+            avisarCambio(true, { abrir: true });
         });
     }
 

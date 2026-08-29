@@ -1126,6 +1126,10 @@
         prepararLargada(rutaArmada, Date.now() + 3500);
     }
 
+    function desactivarNavGpsPrevio() {
+        if (api && typeof api.desactivarNavGps === "function") api.desactivarNavGps();
+    }
+
     function prepararLargada(r, tLargada) {
         ruta = r;
         vehiculo = { s: 0, velMs: 0 };
@@ -1139,6 +1143,7 @@
         controles.freno = false;
         ultimoEmit = 0;
         ultimoRivalSnap = null;
+        desactivarNavGpsPrevio();
         fase = "cortina";
         claseCuerpo();
         if (api.cerrarComms) api.cerrarComms();
@@ -1257,6 +1262,7 @@
     function empezarPractica() {
         if (fase !== "idle") return;
         if (invitacionPendiente) responderDuelo(false);
+        desactivarNavGpsPrevio();
         if (api.cerrarComms) api.cerrarComms();
         if (api.cerrarModales) api.cerrarModales();
         if (typeof api.setMapaBearing === "function") api.setMapaBearing(0);

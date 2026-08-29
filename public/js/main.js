@@ -130,6 +130,7 @@
     let circuloRadio = null;
     let vistaRadio = false;
     let tabActiva = "general";
+    let noLeidosFantasma = 0;
     let pttStream = null;
     let pttRecorder = null;
     let pttChunks = [];
@@ -3418,9 +3419,11 @@
         if ($("txtAvisoGrupo")) {
             $("txtAvisoGrupo").placeholder = miGrupo ? ("Aviso a " + etiquetaGrupo() + "…") : "Aviso al grupo…";
         }
-        const pttSmall = document.querySelector("#btnPttMapa .ptt-leyenda small");
-        if (pttSmall) pttSmall.textContent = "Walkie a RADIO";
-        if (enWalkieFantasma()) pintarLeyendaPttFantasma();
+        if (modoPttTab() === "fantasma") pintarLeyendaPttFantasma();
+        else {
+            const pttSmall = document.querySelector("#btnPttMapa .ptt-leyenda small");
+            if (pttSmall) pttSmall.textContent = "Walkie a RADIO";
+        }
         const btnRadio = $("btnEnviarV2V");
         if (btnRadio) {
             const txt = btnRadio.childNodes[btnRadio.childNodes.length - 1];
@@ -4135,12 +4138,8 @@
 
     function desactivarNavGpsSiActivo() {
         if (!modoNavGps) return;
-        const btn = $("btnNavGps");
-        if (btn) btn.click();
-        else {
-            modoNavGps = false;
-            aplicarModoNavGps();
-        }
+        modoNavGps = false;
+        aplicarModoNavGps();
     }
 
     function volarHastaAuto(lat, lng, zoom) {
@@ -4327,10 +4326,10 @@
     }
 
     function pintarLeyendaPttFantasma() {
-        const txt = esInvitadoFantasma() ? "Walkie al fantasma" : "Walkie a RADIO y fantasma";
+        const txt = "Walkie a Fantasmas";
         const titulo = esInvitadoFantasma()
-            ? "Mantené para hablarle a quien compartió el recorrido"
-            : "Mantené para hablar a RADIO y al fantasma";
+            ? "Mantené para hablarle a quien compartió el recorrido (sala Fantasmas)"
+            : "Mantené para hablar a quienes entraron a tu enlace fantasma";
         document.querySelectorAll("#btnPttMapa .ptt-leyenda small, #btnPttDock .ptt-leyenda small").forEach(function (el) {
             el.textContent = txt;
         });
@@ -4340,18 +4339,82 @@
         });
     }
 
+    function actualizarBadgeFantasma() {
+        const badge = $("badgeFantasma");
+        if (!badge) return;
+        if (noLeidosFantasma > 0) {
+            badge.textContent = String(noLeidosFantasma > 9 ? "9+" : noLeidosFantasma);
+            badge.classList.remove("oculto");
+        } else {
+            badge.classList.add("oculto");
+        }
+    }
+
+    function actualizarTabFantasma() {
+        const tab = $("tabFantasma");
+        const hay = enWalkieFantasma();
+        if (tab) tab.classList.toggle("oculto", !hay);
+        if (!hay) {
+            noLeidosFantasma = 0;
+            actualizarBadgeFantasma();
+            if (tabActiva === "fantasma") mostrarTab("general");
+            return;
+        }
+        if ($("detalleSalaFantasma")) {
+            $("detalleSalaFantasma").textContent = esInvitadoFantasma()
+                ? "Walkie con quien compartió el enlace"
+                : "Walkie con quienes entraron a tu enlace";
+        }
+        if ($("leyendaSalaFantasma")) {
+            $("leyendaSalaFantasma").textContent = esInvitadoFantasma()
+                ? "Acá hablás con quien compartió el fantasma. El micrófono queda en blanco y negro."
+                : "Acá hablás con quienes entraron a tu enlace fantasma. El micrófono central queda en blanco y negro.";
+        }
+        if ($("destinoFantasmaDetalle")) {
+            $("destinoFantasmaDetalle").textContent = esInvitadoFantasma()
+                ? "Enlace fantasma · walkie"
+                : "Tu enlace · walkie";
+        }
+        if (esInvitadoFantasma() && tabActiva !== "fantasma") mostrarTab("fantasma");
+        pintarCanalPtt();
+    }
+
+    function onCambioFantasma(activo, opts) {
+        actualizarTabFantasma();
+        if (activo) {
+            const abrir = !!(opts && opts.abrir);
+            if (esInvitadoFantasma() || abrir) {
+                mostrarTab("fantasma");
+                if (abrir) abrirComms();
+            }
+        } else if (tabActiva === "fantasma") {
+            mostrarTab("general");
+        }
+        actualizarDestinoUI();
+        pintarCanalPtt();
+    }
+
     function modoPttTab() {
+        if (esInvitadoFantasma()) return "fantasma";
+        if (tabActiva === "fantasma") return "fantasma";
         if (tabActiva === "privado") return "privado";
         if (tabActiva === "grupo") return "grupo";
         return "general";
     }
 
     function pintarCanalPtt() {
-        if (esInvitadoFantasma()) {
+        const canal = modoPttTab();
+        if (canal === "fantasma") {
             pintarLeyendaPttFantasma();
+            ["btnPttDock", "btnPttMapa"].forEach(function (id) {
+                const btn = $(id);
+                if (!btn) return;
+                btn.classList.toggle("ptt-canal-privado", false);
+                btn.classList.toggle("ptt-canal-grupo", false);
+                btn.classList.toggle("ptt-canal-fantasma", true);
+            });
             return;
         }
-        const canal = modoPttTab();
         const titulo = canal === "privado"
             ? "Mantené para hablar en privado"
             : (canal === "grupo" ? "Mantené para hablar al grupo" : "Mantené para hablar a RADIO");
@@ -4360,8 +4423,13 @@
             if (!btn) return;
             btn.classList.toggle("ptt-canal-privado", canal === "privado");
             btn.classList.toggle("ptt-canal-grupo", canal === "grupo");
+            btn.classList.toggle("ptt-canal-fantasma", false);
             btn.title = titulo;
         });
+        const pttSmall = document.querySelector("#btnPttMapa .ptt-leyenda small");
+        if (pttSmall && canal === "general") pttSmall.textContent = "Walkie a RADIO";
+        if (pttSmall && canal === "grupo") pttSmall.textContent = "Walkie al grupo";
+        if (pttSmall && canal === "privado") pttSmall.textContent = "Walkie privado";
     }
 
     function bindPtt(el, modo) {
@@ -4411,6 +4479,10 @@
         if (canal === "carrera" && !(window.RadioMapCarrera && RadioMapCarrera.activo())) {
             return;
         }
+        if (canal === "fantasma" && !enWalkieFantasma()) {
+            alert("Compartí un fantasma o entrá con un enlace para usar esta sala.");
+            return;
+        }
         ctxPtt();
         pedirWakeLock();
         pttModo = canal;
@@ -4435,7 +4507,9 @@
         } else if (canal === "carrera") {
             setAvisoAudio("Mantené para hablar a la carrera — soltá para enviar");
         } else if (canal === "fantasma") {
-            setAvisoAudio("Mantené para hablar al fantasma — soltá para enviar");
+            setAvisoAudio("Mantené para hablar a Fantasmas — soltá para enviar");
+            if ($("destinoKicker")) $("destinoKicker").textContent = "Transmitiendo a";
+            if ($("destinoNombre")) $("destinoNombre").textContent = "Fantasmas · enlace";
             pintarLeyendaPttFantasma();
         } else {
             setAvisoAudio("Mantené para hablar a RADIO — soltá para enviar");
@@ -4602,18 +4676,10 @@
                     nombre: nombreWalkie(),
                     id: miId
                 });
+                agregarMensaje($("msgsFantasma"), nombreWalkie() || "Vos", texto, true, ts);
             } else {
                 emitirAudioConAck("audioV2V", { mime: mime, audio: buf, texto: dicho, canal: "radio" });
                 agregarMensaje($("msgsV2V"), $("nombre").value.trim() || "Vos", texto, true, ts);
-                if (window.RadioMapFantasma && RadioMapFantasma.activo()) {
-                    socket.emit("audioFantasma", {
-                        mime: mime,
-                        audio: buf,
-                        texto: dicho,
-                        nombre: nombreWalkie(),
-                        id: miId
-                    });
-                }
             }
         }).catch(function () {
             avisarEnvioPtt(false);
@@ -4832,6 +4898,14 @@
     socket.on("audioFantasma", function (data) {
         if (!data) return;
         if (data.de && (data.de === miId || soyYoId(data.de))) return;
+        const texto = textoDeAudio(data.texto);
+        const ts = data.ts || Date.now();
+        const clipId = typeof guardarClipAudio === "function" ? guardarClipAudio(data) : "";
+        agregarMensaje($("msgsFantasma"), data.nombre || "Alguien", texto, false, ts, "", clipId);
+        if (tabActiva !== "fantasma") {
+            noLeidosFantasma += 1;
+            actualizarBadgeFantasma();
+        }
         reproducirAudio(data);
     });
 
@@ -5582,10 +5656,14 @@
         });
         bindPtt($("btnPttMapa"), modoPttTab);
         bindPtt($("btnPttDock"), modoPttTab);
+        bindPtt($("btnHablarFantasma"), "fantasma");
         bindPtt($("btnHablarRadio"), "general");
         bindPtt($("btnHablarGrupo"), "grupo");
         bindPtt($("btnCarreraPtt"), "carrera");
-        if (esInvitadoFantasma()) pintarLeyendaPttFantasma();
+        if (esInvitadoFantasma()) {
+            actualizarTabFantasma();
+            pintarLeyendaPttFantasma();
+        }
         restaurarRadioGuardado();
         const gUrl = codigoDesdeUrl();
         if (gUrl) {
@@ -5647,9 +5725,14 @@
                 socket.emit("grupoUnirse", { codigo: miGrupo, nombre: miGrupoNombre });
             }
         }
-        if (!esInvitadoFantasma() && !commsEsOverlay()) {
-            mostrarVistaComms("avisos");
-            abrirComms();
+        if (!commsEsOverlay()) {
+            if (esInvitadoFantasma()) {
+                mostrarTab("fantasma");
+                abrirComms();
+            } else {
+                mostrarVistaComms("avisos");
+                abrirComms();
+            }
         }
         if (window.RadioMapCarrera) {
             window.RadioMapCarrera.init({
@@ -5662,6 +5745,7 @@
                 aplicarRumbo: aplicarRumbo,
                 rumboEntre: rumboEntre,
                 setMapaBearing: setMapaBearing,
+                desactivarNavGps: desactivarNavGpsSiActivo,
                 detenerPtt: detenerPtt,
                 calcularDistanciaKm: calcularDistanciaKm,
                 iniciarGps: iniciarGps,
@@ -5743,6 +5827,7 @@
                     };
                 },
                 navGps: function () { return !!modoNavGps; },
+                onFantasmaCambio: onCambioFantasma,
                 nombre: function () {
                     const el = $("nombre");
                     const n = el && el.value ? el.value.trim() : "";
@@ -5760,6 +5845,7 @@
                     return metrosEntre(a, b);
                 }
             });
+            actualizarTabFantasma();
         }
     }
 
@@ -5773,30 +5859,49 @@
     }
 
     function mostrarTab(nombre) {
+        if (esInvitadoFantasma()) nombre = "fantasma";
         if (nombre === "grupo") {
             if ($("tabGrupo")) $("tabGrupo").classList.remove("oculto");
         }
-        tabActiva = nombre === "grupo" ? "grupo" : (nombre === "privado" ? "privado" : "general");
+        if (nombre === "fantasma" && enWalkieFantasma()) {
+            if ($("tabFantasma")) $("tabFantasma").classList.remove("oculto");
+        }
+        if (nombre === "fantasma" && enWalkieFantasma()) tabActiva = "fantasma";
+        else if (nombre === "grupo") tabActiva = "grupo";
+        else if (nombre === "privado") tabActiva = "privado";
+        else tabActiva = "general";
         document.querySelectorAll(".tab").forEach(function (t) {
             t.classList.toggle("activa", t.getAttribute("data-tab") === tabActiva);
         });
         if ($("vistaPublico")) $("vistaPublico").classList.toggle("oculto", tabActiva !== "general");
         if ($("vistaPrivado")) $("vistaPrivado").classList.toggle("oculto", tabActiva !== "privado");
         if ($("vistaGrupo")) $("vistaGrupo").classList.toggle("oculto", tabActiva !== "grupo");
+        if ($("vistaFantasma")) $("vistaFantasma").classList.toggle("oculto", tabActiva !== "fantasma");
         if ($("panelGeneral")) $("panelGeneral").classList.toggle("oculto", tabActiva !== "general");
         if ($("panelPrivado")) $("panelPrivado").classList.toggle("oculto", tabActiva !== "privado");
         if ($("panelGrupo")) $("panelGrupo").classList.toggle("oculto", tabActiva !== "grupo");
+        if ($("panelFantasma")) $("panelFantasma").classList.toggle("oculto", tabActiva !== "fantasma");
         const panel = $("commsPanel");
         if (panel) {
             panel.setAttribute("data-tab", tabActiva);
-            panel.setAttribute("data-vista", tabActiva === "grupo" ? "grupos" : (tabActiva === "privado" ? "privado" : "avisos"));
+            panel.setAttribute(
+                "data-vista",
+                tabActiva === "grupo" ? "grupos" : (tabActiva === "privado" ? "privado" : (tabActiva === "fantasma" ? "fantasma" : "avisos"))
+            );
         }
         if (tabActiva === "privado") {
             noLeidos = 0;
             actualizarBadge();
         }
+        if (tabActiva === "fantasma") {
+            noLeidosFantasma = 0;
+            actualizarBadgeFantasma();
+        }
         if (tabActiva !== "grupo" && !miGrupo && $("tabGrupo")) {
             $("tabGrupo").classList.add("oculto");
+        }
+        if (tabActiva !== "fantasma" && !enWalkieFantasma() && $("tabFantasma")) {
+            $("tabFantasma").classList.add("oculto");
         }
         pintarDock();
     }
@@ -5826,7 +5931,10 @@
     }
 
     function abrirComms() {
-        if (esInvitadoFantasma()) return;
+        if (esInvitadoFantasma()) {
+            actualizarTabFantasma();
+            mostrarTab("fantasma");
+        }
         $("commsPanel").classList.add("open");
         document.body.classList.add("comms-open");
         pintarDock();
