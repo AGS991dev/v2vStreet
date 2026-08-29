@@ -433,6 +433,12 @@
         return data;
     }
 
+    function normalizarGrupo(valor) {
+        const s = String(valor || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+        if (s.length < 4 || s.length > 8) return "";
+        return s;
+    }
+
     function esBloqueado(id) {
         return !!id && bloqueados.indexOf(id) >= 0;
     }
@@ -3851,21 +3857,45 @@
         else if (tabActiva === "grupo") mostrarTab("general");
     }
 
+    function reintentarUnirseGrupo(codigo, nombre) {
+        if (!codigo || !socket.connected) return;
+        socket.emit("grupoUnirse", { codigo: codigo, nombre: nombre || "" }, function (res) {
+            if (res && res.ok && res.codigo) {
+                aplicarGrupo(res.codigo, res.nombre || nombre);
+            }
+        });
+    }
+
     function unirseAGrupo() {
-        const codigo = normalizarGrupo($("txtGrupo") && $("txtGrupo").value);
-        if (codigo.length < 4) {
-            alert("El código tiene que tener entre 4 y 8 letras o números.");
+        const raw = ($("txtGrupo") && $("txtGrupo").value) || "";
+        const codigo = normalizarGrupo(raw);
+        if (!codigo) {
+            alert("El código tiene que tener entre 4 y 8 letras o números (sin espacios ni símbolos).");
+            return;
+        }
+        const nombre = $("txtGrupoNombre") ? $("txtGrupoNombre").value.trim() : "";
+        if (!socket.connected) {
+            alert("Sin conexión. Esperá un momento y probá de nuevo.");
             return;
         }
         socket.emit("grupoUnirse", {
             codigo: codigo,
-            nombre: $("txtGrupoNombre") ? $("txtGrupoNombre").value.trim() : ""
+            nombre: nombre
         }, function (res) {
-            if (!res || !res.ok) {
-                aplicarGrupo(codigo, $("txtGrupoNombre") && $("txtGrupoNombre").value);
+            if (res && res.ok && res.codigo) {
+                aplicarGrupo(res.codigo, res.nombre || nombre);
                 return;
             }
-            aplicarGrupo(res.codigo, res.nombre);
+            const err = (res && res.error) ? String(res.error) : "";
+            // Sin GPS todavía: guardamos el grupo local y reintentamos cuando haya telemetría.
+            if (/GPS|ubicación|ubicacion|inválido/i.test(err) || !res) {
+                aplicarGrupo(codigo, nombre);
+                setTimeout(function () {
+                    if (miGrupo === codigo) reintentarUnirseGrupo(codigo, miGrupoNombre || nombre);
+                }, 1500);
+                return;
+            }
+            alert(err || "No se pudo unir al grupo. Revisá el código.");
         });
     }
 
@@ -3875,13 +3905,27 @@
             alert("Poné un nombre para el grupo.");
             return;
         }
-        const codigo = normalizarGrupo($("txtGrupo") && $("txtGrupo").value);
+        const rawCodigo = ($("txtGrupo") && $("txtGrupo").value) || "";
+        const codigo = normalizarGrupo(rawCodigo);
+        if (rawCodigo.trim() && !codigo) {
+            alert("Si ponés un código, tiene que tener entre 4 y 8 letras o números.");
+            return;
+        }
+        if (!socket.connected) {
+            alert("Sin conexión. Esperá un momento y probá de nuevo.");
+            return;
+        }
         socket.emit("grupoCrear", { nombre: nombre, codigo: codigo }, function (res) {
             if (!res || !res.ok || !res.codigo) {
-                alert("No se pudo crear el grupo. Probá de nuevo.");
+                alert((res && res.error) || "No se pudo crear el grupo. Probá de nuevo.");
                 return;
             }
             aplicarGrupo(res.codigo, res.nombre || nombre);
+            const estado = $("estadoGrupo");
+            if (estado) {
+                estado.textContent = (res.nombre || nombre) + " · código " + res.codigo +
+                    ". Compartí ese código para que se unan.";
+            }
         });
     }
 
@@ -4985,6 +5029,14 @@
     socket.on("grupoEstado", function (data) {
         const codigo = normalizarGrupo(data && data.codigo);
         const nombre = data && data.nombre;
+        if (!codigo) {
+            // Vacío solo confirma salida; no pisar un grupo local activo.
+            if (!miGrupo) {
+                pintarEstadoGrupo();
+                actualizarDestinoUI();
+            }
+            return;
+        }
         if (codigo === miGrupo) {
             if (nombre != null) guardarNombreGrupoLocal(nombre);
             pintarEstadoGrupo();

@@ -1472,6 +1472,17 @@ io.on("connection", socket => {
             }
         }
 
+        if (socket.grupoPendiente) {
+            const pend = normalizarGrupo(socket.grupoPendiente);
+            socket.grupoPendiente = "";
+            if (pend && v.grupo !== pend) {
+                sacarDeGrupoVivo(v.id, v.grupo);
+                if (v.grupo) quitarMiembroGrupo(v.grupo, v.id);
+                v.grupo = pend;
+                grupo = pend;
+            }
+        }
+
         ponerEnCelda(v);
         ponerEnGrupoVivo(v);
         unirSalas(socket, v);
@@ -1567,15 +1578,23 @@ io.on("connection", socket => {
 
     socket.on("grupoUnirse", (payload, ack) => {
         const codigo = normalizarGrupo(payload && (payload.codigo || payload));
-        const yo = vehiculoDeSocket(socket);
-        if (!codigo || !yo) {
-            if (typeof ack === "function") ack({ ok: false, error: "Código inválido o todavía no hay GPS." });
+        if (!codigo) {
+            if (typeof ack === "function") ack({ ok: false, error: "Código inválido. Usá 4 a 8 letras o números." });
             return;
         }
+        const yo = vehiculoDeSocket(socket);
         const nombreIn = sanitizarNombreGrupo(payload && payload.nombre);
         if (nombreIn) asegurarGrupo(codigo, nombreDeGrupo(codigo) ? "" : nombreIn);
         else asegurarGrupo(codigo, "");
         const nombre = nombreDeGrupo(codigo) || "";
+        if (!yo) {
+            // Todavía no hay telemetría/GPS: reservamos el código y el cliente reintenta.
+            socket.grupoPendiente = codigo;
+            if (typeof ack === "function") {
+                ack({ ok: false, error: "Todavía no hay GPS. El grupo quedó pendiente; reintentamos al ubicarte." });
+            }
+            return;
+        }
         const prev = yo.vistoPor ? yo.vistoPor.slice() : [];
         sacarDeGrupoVivo(yo.id, yo.grupo);
         if (yo.grupo && yo.grupo !== codigo) quitarMiembroGrupo(yo.grupo, yo.id);
