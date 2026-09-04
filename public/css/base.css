@@ -2861,11 +2861,11 @@ body.mosaico-listo .marker-otro .auto-cuerpo {
 }
 
 .brujula-mapa {
-    position: relative;
+    position: absolute;
+    right: 12px;
     left: auto;
-    bottom: auto;
-    flex: 0 0 52px;
-    z-index: 1;
+    bottom: calc(var(--dock-h) + 14px);
+    z-index: 1500;
     width: 52px;
     height: 52px;
     padding: 0;
@@ -5552,6 +5552,10 @@ body.modo-manejo .atajo-pill {
         display: none;
     }
 
+    .habla-mapa-pie {
+        display: none;
+    }
+
     .habla-mapa {
         left: 12px;
         right: auto;
@@ -5560,31 +5564,52 @@ body.modo-manejo .atajo-pill {
     }
 
     .vel-hud {
-        z-index: 2490;
-        bottom: calc(var(--dock-h) - 2px);
-        min-width: 136px;
-        padding: 12px 26px 48px;
-        border-radius: 80px 80px 18px 18px;
-        box-shadow: 0 -8px 18px rgba(28, 40, 60, 0.10);
-        align-items: flex-start;
+        z-index: 2501;
+        bottom: calc(var(--dock-h) - 6px);
+        width: 168px;
+        height: 84px;
+        min-width: 168px;
+        padding: 44px 10px 4px;
+        border-radius: 84px 84px 0 0;
+        box-shadow: none;
+        align-items: flex-end;
+        overflow: visible;
+    }
+
+    .vel-hud::after {
+        content: "";
+        position: absolute;
+        left: 8%;
+        right: 8%;
+        bottom: -8px;
+        height: 18px;
+        background: #fff;
+        pointer-events: none;
     }
 
     .vel-hud .vel-num {
-        font-size: 40px;
+        font-size: 32px;
         line-height: 1;
-        padding-top: 2px;
+        padding-top: 0;
     }
 
     .vel-hud .vel-uni {
         font-size: 13px;
-        padding-top: 10px;
+        padding-top: 0;
+        padding-bottom: 5px;
+    }
+
+    .brujula-mapa {
+        right: 12px;
+        left: auto;
+        bottom: calc(var(--dock-h) + 14px);
     }
 
     .radio-cerca {
         display: flex;
         position: fixed;
         right: 10px;
-        bottom: calc(var(--dock-h) + 78px);
+        bottom: calc(var(--dock-h) + 80px);
         max-height: min(36vh, 280px);
         z-index: 1501;
         padding-bottom: 2px;

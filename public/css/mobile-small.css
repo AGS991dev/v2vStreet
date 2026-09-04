@@ -31,7 +31,7 @@
     }
 
     .vel-hud .vel-num {
-        font-size: 36px;
+        font-size: 32px;
     }
 
     .stepper-ayuda {
@@ -80,7 +80,7 @@
 
     .radio-cerca {
         right: 8px;
-        bottom: calc(var(--dock-h) + 78px);
+        bottom: calc(var(--dock-h) + 80px);
     }
 
     .radio-cerca-meta {

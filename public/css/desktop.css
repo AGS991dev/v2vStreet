@@ -49,10 +49,20 @@
     .mapa-atajos {
         display: flex;
         right: 16px;
-        bottom: 24px;
+        bottom: 88px;
     }
 
     body.comms-open .mapa-atajos {
+        right: calc(var(--panel-w) + 32px);
+    }
+
+    .brujula-mapa {
+        right: 16px;
+        left: auto;
+        bottom: 24px;
+    }
+
+    body.comms-open .brujula-mapa {
         right: calc(var(--panel-w) + 32px);
     }
 

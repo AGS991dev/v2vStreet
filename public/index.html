@@ -14,9 +14,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-            <link rel="stylesheet" href="css/base.css?v=20260904n">
-<link rel="stylesheet" href="css/desktop.css?v=20260904n">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260904n">
+            <link rel="stylesheet" href="css/base.css?v=20260904o">
+<link rel="stylesheet" href="css/desktop.css?v=20260904o">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260904o">
 </head>
 
 <body>
@@ -286,6 +286,12 @@
         <span class="vel-num">0</span>
         <span class="vel-uni">km/h</span>
     </div>
+    <button type="button" id="brujulaMapa" class="brujula-mapa" title="Navegación GPS: tu auto queda abajo y el mapa gira con el rumbo" aria-label="Navegación GPS" aria-pressed="false">
+        <span class="brujula-rosa" aria-hidden="true">
+            <span class="brujula-flecha"></span>
+            <span class="brujula-n">N</span>
+        </span>
+    </button>
     <div class="habla-mapa">
         <div id="hudRuta" class="hud-ruta oculto">
             <div class="hud-ruta-txt">
@@ -301,12 +307,6 @@
             <strong id="destinoNombre">RADIO · 5 km</strong>
         </div>
         <div class="habla-mapa-pie">
-            <button type="button" id="brujulaMapa" class="brujula-mapa" title="Navegación GPS: tu auto queda abajo y el mapa gira con el rumbo" aria-label="Navegación GPS" aria-pressed="false">
-                <span class="brujula-rosa" aria-hidden="true">
-                    <span class="brujula-flecha"></span>
-                    <span class="brujula-n">N</span>
-                </span>
-            </button>
             <button type="button" id="btnPttMapa" class="btn-ptt-mapa" title="Mantené para hablar a RADIO">
                 <span class="ico" aria-hidden="true">
                     <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
@@ -963,6 +963,6 @@
 <script src="js/carrera.js?v=20260829e"></script>
 <script src="js/fantasma.js?v=20260904d"></script>
 <script src="js/radares.js?v=20260904h"></script>
-<script src="js/main.js?v=20260904n"></script>
+<script src="js/main.js?v=20260904o"></script>
 </body>
 </html>
