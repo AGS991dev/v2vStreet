@@ -1507,7 +1507,6 @@ body.modo-a-pie .switch-ir-modo .switch-ir-pie {
     box-shadow: 0 0 0 2px var(--navy), var(--sombra);
 }
 
-#btnNavGps.on,
 #btnRadares.on,
 #btnTestFantasma.on {
     background: #eef4fb;
@@ -2290,13 +2289,19 @@ body.modo-a-pie .switch-ir-modo .switch-ir-pie {
 .vel-hud {
     position: absolute;
     left: 50%;
-    bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+    bottom: 24px;
     transform: translateX(-50%);
     z-index: 1180;
     pointer-events: none;
     display: flex;
     align-items: baseline;
-    gap: 8px;
+    justify-content: center;
+    gap: 6px;
+    min-width: 112px;
+    padding: 8px 22px 10px;
+    background: #fff;
+    border-radius: 999px;
+    box-shadow: 0 8px 22px rgba(28, 40, 60, 0.12);
     font-family: 'Archivo', sans-serif;
     font-weight: 800;
     color: #111;
@@ -2305,33 +2310,15 @@ body.modo-a-pie .switch-ir-modo .switch-ir-pie {
 }
 
 .vel-hud .vel-num {
-    font-size: 64px;
+    font-size: 48px;
     letter-spacing: -0.03em;
-    -webkit-text-stroke: 6px #fff;
-    paint-order: stroke fill;
-    text-shadow:
-        -3px -3px 0 #fff,
-         3px -3px 0 #fff,
-        -3px  3px 0 #fff,
-         3px  3px 0 #fff,
-        -3px 0 0 #fff,
-         3px 0 0 #fff,
-         0 -3px 0 #fff,
-         0  3px 0 #fff,
-         0 0 10px #fff;
 }
 
 .vel-hud .vel-uni {
-    font-size: 18px;
-    letter-spacing: 0.04em;
-    -webkit-text-stroke: 3px #fff;
-    paint-order: stroke fill;
-    text-shadow:
-        -2px -2px 0 #fff,
-         2px -2px 0 #fff,
-        -2px  2px 0 #fff,
-         2px  2px 0 #fff,
-         0 0 6px #fff;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    opacity: 0.88;
 }
 
 .vel-hud.exceso,
@@ -2889,6 +2876,20 @@ body.mosaico-listo .marker-otro .auto-cuerpo {
     cursor: pointer;
     display: grid;
     place-items: center;
+}
+
+.brujula-mapa.on {
+    background: var(--ambar);
+    border-color: #fff;
+    box-shadow: 0 4px 16px rgba(245, 166, 35, 0.45);
+}
+
+.brujula-mapa.on .brujula-flecha {
+    border-bottom-color: #fff;
+}
+
+.brujula-mapa.on .brujula-n {
+    color: #fff;
 }
 
 .brujula-rosa {
@@ -3625,7 +3626,6 @@ body.mosaico-listo .marker-otro .auto-cuerpo {
     color: var(--suave);
 }
 
-#btnNavGps.on,
 #btnRadares.on,
 #btnTestFantasma.on {
     background: #fff8ee;
@@ -5560,15 +5560,24 @@ body.modo-manejo .atajo-pill {
     }
 
     .vel-hud {
-        bottom: calc(var(--dock-h) + 8px);
+        z-index: 2490;
+        bottom: calc(var(--dock-h) - 2px);
+        min-width: 136px;
+        padding: 12px 26px 48px;
+        border-radius: 80px 80px 18px 18px;
+        box-shadow: 0 -8px 18px rgba(28, 40, 60, 0.10);
+        align-items: flex-start;
     }
 
     .vel-hud .vel-num {
-        font-size: 48px;
+        font-size: 40px;
+        line-height: 1;
+        padding-top: 2px;
     }
 
     .vel-hud .vel-uni {
-        font-size: 14px;
+        font-size: 13px;
+        padding-top: 10px;
     }
 
     .radio-cerca {
@@ -5807,18 +5816,18 @@ body.modo-manejo .atajo-pill {
     .aviso-audio {
         left: 50%;
         transform: translateX(-50%);
-        bottom: calc(var(--dock-h) + 78px);
+        bottom: calc(var(--dock-h) + 108px);
     }
 
     .ack-walkie {
         left: 50%;
         transform: translateX(-50%);
-        bottom: calc(var(--dock-h) + 86px);
+        bottom: calc(var(--dock-h) + 116px);
     }
 
     .aviso-gps {
         top: auto;
-        bottom: calc(var(--dock-h) + 12px);
+        bottom: calc(var(--dock-h) + 108px);
         left: 50%;
         transform: translateX(-50%);
         width: min(360px, calc(100% - 24px));

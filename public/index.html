@@ -14,9 +14,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-            <link rel="stylesheet" href="css/base.css?v=20260904m">
-<link rel="stylesheet" href="css/desktop.css?v=20260904m">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260904m">
+            <link rel="stylesheet" href="css/base.css?v=20260904n">
+<link rel="stylesheet" href="css/desktop.css?v=20260904n">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260904n">
 </head>
 
 <body>
@@ -249,10 +249,6 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M8 9h8M8 13h5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
                 <span>Mostrar fichas</span>
             </label>
-            <button type="button" id="btnNavGps" class="hud-btn hud-ico" title="Navegación GPS: tu auto queda abajo con nariz fija y el mapa gira con el rumbo" aria-pressed="false">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l3.2 7.2L22 12l-6.8 1.8L12 21l-3.2-7.2L2 12l6.8-1.8L12 3z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>
-                <span>Navegación GPS</span>
-            </button>
             <button type="button" id="btnRadares" class="hud-btn hud-ico" title="Mostrar radares de velocidad máxima dentro del alcance de la radio" aria-pressed="false">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="5.4" fill="none" stroke="currentColor" stroke-width="1.3"/><text x="12" y="15.2" text-anchor="middle" font-size="7.2" font-weight="800" fill="currentColor" font-family="ui-sans-serif, system-ui, sans-serif">60</text></svg>
                 <span>Radares de velocidad</span>
@@ -305,7 +301,7 @@
             <strong id="destinoNombre">RADIO · 5 km</strong>
         </div>
         <div class="habla-mapa-pie">
-            <button type="button" id="brujulaMapa" class="brujula-mapa" title="Norte" aria-label="Brújula: el norte">
+            <button type="button" id="brujulaMapa" class="brujula-mapa" title="Navegación GPS: tu auto queda abajo y el mapa gira con el rumbo" aria-label="Navegación GPS" aria-pressed="false">
                 <span class="brujula-rosa" aria-hidden="true">
                     <span class="brujula-flecha"></span>
                     <span class="brujula-n">N</span>
@@ -967,6 +963,6 @@
 <script src="js/carrera.js?v=20260829e"></script>
 <script src="js/fantasma.js?v=20260904d"></script>
 <script src="js/radares.js?v=20260904h"></script>
-<script src="js/main.js?v=20260904m"></script>
+<script src="js/main.js?v=20260904n"></script>
 </body>
 </html>

@@ -383,9 +383,7 @@
         btnBrujula.addEventListener("click", function (ev) {
             ev.preventDefault();
             ev.stopPropagation();
-            if (modoNavGps) return;
-            if (map.setBearing) map.setBearing(0);
-            pintarBrujula();
+            alternarModoNavGps();
         });
     }
 
@@ -4623,13 +4621,13 @@
 
     function aplicarModoNavGps() {
         document.body.classList.toggle("modo-nav-gps", modoNavGps);
-        const btn = $("btnNavGps");
+        const btn = $("brujulaMapa");
         if (btn) {
             btn.classList.toggle("on", modoNavGps);
             btn.setAttribute("aria-pressed", modoNavGps ? "true" : "false");
             btn.title = modoNavGps
-                ? "Navegación GPS activa: auto fijo; mapa y ruta giran (estilo GPS)"
-                : "Navegación GPS: auto fijo abajo; el mapa gira y la ruta queda hacia arriba";
+                ? "Navegación GPS activa: toca para volver al norte"
+                : "Navegación GPS: tu auto queda abajo y el mapa gira con el rumbo";
         }
         if (modoNavGps) {
             seguirMe = true;
@@ -4700,9 +4698,7 @@
 
     function activarNavGpsAlComenzar() {
         if (modoNavGps) return;
-        const btn = $("btnNavGps");
-        if (btn) btn.click();
-        else alternarModoNavGps();
+        alternarModoNavGps();
     }
 
     function aplicarModoTransito() {
@@ -6246,7 +6242,6 @@
             });
         }
         if ($("btnSosMapa")) $("btnSosMapa").addEventListener("click", alternarAsistencia);
-        if ($("btnNavGps")) $("btnNavGps").addEventListener("click", alternarModoNavGps);
         if ($("btnModoTransito")) {
             $("btnModoTransito").addEventListener("click", function (ev) {
                 ev.stopPropagation();
