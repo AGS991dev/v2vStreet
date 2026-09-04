@@ -60,14 +60,21 @@
         left: 16px;
         right: auto;
         bottom: 24px;
-        max-width: 280px;
+        max-width: 260px;
         flex-direction: column;
         align-items: flex-start;
     }
 
-    .brujula-mapa {
-        left: 16px;
-        bottom: 104px;
+    .vel-hud {
+        bottom: 22px;
+    }
+
+    .vel-hud .vel-num {
+        font-size: 72px;
+    }
+
+    body.comms-open .vel-hud {
+        left: calc((100% - var(--panel-w)) / 2);
     }
 
     .dock-mapa {
@@ -75,15 +82,23 @@
     }
 
     .aviso-audio {
-        left: 16px;
-        transform: none;
-        bottom: 168px;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 118px;
+    }
+
+    body.comms-open .aviso-audio {
+        left: calc((100% - var(--panel-w)) / 2);
     }
 
     .ack-walkie {
-        left: 16px;
-        transform: none;
-        bottom: 220px;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 118px;
+    }
+
+    body.comms-open .ack-walkie {
+        left: calc((100% - var(--panel-w)) / 2);
     }
 
     .aviso-gps {

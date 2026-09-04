@@ -273,12 +273,14 @@
             if (id === miId) {
                 const propio = Object.assign(datosPropios(), miPosicion || {}, { id: miId });
                 if (marker.getPopup()) marker.setPopupContent(fichaHtml(propio));
+                pintarVelocidadPropia();
             }
             requestAnimationFrame(function () { engancharFicha(marker, id); });
         });
         marker.on("popupclose", function () {
             const el = marker.getElement && marker.getElement();
             if (el) el.classList.remove("ficha-abierta");
+            if (id === miId) pintarVelocidadPropia();
             if (fichasForzadas[id] === "abierta") fichasForzadas[id] = "cerrada";
             if (debeMostrarNombre(id) && marker.openTooltip) marker.openTooltip();
         });
@@ -344,10 +346,9 @@
         const size = tamanioMarker(rec.w, rec.h);
         const ax = Math.round(size[0] / 2);
         const ay = Math.round(size[1] / 2);
-        const velHtml = soyYo ? '<div class="vel-propia" aria-hidden="true"><span class="vel-num">0</span><span class="vel-uni">km/h</span></div>' : "";
         return L.divIcon({
             className: "marker-auto" + (soyYo ? " marker-propio" : " marker-otro"),
-            html: '<div class="auto-rot"><img class="auto-cuerpo" alt="" width="' + size[0] + '" height="' + size[1] + '" src="' + rec.url + '"></div>' + velHtml,
+            html: '<div class="auto-rot"><img class="auto-cuerpo" alt="" width="' + size[0] + '" height="' + size[1] + '" src="' + rec.url + '"></div>',
             iconSize: size,
             iconAnchor: [ax, ay],
             popupAnchor: [0, -ay],
@@ -1174,18 +1175,15 @@
     }
 
     function pintarVelocidadPropia() {
-        const marker = markers[miId];
-        const el = marker && marker.getElement && marker.getElement();
-        const lab = el && el.querySelector(".vel-propia");
-        if (!lab) return;
+        const hud = $("velHud");
+        if (!hud) return;
         const vel = velPropiaKmh();
-        const num = lab.querySelector(".vel-num");
+        const num = hud.querySelector(".vel-num");
         if (num) num.textContent = String(vel);
-        else lab.textContent = String(vel);
-        lab.classList.toggle("exceso", excesoVelocidad(vel));
-        const b = bearingMapa();
-        lab.style.transform = "translateX(-50%) rotate(" + (-b) + "deg)";
-        if (el) el.classList.toggle("ficha-abierta", !!(marker.isPopupOpen && marker.isPopupOpen()));
+        hud.classList.toggle("exceso", excesoVelocidad(vel));
+        const marker = markers[miId];
+        const abierta = !!(marker && marker.isPopupOpen && marker.isPopupOpen());
+        hud.classList.toggle("oculto", abierta || esInvitadoFantasma());
     }
 
     function pedirCallePropia(lat, lng) {

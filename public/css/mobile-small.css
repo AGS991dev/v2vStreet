@@ -30,8 +30,8 @@
         font-size: 11px;
     }
 
-    .mision {
-        font-size: 14px;
+    .vel-hud .vel-num {
+        font-size: 42px;
     }
 
     .stepper-ayuda {
@@ -80,7 +80,7 @@
 
     .radio-cerca {
         right: 8px;
-        bottom: calc(var(--dock-h) + 6px);
+        bottom: calc(var(--dock-h) + 78px);
     }
 
     .radio-cerca-meta {

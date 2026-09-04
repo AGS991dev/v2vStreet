@@ -14,9 +14,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-            <link rel="stylesheet" href="css/base.css?v=20260904k">
-<link rel="stylesheet" href="css/desktop.css?v=20260904k">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260904k">
+            <link rel="stylesheet" href="css/base.css?v=20260904m">
+<link rel="stylesheet" href="css/desktop.css?v=20260904m">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260904m">
 </head>
 
 <body>
@@ -286,12 +286,10 @@
 <main class="map-container">
     <div id="map"></div>
     <div id="tipCalle" class="tip-calle oculto" role="tooltip"></div>
-    <button type="button" id="brujulaMapa" class="brujula-mapa" title="Norte" aria-label="Brújula: el norte">
-        <span class="brujula-rosa" aria-hidden="true">
-            <span class="brujula-flecha"></span>
-            <span class="brujula-n">N</span>
-        </span>
-    </button>
+    <div id="velHud" class="vel-hud" aria-hidden="true">
+        <span class="vel-num">0</span>
+        <span class="vel-uni">km/h</span>
+    </div>
     <div class="habla-mapa">
         <div id="hudRuta" class="hud-ruta oculto">
             <div class="hud-ruta-txt">
@@ -306,7 +304,14 @@
             <span id="destinoKicker">Walkie y mensajes van a</span>
             <strong id="destinoNombre">RADIO · 5 km</strong>
         </div>
-        <button type="button" id="btnPttMapa" class="btn-ptt-mapa" title="Mantené para hablar a RADIO">
+        <div class="habla-mapa-pie">
+            <button type="button" id="brujulaMapa" class="brujula-mapa" title="Norte" aria-label="Brújula: el norte">
+                <span class="brujula-rosa" aria-hidden="true">
+                    <span class="brujula-flecha"></span>
+                    <span class="brujula-n">N</span>
+                </span>
+            </button>
+            <button type="button" id="btnPttMapa" class="btn-ptt-mapa" title="Mantené para hablar a RADIO">
                 <span class="ico" aria-hidden="true">
                     <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
                 </span>
@@ -315,6 +320,7 @@
                     <small>Walkie a RADIO</small>
                 </span>
             </button>
+        </div>
     </div>
     <div class="mapa-atajos">
         <button type="button" id="btnCarrera" class="atajo-pill atajo-carrera" title="Armar una carrera" aria-label="Carrera">
@@ -961,6 +967,6 @@
 <script src="js/carrera.js?v=20260829e"></script>
 <script src="js/fantasma.js?v=20260904d"></script>
 <script src="js/radares.js?v=20260904h"></script>
-<script src="js/main.js?v=20260904k"></script>
+<script src="js/main.js?v=20260904m"></script>
 </body>
 </html>
