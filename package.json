@@ -4,7 +4,8 @@
   "description": "Sistema V2V con Leaflet + Socket.IO",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "radares": "node scripts/armar-radares.js"
   },
   "dependencies": {
     "@socket.io/redis-adapter": "^8.2.1",

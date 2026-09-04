@@ -136,6 +136,8 @@
     let pttChunks = [];
     let pttModo = "general";
     let pttTimer = null;
+    let pttReloj = null;
+    let pttRelojT0 = 0;
     let pttActivo = false;
     let pttTranscripcion = "";
     let pttReconocimiento = null;
@@ -936,6 +938,7 @@
         };
         actualizarResumenPerfil();
         if (window.RadioMapFantasma && RadioMapFantasma.onGps) RadioMapFantasma.onGps();
+        if (window.RadioMapRadares && RadioMapRadares.onGps) RadioMapRadares.onGps();
         if (esInvitadoFantasma()) return;
 
         const propio = Object.assign(datosPropios(), miPosicion, { id: miId });
@@ -1661,7 +1664,8 @@
         if (!t || !t.closest) return false;
         return !!(t.closest(".leaflet-tooltip") || t.closest(".leaflet-popup") ||
             t.closest(".leaflet-control") || t.closest(".marker-auto") ||
-            t.closest(".marker-bandera") || t.closest(".marker-destino"));
+            t.closest(".marker-bandera") || t.closest(".marker-destino") ||
+            t.closest(".marker-radar"));
     }
 
     function onClickMapa(ev) {
@@ -3415,15 +3419,20 @@
         if ($("destinoNombre")) $("destinoNombre").textContent = detalle;
         if ($("destinoKicker")) $("destinoKicker").textContent = "Walkie y avisos van a";
         if ($("destinoConvoyDetalle")) $("destinoConvoyDetalle").textContent = detalle;
-        if ($("txtV2V")) $("txtV2V").placeholder = "Aviso a RADIO…";
-        if ($("lblTabRadio")) $("lblTabRadio").textContent = "Público";
+        if ($("txtV2V")) $("txtV2V").placeholder = "Escribí un mensaje…";
+        if ($("lblTabRadio")) $("lblTabRadio").textContent = "Todos";
+        if ($("badgeCercaRadio")) $("badgeCercaRadio").textContent = String(n);
+        if ($("badgeTabRadio")) {
+            $("badgeTabRadio").textContent = n > 9 ? "9+" : String(n);
+            $("badgeTabRadio").classList.toggle("oculto", !n);
+        }
         if ($("destinoGrupoDetalle")) {
             $("destinoGrupoDetalle").textContent = miGrupo
                 ? (etiquetaGrupo() + " · " + miGrupo)
                 : "Sin grupo";
         }
         if ($("txtAvisoGrupo")) {
-            $("txtAvisoGrupo").placeholder = miGrupo ? ("Aviso a " + etiquetaGrupo() + "…") : "Aviso al grupo…";
+            $("txtAvisoGrupo").placeholder = miGrupo ? ("Aviso a " + etiquetaGrupo() + "…") : "Escribí un mensaje…";
         }
         if (modoPttTab() === "fantasma") pintarLeyendaPttFantasma();
         else {
@@ -3959,8 +3968,13 @@
         const btn = $("btnSosMapa");
         if (btn) {
             btn.classList.toggle("activo", asistenciaActiva);
-            const txt = btn.querySelector("span:not(.atajo-ico)");
-            if (txt) txt.textContent = asistenciaActiva ? "Cancelar ayuda" : "Necesito ayuda";
+            const txt = btn.querySelector(".atajo-tip") || btn.querySelector("span:not(.atajo-ico)");
+            const etiqueta = asistenciaActiva ? "Cancelar ayuda" : "Necesito ayuda";
+            if (txt) txt.textContent = etiqueta;
+            btn.title = asistenciaActiva
+                ? "Cancelar el aviso de ayuda"
+                : "Avisar a quien está cerca que necesitás ayuda";
+            btn.setAttribute("aria-label", etiqueta);
         }
         const dock = $("btnDockAyuda");
         if (dock) dock.classList.toggle("activo", asistenciaActiva);
@@ -4173,6 +4187,7 @@
             aplicarVisibilidadPopups();
         }
         if (map) setTimeout(function () { map.invalidateSize(); }, 80);
+        if (window.RadioMapRadares && RadioMapRadares.onNavGps) RadioMapRadares.onNavGps();
     }
 
     function alternarModoNavGps() {
@@ -4340,13 +4355,45 @@
 
     function setAvisoAudio(texto) {
         const el = $("avisoAudio");
+        const eco = $("radioEscuchaTxt");
+        const barra = $("radioEscucha");
         if (!texto) {
             el.classList.add("oculto");
             el.textContent = "";
+            if (eco) eco.textContent = "Escuchando…";
+            if (barra) barra.classList.remove("hablando");
             return;
         }
         el.textContent = texto;
         el.classList.remove("oculto");
+        if (eco) eco.textContent = texto;
+        if (barra) barra.classList.add("hablando");
+    }
+
+    function pintarRelojPtt(seg) {
+        const el = $("radioEscuchaTiempo");
+        if (!el) return;
+        const n = Math.max(0, Number(seg) || 0);
+        const m = Math.floor(n / 60);
+        const s = n % 60;
+        el.textContent = m + ":" + (s < 10 ? "0" : "") + s;
+    }
+
+    function arrancarRelojPtt() {
+        if (pttReloj) clearInterval(pttReloj);
+        pttRelojT0 = Date.now();
+        pintarRelojPtt(0);
+        pttReloj = setInterval(function () {
+            pintarRelojPtt(Math.floor((Date.now() - pttRelojT0) / 1000));
+        }, 250);
+    }
+
+    function pararRelojPtt() {
+        if (pttReloj) {
+            clearInterval(pttReloj);
+            pttReloj = null;
+        }
+        pintarRelojPtt(0);
     }
 
     function marcarHablando(id, on) {
@@ -4450,19 +4497,20 @@
         const canal = modoPttTab();
         if (canal === "fantasma") {
             pintarLeyendaPttFantasma();
-            ["btnPttDock", "btnPttMapa"].forEach(function (id) {
+            ["btnPttDock", "btnPttMapa", "btnPttPanel"].forEach(function (id) {
                 const btn = $(id);
                 if (!btn) return;
                 btn.classList.toggle("ptt-canal-privado", false);
                 btn.classList.toggle("ptt-canal-grupo", false);
                 btn.classList.toggle("ptt-canal-fantasma", true);
             });
+            if ($("pttPanelSub")) $("pttPanelSub").textContent = "para hablar a Fantasmas";
             return;
         }
         const titulo = canal === "privado"
             ? "Mantené para hablar en privado"
             : (canal === "grupo" ? "Mantené para hablar al grupo" : "Mantené para hablar a RADIO");
-        ["btnPttDock", "btnPttMapa"].forEach(function (id) {
+        ["btnPttDock", "btnPttMapa", "btnPttPanel"].forEach(function (id) {
             const btn = $(id);
             if (!btn) return;
             btn.classList.toggle("ptt-canal-privado", canal === "privado");
@@ -4470,6 +4518,11 @@
             btn.classList.toggle("ptt-canal-fantasma", false);
             btn.title = titulo;
         });
+        if ($("pttPanelSub")) {
+            $("pttPanelSub").textContent = canal === "privado"
+                ? "para hablar en privado"
+                : (canal === "grupo" ? "para hablar al grupo" : "para hablar");
+        }
         const pttSmall = document.querySelector("#btnPttMapa .ptt-leyenda small");
         if (pttSmall && canal === "general") pttSmall.textContent = "Walkie a RADIO";
         if (pttSmall && canal === "grupo") pttSmall.textContent = "Walkie al grupo";
@@ -4534,10 +4587,11 @@
         pttChunks = [];
         pttTranscripcion = "";
         pttAckHecho = false;
-        document.querySelectorAll(".btn-ptt, .btn-ptt-mapa, .btn-grupo-speaker").forEach(function (b) {
+        document.querySelectorAll(".btn-ptt, .btn-ptt-mapa, .btn-ptt-panel, .btn-grupo-speaker").forEach(function (b) {
             b.classList.add("grabando");
         });
         if ($("destinoHabla")) $("destinoHabla").classList.add("transmitiendo");
+        arrancarRelojPtt();
         if (canal === "privado") {
             const dest = autos[contactoActivo];
             const nom = (dest && dest.nombre) || "esa persona";
@@ -4601,11 +4655,12 @@
             clearTimeout(pttTimer);
             pttTimer = null;
         }
-        document.querySelectorAll(".btn-ptt, .btn-ptt-mapa, .btn-grupo-speaker, .btn-walkie, .btn-walkie-redondo, .radio-cerca-mic").forEach(function (b) {
+        document.querySelectorAll(".btn-ptt, .btn-ptt-mapa, .btn-ptt-panel, .btn-grupo-speaker, .btn-walkie, .btn-walkie-redondo, .radio-cerca-mic").forEach(function (b) {
             b.classList.remove("grabando");
             if (b.parentElement) b.parentElement.classList.remove("grabando");
         });
         if ($("destinoHabla")) $("destinoHabla").classList.remove("transmitiendo");
+        pararRelojPtt();
         setAvisoAudio("");
         actualizarDestinoUI();
         if (pttRecorder && pttRecorder.state === "recording") pttRecorder.stop();
@@ -4633,11 +4688,12 @@
             });
             pttStream = null;
         }
-        document.querySelectorAll(".btn-ptt, .btn-ptt-mapa, .btn-grupo-speaker, .btn-walkie, .btn-walkie-redondo, .radio-cerca-mic").forEach(function (b) {
+        document.querySelectorAll(".btn-ptt, .btn-ptt-mapa, .btn-ptt-panel, .btn-grupo-speaker, .btn-walkie, .btn-walkie-redondo, .radio-cerca-mic").forEach(function (b) {
             b.classList.remove("grabando");
             if (b.parentElement) b.parentElement.classList.remove("grabando");
         });
         if ($("destinoHabla")) $("destinoHabla").classList.remove("transmitiendo");
+        pararRelojPtt();
         setAvisoAudio("");
     }
 
@@ -5538,6 +5594,13 @@
                 alternarAsistencia();
             });
         }
+        if ($("btnDockAjustes")) {
+            $("btnDockAjustes").addEventListener("click", function () {
+                cerrarComms();
+                const form = $("formPerfil");
+                if (form && form.classList.contains("oculto")) toggleFormPerfil();
+            });
+        }
         if ($("btnMapaDock")) {
             $("btnMapaDock").addEventListener("click", function () {
                 cerrarMenuMasDock();
@@ -5618,6 +5681,7 @@
             renderizarContactos();
             actualizarCirculoRadio(true);
             emitirTelemetria(true);
+            if (window.RadioMapRadares && RadioMapRadares.onRadio) RadioMapRadares.onRadio();
         });
         if ($("btnEnRuta")) $("btnEnRuta").addEventListener("click", alternarEnRuta);
         pintarBotonEnRuta();
@@ -5708,6 +5772,7 @@
         });
         bindPtt($("btnPttMapa"), modoPttTab);
         bindPtt($("btnPttDock"), modoPttTab);
+        bindPtt($("btnPttPanel"), modoPttTab);
         bindPtt($("btnHablarFantasma"), "fantasma");
         bindPtt($("btnHablarRadio"), "general");
         bindPtt($("btnHablarGrupo"), "grupo");
@@ -5899,6 +5964,19 @@
             });
             actualizarTabFantasma();
         }
+        if (window.RadioMapRadares) {
+            window.RadioMapRadares.init({
+                map: map,
+                $: $,
+                posicion: function () { return miPosicion; },
+                radioKm: radioKmActual,
+                navGps: function () { return !!modoNavGps; },
+                carreraBloquea: function () {
+                    return !!(window.RadioMapCarrera && RadioMapCarrera.bloqueaGps && RadioMapCarrera.bloqueaGps());
+                },
+                calcularDistanciaKm: calcularDistanciaKm
+            });
+        }
     }
 
     function irACrearGrupo() {
@@ -6036,7 +6114,7 @@
         if (radio) radio.classList.toggle("on", commsAbierto());
         if (mapa) mapa.classList.toggle("on", !commsAbierto());
         if (grupos) grupos.classList.toggle("on", abierto && vista === "grupo");
-        if (avisos) avisos.classList.toggle("on", abierto && vista !== "grupo");
+        if (avisos) avisos.classList.toggle("on", abierto);
         if (mapaDock) mapaDock.classList.toggle("on", !commsAbierto());
         if (radioDock) radioDock.classList.toggle("on", commsAbierto());
         if (commsAbierto()) cerrarMenuMasDock();

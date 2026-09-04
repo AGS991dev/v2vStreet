@@ -107,6 +107,11 @@
     }
 
     .comms-panel {
-        height: min(80vh, 640px);
+        height: min(82vh, 720px);
+    }
+
+    .comms-panel .dock-radio .dock-item {
+        min-height: 48px;
+        padding: 8px 8px;
     }
 }

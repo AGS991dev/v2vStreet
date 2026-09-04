@@ -1,5 +1,6 @@
 node_modules/
 conexion.config
+data/radares-overpass.json
 .vscode/
 *.log
 .DS_Store

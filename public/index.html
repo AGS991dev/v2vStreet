@@ -14,9 +14,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-            <link rel="stylesheet" href="css/base.css?v=20260829h">
-<link rel="stylesheet" href="css/desktop.css?v=20260827g">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260829b">
+            <link rel="stylesheet" href="css/base.css?v=20260904e">
+<link rel="stylesheet" href="css/desktop.css?v=20260904e">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260904e">
 </head>
 
 <body>
@@ -170,6 +170,10 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l3.2 7.2L22 12l-6.8 1.8L12 21l-3.2-7.2L2 12l6.8-1.8L12 3z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>
                 <span>Navegación GPS</span>
             </button>
+            <button type="button" id="btnRadares" class="hud-btn hud-ico" title="Mostrar radares de velocidad máxima en navegación GPS (alcance de la radio)" aria-pressed="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="5.4" fill="none" stroke="currentColor" stroke-width="1.3"/><text x="12" y="15.2" text-anchor="middle" font-size="7.2" font-weight="800" fill="currentColor" font-family="ui-sans-serif, system-ui, sans-serif">60</text></svg>
+                <span>Radares de velocidad</span>
+            </button>
             <button type="button" id="btnHudComms" class="hud-btn hud-ico hud-mob" title="Walkie y avisos">
                 <img src="img/antena.png?v=20260829g" alt="" width="20" height="20" decoding="async">
                 <span>Walkie y avisos</span>
@@ -213,34 +217,7 @@
             <span id="destinoKicker">Walkie y mensajes van a</span>
             <strong id="destinoNombre">RADIO · 5 km</strong>
         </div>
-        <div class="mapa-atajos">
-            <button type="button" id="btnCarrera" class="atajo-pill atajo-carrera" title="Armar una carrera">
-                <span class="atajo-ico atajo-ico-carrera" aria-hidden="true">
-                    <img src="img/banderas-de-carreras.png?v=20260829g" alt="" width="16" height="16" decoding="async">
-                </span>
-                <span>Carrera</span>
-            </button>
-            <button type="button" id="btnToggleComms" class="atajo-pill" title="Abrir walkie, grupos y avisos">
-                <span class="atajo-ico atajo-ico-walkie" aria-hidden="true">
-                    <img src="img/antena.png?v=20260829g" alt="" width="16" height="16" decoding="async">
-                </span>
-                <span>Walkie y avisos</span>
-                <span id="badgeWalkie" class="badge-pill oculto">0</span>
-            </button>
-            <button type="button" id="btnSosMapa" class="atajo-pill atajo-sos" title="Avisar a quien está cerca que necesitás ayuda">
-                <span class="atajo-ico atajo-ico-sos" aria-hidden="true">
-                    <svg viewBox="0 0 24 24"><path d="M12 3 4 21h16L12 3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 10v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="17.6" r="1" fill="currentColor"/></svg>
-                </span>
-                <span>Necesito ayuda</span>
-            </button>
-            <button type="button" id="btnFantasmaMapa" class="atajo-pill atajo-fantasma" title="Compartir tu recorrido por WhatsApp">
-                <span class="atajo-ico atajo-ico-fantasma" aria-hidden="true">
-                    <img src="img/fantasma.png?v=20260829g" alt="" width="16" height="16" decoding="async">
-                </span>
-                <span>Compartir fantasma</span>
-            </button>
-        </div>
-            <button type="button" id="btnPttMapa" class="btn-ptt-mapa" title="Mantené para hablar a RADIO">
+        <button type="button" id="btnPttMapa" class="btn-ptt-mapa" title="Mantené para hablar a RADIO">
                 <span class="ico" aria-hidden="true">
                     <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
                 </span>
@@ -249,6 +226,33 @@
                     <small>Walkie a RADIO</small>
                 </span>
             </button>
+    </div>
+    <div class="mapa-atajos">
+        <button type="button" id="btnCarrera" class="atajo-pill atajo-carrera" title="Armar una carrera" aria-label="Carrera">
+            <span class="atajo-ico atajo-ico-carrera" aria-hidden="true">
+                <img src="img/banderas-de-carreras.png?v=20260829g" alt="" width="20" height="20" decoding="async">
+            </span>
+            <span class="atajo-tip">Carrera</span>
+        </button>
+        <button type="button" id="btnToggleComms" class="atajo-pill" title="Abrir walkie, grupos y avisos" aria-label="Walkie y avisos">
+            <span class="atajo-ico atajo-ico-walkie" aria-hidden="true">
+                <img src="img/antena.png?v=20260829g" alt="" width="20" height="20" decoding="async">
+            </span>
+            <span class="atajo-tip">Walkie y avisos</span>
+            <span id="badgeWalkie" class="badge-pill oculto">0</span>
+        </button>
+        <button type="button" id="btnSosMapa" class="atajo-pill atajo-sos" title="Avisar a quien está cerca que necesitás ayuda" aria-label="Necesito ayuda">
+            <span class="atajo-ico atajo-ico-sos" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 3 4 21h16L12 3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 10v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="17.6" r="1" fill="currentColor"/></svg>
+            </span>
+            <span class="atajo-tip">Necesito ayuda</span>
+        </button>
+        <button type="button" id="btnFantasmaMapa" class="atajo-pill atajo-fantasma" title="Compartir tu recorrido por WhatsApp" aria-label="Compartir fantasma">
+            <span class="atajo-ico atajo-ico-fantasma" aria-hidden="true">
+                <img src="img/fantasma.png?v=20260829g" alt="" width="20" height="20" decoding="async">
+            </span>
+            <span class="atajo-tip">Compartir fantasma</span>
+        </button>
     </div>
     <div id="carreraHudSel" class="carrera-hud-sel oculto" data-fase="eligiendo_a">
         <span class="carrera-hud-ico" aria-hidden="true">
@@ -358,7 +362,7 @@
     <header class="comms-header">
         <div class="comms-titulo">
             <span class="comms-torre" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M12 3v5M8.2 21h7.6M12 8l-6.5 13M12 8l6.5 13M7.2 14h9.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M14 3.2v3.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="8" y="6.4" width="8" height="13.4" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="11.6" r="1.4" fill="currentColor"/><path d="M10.2 15.4h3.6M10.2 17.4h2.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             </span>
             <div>
                 <h2>RADIO</h2>
@@ -373,26 +377,27 @@
 
     <div class="chat-tabs" role="tablist">
         <button type="button" class="tab activa" data-tab="general">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M3 12h18M12 4a14 14 0 0 1 0 16M12 4a14 14 0 0 0 0 16" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="9" r="2.4" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16" cy="9.4" r="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4.6 18.2c.7-2.5 2.4-3.8 4.6-3.8s3.9 1.3 4.6 3.8M13.4 18.2c.4-1.6 1.5-2.6 3-2.6s2.5.8 2.9 2.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
             <span class="tab-txt">
-                <strong id="lblTabRadio">Público</strong>
+                <strong id="lblTabRadio">Todos</strong>
                 <small>Radio por km</small>
+            </span>
+            <span id="badgeTabRadio" class="badge oculto">0</span>
+        </button>
+        <button type="button" class="tab oculto" data-tab="grupo" id="tabGrupo">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8.5" cy="8.5" r="2.3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="15.5" cy="8.8" r="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="11.2" r="2.1" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4.4 18.4c.7-2.4 2.3-3.6 4.3-3.6s3.6 1.2 4.3 3.6M13.4 18.4c.5-1.8 1.7-2.8 3.3-2.8s2.6.8 3.1 2.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <span class="tab-txt">
+                <strong>Grupo</strong>
+                <small>Tu convoy</small>
             </span>
         </button>
         <button type="button" class="tab" data-tab="privado" id="tabPrivado">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.1" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M5.6 19.2c1.1-3 3.3-4.5 6.4-4.5s5.3 1.5 6.4 4.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><rect x="15.2" y="10.2" width="5.2" height="4.4" rx="1.1" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M16.6 10.2V9.2a1.2 1.2 0 0 1 2.4 0v1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.1" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.6 19.2c1.1-3 3.3-4.5 6.4-4.5s5.3 1.5 6.4 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
             <span class="tab-txt">
                 <strong>Privado</strong>
                 <small>Uno a uno</small>
             </span>
             <span id="badgePrivado" class="badge oculto">0</span>
-        </button>
-        <button type="button" class="tab oculto" data-tab="grupo" id="tabGrupo">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="16" cy="8.5" r="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M4.5 18c.7-2.4 2.3-3.6 4.5-3.6s3.8 1.2 4.5 3.6M13.2 18c.4-1.6 1.5-2.6 3-2.6s2.4.8 2.8 2.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-            <span class="tab-txt">
-                <strong>Grupos</strong>
-                <small>Tu convoy</small>
-            </span>
         </button>
         <button type="button" class="tab oculto" data-tab="fantasma" id="tabFantasma">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19V8.5C5 5.5 8 3 12 3s7 2.5 7 5.5V19l-2.2-1.4-2.3 1.4-2.5-1.4L9.5 19 7.2 17.6 5 19z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="9.2" cy="10.2" r="1" fill="currentColor"/><circle cx="14.8" cy="10.2" r="1" fill="currentColor"/></svg>
@@ -402,6 +407,37 @@
             </span>
             <span id="badgeFantasma" class="badge oculto">0</span>
         </button>
+        <button type="button" id="btnDockMapa" class="tab-mapa" title="Volver al mapa">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.6-7-11a7 7 0 1 1 14 0c0 6.4-7 11-7 11z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+            <span class="tab-txt">
+                <strong>Mapa</strong>
+                <small>Volvé al recorrido</small>
+            </span>
+        </button>
+    </div>
+
+    <div class="radio-ptt-bloque">
+        <button type="button" id="btnPttPanel" class="btn-ptt-panel" title="Mantené para hablar a RADIO">
+            <span class="ptt-anillos" aria-hidden="true"></span>
+            <span class="ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+            </span>
+        </button>
+        <p class="ptt-instruccion">
+            <strong>Mantené presionado</strong>
+            <small id="pttPanelSub">para hablar</small>
+        </p>
+        <div class="radio-escucha" id="radioEscucha">
+            <span class="radio-escucha-izq">
+                <i class="punto-naranja" aria-hidden="true"></i>
+                <span id="radioEscuchaTxt">Escuchando…</span>
+            </span>
+            <span class="radio-escucha-der">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h3l4 3V7L7 10H4z" fill="currentColor"/><path d="M16.2 8.2a5 5 0 0 1 0 7.6M18.6 6a8 8 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                <span class="radio-vu" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                <span id="radioEscuchaTiempo">0:00</span>
+            </span>
+        </div>
     </div>
 
     <div class="comms-cuerpo">
@@ -434,19 +470,29 @@
             <button type="button" id="btnIrAGrupos" class="btn-crear-grupo btn-ir-grupos">Crear o unirse a un grupo</button>
             <div id="panelGeneral" class="chat-panel">
                 <div class="destino-chat" id="destinoConvoy">
-                    <span>Enviás a RADIO pública</span>
-                    <strong id="destinoConvoyDetalle">RADIO · 3 km</strong>
+                    <span class="destino-ico" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M4 10v6h3l2 3V7L7 10H4z" fill="currentColor"/><path d="M14 8.2c2.2 1.1 3.6 3.2 3.6 5.8s-1.4 4.7-3.6 5.8M17.2 5.6C20.6 7.3 22.8 10.4 22.8 14s-2.2 6.7-5.6 8.4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                    </span>
+                    <span class="destino-txt">
+                        <strong>Enviar a todos</strong>
+                        <small>Tu mensaje llega a todas las personas en el mapa</small>
+                    </span>
+                    <span class="destino-count">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="9" r="2.2" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="16" cy="9.3" r="1.8" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5 18c.6-2.2 2.1-3.3 4-3.3s3.4 1.1 4 3.3M13.2 18c.4-1.4 1.4-2.2 2.8-2.2s2.3.7 2.7 2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                        <em id="badgeCercaRadio">0</em>
+                    </span>
+                    <strong id="destinoConvoyDetalle" class="sr-only">RADIO · 3 km</strong>
                 </div>
                 <div id="msgsV2V" class="chat-mensajes"></div>
                 <div class="chat-composer">
-                    <input id="txtV2V" class="chat-input" placeholder="Aviso a RADIO…" maxlength="500">
-                    <button type="button" id="btnEnviarV2V" class="btn-enviar" title="Enviar a RADIO">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h12M12 6l8 6-8 6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        RADIO
-                    </button>
+                    <input id="txtV2V" class="chat-input" placeholder="Escribí un mensaje…" maxlength="500">
                     <button type="button" id="btnVozV2V" class="btn-voz" title="Dictar texto">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17V7h4l6-4v18l-6-4H5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M19 9v6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
                         <span>Dictar</span>
+                    </button>
+                    <button type="button" id="btnEnviarV2V" class="btn-enviar" title="Enviar a RADIO">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 20 4.5l-6.2 15.2-2.4-6.4L4 11.5z" fill="currentColor"/></svg>
+                        <span class="sr-only">RADIO</span>
                     </button>
                 </div>
             </div>
@@ -466,19 +512,24 @@
             </div>
             <div id="panelPrivado" class="chat-panel">
                 <div class="destino-chat destino-directo" id="cajaDestinoPrivado">
-                    <span>Enviás en directo a</span>
-                    <strong id="contactoSeleccionado">Nadie todavía. Elegí un auto.</strong>
+                    <span class="destino-ico" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.6 19c1.1-3 3.3-4.6 6.4-4.6s5.3 1.6 6.4 4.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                    </span>
+                    <span class="destino-txt">
+                        <span>Enviás en directo a</span>
+                        <strong id="contactoSeleccionado">Nadie todavía. Elegí un auto.</strong>
+                    </span>
                 </div>
                 <div id="msgsPrivado" class="chat-mensajes"></div>
                 <div class="chat-composer">
-                    <input id="txtPrivado" class="chat-input" placeholder="Mensaje a esa persona…" maxlength="500">
-                    <button type="button" id="btnEnviarPrivado" class="btn-enviar" title="Enviar directo">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h12M12 6l8 6-8 6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        <span id="lblEnviarPrivado">Enviar</span>
-                    </button>
+                    <input id="txtPrivado" class="chat-input" placeholder="Escribí un mensaje…" maxlength="500">
                     <button type="button" id="btnVozPrivado" class="btn-voz" title="Dictar texto">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17V7h4l6-4v18l-6-4H5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M19 9v6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
                         <span>Dictar</span>
+                    </button>
+                    <button type="button" id="btnEnviarPrivado" class="btn-enviar" title="Enviar directo">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 20 4.5l-6.2 15.2-2.4-6.4L4 11.5z" fill="currentColor"/></svg>
+                        <span id="lblEnviarPrivado" class="sr-only">Enviar</span>
                     </button>
                 </div>
             </div>
@@ -526,19 +577,24 @@
             <p class="leyenda-cerca" id="resumenEnRuta">Nadie del grupo en ruta todavía.</p>
             <div id="panelGrupo" class="chat-panel">
                 <div class="destino-chat">
-                    <span>Enviás al grupo</span>
-                    <strong id="destinoGrupoDetalle">Sin grupo</strong>
+                    <span class="destino-ico" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><circle cx="9" cy="9" r="2.2" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="16" cy="9.3" r="1.8" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5 18c.6-2.2 2.1-3.3 4-3.3s3.4 1.1 4 3.3M13.2 18c.4-1.4 1.4-2.2 2.8-2.2s2.3.7 2.7 2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                    </span>
+                    <span class="destino-txt">
+                        <span>Enviás al grupo</span>
+                        <strong id="destinoGrupoDetalle">Sin grupo</strong>
+                    </span>
                 </div>
                 <div id="msgsGrupo" class="chat-mensajes"></div>
                 <div class="chat-composer">
-                    <input id="txtAvisoGrupo" class="chat-input" placeholder="Aviso al grupo…" maxlength="500">
-                    <button type="button" id="btnEnviarGrupo" class="btn-enviar" title="Enviar al grupo">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h12M12 6l8 6-8 6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        GRUPO
-                    </button>
+                    <input id="txtAvisoGrupo" class="chat-input" placeholder="Escribí un mensaje…" maxlength="500">
                     <button type="button" id="btnVozGrupo" class="btn-voz" title="Dictar texto">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17V7h4l6-4v18l-6-4H5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M19 9v6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
                         <span>Dictar</span>
+                    </button>
+                    <button type="button" id="btnEnviarGrupo" class="btn-enviar" title="Enviar al grupo">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 20 4.5l-6.2 15.2-2.4-6.4L4 11.5z" fill="currentColor"/></svg>
+                        <span class="sr-only">GRUPO</span>
                     </button>
                 </div>
             </div>
@@ -562,8 +618,13 @@
             <p class="leyenda-cerca" id="leyendaSalaFantasma">Acá hablás con quienes entraron a tu enlace fantasma. El micrófono central queda en blanco y negro.</p>
             <div id="panelFantasma" class="chat-panel">
                 <div class="destino-chat destino-fantasma">
-                    <span>Enviás a la sala Fantasmas</span>
-                    <strong id="destinoFantasmaDetalle">Tu enlace · walkie</strong>
+                    <span class="destino-ico" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M5 19V8.5C5 5.5 8 3 12 3s7 2.5 7 5.5V19l-2.2-1.4-2.3 1.4-2.5-1.4L9.5 19 7.2 17.6 5 19z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="9.2" cy="10.2" r="1" fill="currentColor"/><circle cx="14.8" cy="10.2" r="1" fill="currentColor"/></svg>
+                    </span>
+                    <span class="destino-txt">
+                        <span>Enviás a la sala Fantasmas</span>
+                        <strong id="destinoFantasmaDetalle">Tu enlace · walkie</strong>
+                    </span>
                 </div>
                 <div id="msgsFantasma" class="chat-mensajes"></div>
             </div>
@@ -571,22 +632,30 @@
     </div>
 
     <nav class="dock-radio" aria-label="Radio">
-        <button type="button" id="btnDockMapa" class="dock-item" title="Volver al mapa">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9H4v-9z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M10 20v-6h4v6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>
-            <span>Inicio</span>
-        </button>
-        <button type="button" id="btnDockGrupos" class="dock-item on" title="Grupos y walkie">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="16" cy="8.5" r="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M4.5 18c.7-2.4 2.3-3.6 4.5-3.6s3.8 1.2 4.5 3.6M13.2 18c.4-1.6 1.5-2.6 3-2.6s2.4.8 2.8 2.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-            <span>Grupos</span>
-        </button>
-        <button type="button" id="btnDockAvisos" class="dock-item" title="Avisos y mensajes">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12v8H9l-3 3V8z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>
-            <span>Avisos</span>
+        <button type="button" id="btnDockAvisos" class="dock-item on" title="Walkie y avisos">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3.2v3.2" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><rect x="8" y="6.4" width="8" height="13.4" rx="2.1" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="11.6" r="1.4" fill="currentColor"/><path d="M10.2 15.6h3.6M10.2 17.6h2.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <span>Walkie</span>
+            <small>Canal al aire</small>
             <span id="badgeAvisos" class="badge-dock oculto">0</span>
         </button>
         <button type="button" id="btnDockAyuda" class="dock-item dock-ayuda" title="Pedir ayuda">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 21h16L12 3z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M12 10v5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="12" cy="17.6" r="1" fill="currentColor"/></svg>
-            <span>Ayuda</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5c.8 2.2 3.2 3.6 3.2 6.2A3.2 3.2 0 0 1 12 14.4 3.2 3.2 0 0 1 8.8 11.2C8.8 8.6 11.2 7.2 12 5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7.2 14.8c1.2 1.6 2.8 2.4 4.8 2.4s3.6-.8 4.8-2.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="18.6" r="1.3" fill="currentColor"/></svg>
+            <span>Necesito ayuda</span>
+            <small>Aviso a quien está cerca</small>
+        </button>
+        <button type="button" id="btnDockFantasma" class="dock-item dock-fantasma" title="Compartir tu recorrido por WhatsApp">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19V8.5C5 5.5 8 3 12 3s7 2.5 7 5.5V19l-2.2-1.4-2.3 1.4-2.5-1.4L9.5 19 7.2 17.6 5 19z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="9.2" cy="10.2" r="1" fill="currentColor"/><circle cx="14.8" cy="10.2" r="1" fill="currentColor"/></svg>
+            <span>Compartir fantasma</span>
+            <small>Enlace del recorrido</small>
+        </button>
+        <button type="button" id="btnDockAjustes" class="dock-item" title="Abrir tus datos">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.1" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 4.2v1.8M12 18v1.8M4.2 12h1.8M18 12h1.8M6.4 6.4l1.3 1.3M16.3 16.3l1.3 1.3M17.6 6.4l-1.3 1.3M7.7 16.3l-1.3 1.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <span>Ajustes</span>
+            <small>Tu perfil y datos</small>
+        </button>
+        <button type="button" id="btnDockGrupos" class="dock-item dock-radio-aux" title="Grupos y walkie">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="16" cy="8.5" r="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M4.5 18c.7-2.4 2.3-3.6 4.5-3.6s3.8 1.2 4.5 3.6M13.2 18c.4-1.6 1.5-2.6 3-2.6s2.4.8 2.8 2.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+            <span>Grupos</span>
         </button>
     </nav>
 </aside>
@@ -801,7 +870,8 @@
 <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script src="js/carrera.js?v=20260829e"></script>
-<script src="js/fantasma.js?v=20260904a"></script>
-<script src="js/main.js?v=20260904a"></script>
+<script src="js/fantasma.js?v=20260904d"></script>
+<script src="js/radares.js?v=20260904e"></script>
+<script src="js/main.js?v=20260904e"></script>
 </body>
 </html>

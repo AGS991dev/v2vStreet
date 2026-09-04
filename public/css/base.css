@@ -1348,6 +1348,7 @@ body.modo-a-pie .switch-ir-modo .switch-ir-pie {
 }
 
 #btnNavGps.on,
+#btnRadares.on,
 #btnTestFantasma.on {
     background: #eef4fb;
     box-shadow: 0 0 0 2px var(--navy), var(--sombra);
@@ -2808,6 +2809,7 @@ body.mosaico-listo .marker-otro .auto-cuerpo {
 }
 
 #btnNavGps.on,
+#btnRadares.on,
 #btnTestFantasma.on {
     background: #fff8ee;
     box-shadow: 0 0 0 2px var(--ambar), var(--sombra);
@@ -3204,6 +3206,46 @@ body.modo-manejo .hud-ruta-txt p {
     height: 100%;
 }
 
+.marker-radar {
+    background: transparent !important;
+    border: 0 !important;
+}
+
+.radar-pin {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2.5px solid #b42318;
+    box-shadow: 0 1px 4px rgba(28, 40, 60, 0.28);
+    display: grid;
+    place-items: center;
+    transform-origin: 50% 50%;
+}
+
+.radar-num {
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    color: #1c1c1c;
+    letter-spacing: -0.3px;
+}
+
+.leaflet-tooltip.tip-radar {
+    background: #1c1c1c;
+    color: #fff;
+    border: 0;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+}
+
+.leaflet-tooltip.tip-radar::before {
+    border-top-color: #1c1c1c;
+}
+
 .leaflet-popup.popup-encuentro .leaflet-popup-content-wrapper {
     background: #fff;
     color: var(--tinta);
@@ -3289,8 +3331,8 @@ body.modo-manejo .hud-ruta-txt p {
     width: auto;
     height: min(78vh, 680px);
     max-height: calc(100% - 24px);
-    border-radius: 24px;
-    box-shadow: 0 16px 48px rgba(28, 40, 60, 0.18);
+    border-radius: 6px;
+    box-shadow: 0 8px 28px rgba(28, 40, 60, 0.12);
     padding-bottom: 0;
 }
 
@@ -3301,14 +3343,14 @@ body.modo-manejo .hud-ruta-txt p {
 }
 
 .comms-torre {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    background: #fff4d6;
-    color: var(--ambar);
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    background: #ece8e3;
+    color: #8d5a32;
     display: grid;
     place-items: center;
-    flex: 0 0 40px;
+    flex: 0 0 32px;
 }
 
 .comms-torre svg {
@@ -3335,13 +3377,13 @@ body.modo-manejo .hud-ruta-txt p {
 }
 
 .btn-cerrar-comms {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
     padding: 0;
     border: 0;
-    border-radius: 50%;
-    background: #f3f4f6;
+    border-radius: 4px;
+    background: #ececec;
     box-shadow: none;
     color: var(--suave);
     justify-content: center;
@@ -3369,37 +3411,38 @@ body.modo-manejo .hud-ruta-txt p {
 
 .tab {
     flex: 1;
-    background: #f3f6fa;
+    background: transparent;
     color: var(--suave);
     border: 0;
-    border-bottom: 0;
-    border-radius: 14px;
-    padding: 10px 8px;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    padding: 8px 8px;
     font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    text-transform: none;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 6px;
 }
 
 .tab.activa {
-    background: #e8f1fb;
-    color: var(--azul);
-    border-bottom-color: transparent;
+    background: transparent;
+    color: var(--tinta);
+    border-bottom-color: #8d5a32;
+    font-weight: 700;
 }
 
 .tab[data-tab="privado"].activa {
-    background: #e9f8ef;
-    color: #15803d;
+    background: transparent;
+    color: var(--tinta);
 }
 
 .tab[data-tab="grupo"].activa {
-    background: #fff6e8;
-    color: #b45309;
+    background: transparent;
+    color: var(--tinta);
 }
 
 .comms-cuerpo {
@@ -3826,6 +3869,537 @@ body.modo-manejo .hud-ruta-txt p {
     line-height: 16px;
 }
 
+/* ================= RADIO ASIDE (minimal) ================= */
+
+.comms-panel {
+    --radio-naranja: #8d5a32;
+    --radio-naranja-suave: #f3eee8;
+    --radio-gris: #ececec;
+    --radio-tinta: #2a2a2a;
+    background: #f4f4f4;
+}
+
+.comms-panel .comms-torre {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    background: #ece8e3;
+    color: var(--radio-naranja);
+    box-shadow: none;
+}
+
+.comms-panel .comms-header h2 {
+    letter-spacing: 1.2px;
+    color: var(--radio-tinta);
+    font-size: 15px;
+}
+
+.comms-panel .chat-tabs {
+    align-items: stretch;
+    gap: 4px;
+}
+
+.comms-panel .tab,
+.comms-panel .tab-mapa {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    color: #5a5a5a;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    padding: 8px 8px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    text-transform: none;
+    cursor: pointer;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+}
+
+.comms-panel .tab svg,
+.comms-panel .tab-mapa svg {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+}
+
+.comms-panel .tab.activa {
+    background: transparent;
+    color: var(--radio-tinta);
+    border-bottom-color: var(--radio-naranja);
+    box-shadow: none;
+    font-weight: 700;
+}
+
+.comms-panel .tab[data-tab="privado"].activa,
+.comms-panel .tab[data-tab="grupo"].activa,
+.comms-panel .tab[data-tab="fantasma"].activa {
+    background: transparent;
+    color: var(--radio-tinta);
+    border-bottom-color: var(--radio-naranja);
+}
+
+.comms-panel .tab .badge {
+    position: static;
+    margin-left: auto;
+    background: #8d5a32;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 2px;
+    line-height: 16px;
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.comms-panel .tab.activa .badge {
+    background: #8d5a32;
+}
+
+.comms-panel .tab-txt strong {
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.comms-panel .tab-txt small {
+    display: none;
+}
+
+.comms-panel .tab-mapa.on {
+    background: transparent;
+    color: #5a5a5a;
+}
+
+.radio-ptt-bloque {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px 12px;
+    padding: 8px 14px 10px;
+    flex: 0 0 auto;
+}
+
+.btn-ptt-panel {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    border: 1px solid #d8d2cb;
+    border-radius: 4px;
+    background: #3a3a3a;
+    color: #f4f4f4;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    box-shadow: none;
+    z-index: 1;
+}
+
+.btn-ptt-panel .ptt-anillos {
+    display: none;
+}
+
+.btn-ptt-panel .ico {
+    width: 22px;
+    height: 22px;
+    display: grid;
+    place-items: center;
+}
+
+.btn-ptt-panel .ico svg {
+    width: 20px;
+    height: 20px;
+}
+
+.btn-ptt-panel.grabando {
+    background: #8a2e2e;
+    border-color: #8a2e2e;
+    box-shadow: none;
+}
+
+.btn-ptt-panel.ptt-canal-fantasma {
+    background: #1a1a1a;
+    color: #f5f5f5;
+    filter: none;
+    box-shadow: none;
+}
+
+.btn-ptt-panel.ptt-canal-privado {
+    background: #2f5d42;
+}
+
+.btn-ptt-panel.ptt-canal-grupo {
+    background: #35506b;
+}
+
+.ptt-instruccion {
+    margin: 0;
+    text-align: left;
+    flex: 1;
+    min-width: 0;
+}
+
+.ptt-instruccion strong {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--radio-tinta);
+}
+
+.ptt-instruccion small {
+    display: block;
+    margin-top: 1px;
+    font-size: 11px;
+    color: var(--suave);
+}
+
+.radio-escucha {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 10px;
+    background: #efece8;
+    border-radius: 4px;
+    color: #6a5a4a;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.radio-escucha.hablando,
+.radio-escucha.grabando {
+    background: #ece6df;
+}
+
+.radio-escucha-izq,
+.radio-escucha-der {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.radio-escucha-izq span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+}
+
+.punto-naranja {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #8d5a32;
+    flex: 0 0 6px;
+    box-shadow: none;
+}
+
+.radio-escucha-der svg {
+    width: 14px;
+    height: 14px;
+}
+
+.radio-vu {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 12px;
+}
+
+.radio-vu i {
+    display: block;
+    width: 2px;
+    border-radius: 0;
+    background: #8d5a32;
+    opacity: 0.45;
+}
+
+.radio-vu i:nth-child(1) { height: 4px; }
+.radio-vu i:nth-child(2) { height: 7px; opacity: 0.7; }
+.radio-vu i:nth-child(3) { height: 11px; opacity: 1; }
+.radio-vu i:nth-child(4) { height: 6px; opacity: 0.55; }
+
+.radio-escucha.hablando .radio-vu i,
+.btn-ptt-panel.grabando ~ .radio-escucha .radio-vu i,
+.radio-ptt-bloque:has(.grabando) .radio-vu i {
+    animation: radio-vu 0.7s ease-in-out infinite;
+}
+
+.radio-ptt-bloque:has(.grabando) .radio-vu i:nth-child(2) { animation-delay: 0.1s; }
+.radio-ptt-bloque:has(.grabando) .radio-vu i:nth-child(3) { animation-delay: 0.2s; }
+.radio-ptt-bloque:has(.grabando) .radio-vu i:nth-child(4) { animation-delay: 0.15s; }
+
+@keyframes radio-vu {
+    0%, 100% { transform: scaleY(0.55); }
+    50% { transform: scaleY(1); }
+}
+
+.comms-panel .destino-chat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: #f7f5f2;
+    border: 1px solid #e6e1db;
+    border-radius: 4px;
+}
+
+.comms-panel .destino-ico {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    border-radius: 4px;
+    background: #fff;
+    color: var(--radio-naranja);
+    display: grid;
+    place-items: center;
+}
+
+.comms-panel .destino-ico svg {
+    width: 16px;
+    height: 16px;
+}
+
+.comms-panel .destino-txt {
+    flex: 1;
+    min-width: 0;
+}
+
+.comms-panel .destino-txt span,
+.comms-panel .destino-chat > span:not(.destino-ico):not(.destino-txt):not(.destino-count) {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--suave);
+}
+
+.comms-panel .destino-txt strong,
+.comms-panel .destino-txt small {
+    display: block;
+}
+
+.comms-panel .destino-txt strong {
+    margin-top: 0;
+    font-size: 13px;
+    color: var(--radio-tinta);
+}
+
+.comms-panel .destino-txt small {
+    margin-top: 2px;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--suave);
+}
+
+.comms-panel .destino-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--radio-naranja);
+    flex: 0 0 auto;
+}
+
+.comms-panel .destino-count svg {
+    width: 16px;
+    height: 16px;
+}
+
+.comms-panel .destino-count em {
+    font-style: normal;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.comms-panel .destino-directo {
+    background: #f4f6f8;
+}
+
+.comms-panel .destino-directo .destino-ico {
+    color: var(--azul);
+}
+
+.comms-panel .destino-fantasma {
+    background: #f0f0f0;
+}
+
+.comms-panel .destino-fantasma .destino-ico {
+    background: #2a2a2a;
+    color: #f5f5f5;
+    border-radius: 4px;
+}
+
+.comms-panel .chat-mensajes {
+    min-height: 72px;
+    border-radius: 4px;
+    border: 1px solid #e6e1db;
+    background: #fff;
+}
+
+.comms-panel .chat-composer {
+    align-items: center;
+    gap: 6px;
+    padding: 4px 4px 4px 10px;
+    background: #fff;
+    border: 1px solid #dcd7d1;
+    border-radius: 4px;
+}
+
+.comms-panel .chat-input {
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+    padding: 8px 0;
+    margin: 0;
+}
+
+.comms-panel .btn-voz {
+    min-width: 36px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 4px;
+    background: #ececec;
+    box-shadow: none;
+    color: #555;
+}
+
+.comms-panel .btn-voz span {
+    display: none;
+}
+
+.comms-panel .btn-enviar {
+    min-width: 36px !important;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 4px !important;
+    background: #3a3a3a !important;
+    box-shadow: none;
+}
+
+.comms-panel .btn-enviar svg {
+    width: 16px;
+    height: 16px;
+}
+
+.comms-panel .grupo-item,
+.comms-panel .contacto,
+.comms-panel .caja-grupo {
+    border-radius: 4px;
+}
+
+.comms-panel .grupo-ico,
+.comms-panel .btn-grupo-speaker,
+.comms-panel .btn-crear-grupo,
+.comms-panel .btn-en-ruta {
+    border-radius: 4px;
+}
+
+.comms-panel .dock-radio {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 8px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid #e6e1db;
+    background: #f4f4f4;
+}
+
+.comms-panel .dock-radio .dock-item {
+    display: grid;
+    grid-template-columns: 22px 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 8px;
+    row-gap: 1px;
+    align-items: center;
+    justify-content: start;
+    min-height: 52px;
+    padding: 8px 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background: #fff;
+    color: #3a3a3a;
+    box-shadow: none;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.comms-panel .dock-radio .dock-item svg {
+    width: 20px;
+    height: 20px;
+    grid-row: 1 / span 2;
+    grid-column: 1;
+}
+
+.comms-panel .dock-radio .dock-item span {
+    grid-column: 2;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.15;
+    text-align: left;
+}
+
+.comms-panel .dock-radio .dock-item small {
+    grid-column: 2;
+    display: block;
+    font-size: 10px;
+    font-weight: 400;
+    color: #7a7a7a;
+    line-height: 1.2;
+    text-align: left;
+}
+
+.comms-panel .dock-radio .dock-item.on {
+    background: #f7f5f2;
+    color: var(--radio-tinta);
+    border-color: #c9b8a6;
+}
+
+.comms-panel .dock-radio .dock-item.on small {
+    color: #7a7a7a;
+}
+
+.comms-panel .dock-radio .dock-ayuda {
+    color: #3a3a3a;
+}
+
+.comms-panel .dock-radio .dock-ayuda svg {
+    color: #b42318;
+}
+
+.comms-panel .dock-radio .dock-ayuda.on,
+.comms-panel .dock-radio .dock-ayuda.activo {
+    background: #f8eeee;
+    color: #7a1f1f;
+}
+
+.comms-panel .dock-radio .dock-fantasma.activo {
+    background: #f0f0f0;
+    color: #1a1a1a;
+}
+
+.comms-panel .dock-radio .dock-radio-aux {
+    display: none !important;
+}
+
+.comms-panel .dock-radio .badge-dock {
+    top: 6px;
+    right: 6px;
+    border-radius: 2px;
+    background: #b42318;
+}
+
 .habla-mapa {
     left: 12px;
     right: auto;
@@ -3850,53 +4424,100 @@ body.modo-manejo .hud-ruta-txt p {
 }
 
 .mapa-atajos {
+    position: absolute;
+    right: 10px;
+    bottom: 24px;
+    left: auto;
+    z-index: 1500;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: flex-end;
     gap: 8px;
+    pointer-events: none;
 }
 
 .atajo-pill {
+    pointer-events: auto;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 14px 8px 8px;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    padding: 0;
     background: #fff;
     border: 0;
-    border-radius: 999px;
+    border-radius: 4px;
     box-shadow: var(--sombra);
-    color: var(--tinta);
-    font-size: 13px;
-    font-weight: 700;
+    color: var(--navy);
     cursor: pointer;
     position: relative;
 }
 
 .atajo-ico {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    border-radius: 0;
     display: grid;
     place-items: center;
-    flex: 0 0 32px;
+    flex: 0 0 22px;
+    background: transparent;
+    color: inherit;
 }
 
 .atajo-ico svg,
 .atajo-ico img {
-    width: 16px;
-    height: 16px;
+    width: 22px;
+    height: 22px;
     object-fit: contain;
     display: block;
 }
 
-.atajo-ico-walkie {
-    background: #e8f1fb;
-    color: var(--azul);
+.atajo-tip {
+    position: absolute;
+    right: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%);
+    width: auto;
+    height: auto;
+    padding: 6px 8px;
+    margin: 0;
+    overflow: visible;
+    clip: unset;
+    clip-path: none;
+    white-space: nowrap;
+    border: 0;
+    border-radius: 4px;
+    background: #1c1c1c;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    z-index: 30;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
 }
 
-.atajo-ico-carrera {
-    background: #fff6e8;
-    color: var(--navy);
+.atajo-pill:hover .atajo-tip,
+.atajo-pill:focus .atajo-tip,
+.atajo-pill:focus-visible .atajo-tip,
+.atajo-pill:active .atajo-tip {
+    opacity: 1;
+    visibility: visible;
+}
+
+.atajo-ico-walkie,
+.atajo-ico-carrera,
+.atajo-ico-sos,
+.atajo-ico-fantasma {
+    background: transparent;
+}
+
+.atajo-ico-walkie {
+    color: var(--azul);
 }
 
 .atajo-carrera {
@@ -3904,12 +4525,11 @@ body.modo-manejo .hud-ruta-txt p {
 }
 
 .atajo-ico-sos {
-    background: #fee2e2;
-    color: var(--rojo);
+    color: #a33a32;
 }
 
 .atajo-sos {
-    color: var(--rojo);
+    color: #a33a32;
 }
 
 .atajo-fantasma {
@@ -3917,19 +4537,13 @@ body.modo-manejo .hud-ruta-txt p {
 }
 
 .atajo-sos.activo {
-    background: var(--rojo);
+    background: #a33a32;
     color: #fff;
     animation: pulso-sos 1.2s ease-in-out infinite;
 }
 
 .atajo-sos.activo .atajo-ico-sos {
-    background: rgba(255, 255, 255, 0.2);
     color: #fff;
-}
-
-.atajo-ico-fantasma {
-    background: #e8eef5;
-    color: #3d5a73;
 }
 
 .atajo-fantasma.activo {
@@ -3938,7 +4552,6 @@ body.modo-manejo .hud-ruta-txt p {
 }
 
 .atajo-fantasma.activo .atajo-ico-fantasma {
-    background: rgba(255, 255, 255, 0.16);
     color: #fff;
 }
 
@@ -3947,15 +4560,18 @@ body.modo-manejo .hud-ruta-txt p {
 }
 
 .badge-pill {
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
-    border-radius: 9px;
-    background: var(--rojo);
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: #a33a32;
     color: #fff;
     font-size: 10px;
     font-weight: 800;
-    line-height: 18px;
+    line-height: 16px;
     text-align: center;
 }
 
@@ -4031,8 +4647,9 @@ body.modo-manejo .btn-ptt-mapa {
 }
 
 body.modo-manejo .atajo-pill {
-    padding: 10px 16px 10px 8px;
-    font-size: 14px;
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
 }
 
 @media (max-width: 1023px) {
@@ -4116,7 +4733,7 @@ body.modo-manejo .atajo-pill {
     }
 
     .dock-radio {
-        display: none;
+        display: grid;
     }
 
     .dock-mapa {
@@ -4272,7 +4889,7 @@ body.modo-manejo .atajo-pill {
         width: 100%;
         height: min(78vh, 680px);
         max-height: calc(100% - var(--dock-h) - 56px);
-        border-radius: 28px 28px 0 0;
+        border-radius: 8px 8px 0 0;
         box-shadow: 0 -16px 40px rgba(28, 40, 60, 0.16);
     }
 
@@ -4284,50 +4901,29 @@ body.modo-manejo .atajo-pill {
     }
 
     .chat-tabs {
-        gap: 10px;
-        padding: 0 14px 12px;
+        gap: 8px;
+        padding: 0 14px 10px;
     }
 
-    .tab {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-        padding: 12px;
-        border-radius: 18px;
+    .tab,
+    .tab-mapa {
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 6px;
+        padding: 8px 8px;
+        border-radius: 0;
         text-transform: none;
         letter-spacing: 0;
     }
 
-    .tab svg {
-        width: 22px;
-        height: 22px;
-    }
-
-    .tab-txt {
-        width: 100%;
-    }
-
-    .tab-txt strong {
-        font-size: 13px;
-        font-weight: 800;
-        letter-spacing: 0.4px;
-        text-transform: uppercase;
+    .tab svg,
+    .tab-mapa svg {
+        width: 18px;
+        height: 18px;
     }
 
     .tab-txt small {
-        display: block;
-        margin-top: 2px;
-    }
-
-    .chat-tabs:has(#tabGrupo:not(.oculto)) .tab,
-    .chat-tabs:has(#tabFantasma:not(.oculto)) .tab {
-        padding: 10px 6px;
-        gap: 4px;
-        align-items: center;
-    }
-
-    .chat-tabs:has(#tabGrupo:not(.oculto)) .tab-txt small,
-    .chat-tabs:has(#tabFantasma:not(.oculto)) .tab-txt small {
         display: none;
     }
 
@@ -5054,16 +5650,19 @@ body.modo-carrera-setup .ack-walkie {
 body.modo-carrera-setup .habla-mapa,
 body.modo-carrera-setup .hud-card,
 body.modo-carrera-setup .hud-acciones,
+body.modo-carrera-setup .mapa-atajos,
 body.modo-carrera-setup .dock-mapa,
 body.modo-carrera .habla-mapa,
 body.modo-carrera .hud-card,
 body.modo-carrera .hud-acciones,
+body.modo-carrera .mapa-atajos,
 body.modo-carrera .dock-mapa,
 body.modo-carrera .comms-panel,
 body.modo-carrera .radio-cerca,
 body.modo-carrera .aviso-gps,
 body.modo-carrera .marker-otro:not(.marker-carrera-rival),
 body.modo-carrera .marker-bandera,
+body.modo-carrera .marker-radar,
 body.modo-carrera .ficha,
 body.modo-carrera .nombre-conductor,
 body.modo-carrera .ficha-popup {
@@ -5387,6 +5986,7 @@ body.modo-fantasma-invitado .comms-panel {
 }
 
 body.modo-fantasma-invitado .comms-panel .chat-tabs .tab:not([data-tab="fantasma"]),
+body.modo-fantasma-invitado .comms-panel .chat-tabs .tab-mapa,
 body.modo-fantasma-invitado .comms-panel .dock-radio,
 body.modo-fantasma-invitado #vistaPublico,
 body.modo-fantasma-invitado #vistaPrivado,
@@ -5404,7 +6004,8 @@ body.modo-fantasma-invitado #btnRadioDock {
 }
 
 body.modo-fantasma-invitado #btnPttMapa,
-body.modo-fantasma-invitado #btnPttDock {
+body.modo-fantasma-invitado #btnPttDock,
+body.modo-fantasma-invitado #btnPttPanel {
     opacity: 1 !important;
     filter: grayscale(1) !important;
     pointer-events: auto !important;
@@ -5415,7 +6016,8 @@ body.modo-fantasma-invitado #btnPttDock {
 }
 
 body.modo-fantasma-invitado #btnPttMapa.grabando,
-body.modo-fantasma-invitado #btnPttDock.grabando {
+body.modo-fantasma-invitado #btnPttDock.grabando,
+body.modo-fantasma-invitado #btnPttPanel.grabando {
     background: var(--rojo) !important;
     filter: none !important;
     box-shadow: 0 8px 24px rgba(239, 68, 68, 0.45) !important;

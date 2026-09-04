@@ -67,14 +67,14 @@
     }
 
     function pintarBoton() {
-        var btns = [$("btnFantasmaMapa"), $("btnFantasmaDock")];
+        var btns = [$("btnFantasmaMapa"), $("btnFantasmaDock"), $("btnDockFantasma")];
         var i;
         for (i = 0; i < btns.length; i++) {
             var btn = btns[i];
             if (!btn) continue;
             btn.classList.toggle("activo", compartiendo);
-            var txt = btn.querySelector("span:not(.atajo-ico)");
-            if (txt && btn.id === "btnFantasmaMapa") {
+            var txt = btn.querySelector(".atajo-tip") || btn.querySelector("span:not(.atajo-ico)");
+            if (txt && (btn.id === "btnFantasmaMapa" || btn.id === "btnDockFantasma")) {
                 txt.textContent = compartiendo ? "Cortar fantasma" : "Compartir fantasma";
             } else if (txt) {
                 txt.textContent = compartiendo ? "Cortar" : "Fantasma";
@@ -82,6 +82,9 @@
             btn.title = compartiendo
                 ? "Dejar de compartir tu recorrido"
                 : "Compartir tu recorrido por WhatsApp";
+            if (btn.id === "btnFantasmaMapa") {
+                btn.setAttribute("aria-label", compartiendo ? "Cortar fantasma" : "Compartir fantasma");
+            }
             btn.setAttribute("aria-pressed", compartiendo ? "true" : "false");
         }
     }
@@ -680,6 +683,8 @@
         if (btn) btn.addEventListener("click", compartir);
         var dock = $("btnFantasmaDock");
         if (dock) dock.addEventListener("click", compartir);
+        var dockPanel = $("btnDockFantasma");
+        if (dockPanel) dockPanel.addEventListener("click", compartir);
         var salir = $("btnFantasmaSalir");
         if (salir) salir.addEventListener("click", salirInvitado);
         engancharSocket();
