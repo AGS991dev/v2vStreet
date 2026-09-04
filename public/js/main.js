@@ -4941,7 +4941,7 @@
 
     socket.on("audioFantasma", function (data) {
         if (!data) return;
-        if (data.de && (data.de === miId || soyYoId(data.de))) return;
+        if (pttActivo && pttModo === "fantasma") return;
         const texto = textoDeAudio(data.texto);
         const ts = data.ts || Date.now();
         const clipId = typeof guardarClipAudio === "function" ? guardarClipAudio(data) : "";

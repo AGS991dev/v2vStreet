@@ -15,6 +15,7 @@
     var timerHost = 0;
     var timerReanudar = 0;
     var reanudarEnVuelo = false;
+    var socketSalaHost = "";
     var trail = [];
     var capas = { path: null, pathFondo: null, trail: null, dest: null };
     var ecos = [];
@@ -458,6 +459,7 @@
         tokenActivo = "";
         hostKeyActivo = "";
         expActivo = 0;
+        socketSalaHost = "";
         trail = [];
         guardarSesion();
         detenerHostTimer();
@@ -480,12 +482,12 @@
 
     function reanudarHost() {
         if (esInvitado() || !compartiendo || !tokenActivo) return;
-        if (timerHost && api.socket && api.socket.connected) return;
+        if (reanudarEnVuelo) return;
+        if (api.socket && api.socket.connected && socketSalaHost === api.socket.id && timerHost) return;
         if (!hostListo()) {
             programarReanudar();
             return;
         }
-        if (reanudarEnVuelo) return;
         reanudarEnVuelo = true;
         api.socket.emit("fantasmaCrear", { token: tokenActivo, hostKey: hostKeyActivo }, function (res) {
             reanudarEnVuelo = false;
@@ -493,12 +495,14 @@
                 tokenActivo = res.token;
                 if (res.hostKey) hostKeyActivo = res.hostKey;
                 if (res.exp) expActivo = res.exp;
+                socketSalaHost = api.socket && api.socket.id ? api.socket.id : "";
                 guardarSesion();
                 pintarBoton();
                 iniciarHostTimer();
                 avisarCambio(true, { abrir: false });
                 return;
             }
+            socketSalaHost = "";
             if (res && res.retry) {
                 programarReanudar();
                 return;
@@ -546,6 +550,7 @@
             hostKeyActivo = res.hostKey || hostKeyActivo;
             expActivo = res.exp || (Date.now() + 8 * 60 * 60 * 1000);
             compartiendo = true;
+            socketSalaHost = api.socket && api.socket.id ? api.socket.id : "";
             if (!res.reanudado) trail = [];
             guardarSesion();
             pintarBoton();
@@ -648,8 +653,12 @@
             cortarLocal();
         });
         api.socket.on("connect", function () {
+            socketSalaHost = "";
             if (esInvitado()) unirseComoInvitado();
             else reanudarHost();
+        });
+        api.socket.on("disconnect", function () {
+            socketSalaHost = "";
         });
     }
 

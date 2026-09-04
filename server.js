@@ -1058,6 +1058,30 @@ function tokenFantasmaDeSocket(socket) {
     return recFantasmaVivo(t) ? t : "";
 }
 
+function socketDeId(sid) {
+    return sid && io.sockets.sockets.get(sid) ? io.sockets.sockets.get(sid) : null;
+}
+
+function socketHostFantasma(rec) {
+    if (!rec) return null;
+    const porRec = socketDeId(rec.socketId);
+    if (porRec) return porRec;
+    const v = rec.hostId ? vehiculos[rec.hostId] : null;
+    return v ? socketDeId(v.socketId) : null;
+}
+
+function vincularSocketAFantasma(socket, rec) {
+    if (!socket || !rec || !rec.token) return;
+    socket.fantasmaToken = rec.token;
+    socket.join(salaFantasma(rec.token));
+    rec.socketId = socket.id;
+}
+
+function asegurarHostEnSalaFantasma(rec) {
+    const hostSock = socketHostFantasma(rec);
+    if (hostSock) vincularSocketAFantasma(hostSock, rec);
+}
+
 function recFantasmaVivo(token) {
     const rec = token ? fantasmas[token] : null;
     if (!rec) return null;
@@ -1187,6 +1211,7 @@ function publicarPosicionFantasma(v) {
     const token = fantasmaPorHost[v.id];
     const rec = recFantasmaVivo(token);
     if (!rec) return;
+    asegurarHostEnSalaFantasma(rec);
     const vista = vistaDesdeVehiculoFantasma(v, rec);
     if (!vista) return;
     guardarVistaFantasma(rec, vista);
@@ -2262,7 +2287,7 @@ io.on("connection", socket => {
             token = rec.token;
             avisarPausaFantasma(rec, false);
         }
-        socket.join(salaFantasma(token));
+        vincularSocketAFantasma(socket, rec);
         const semilla = vistaDesdeVehiculoFantasma(yo, rec);
         if (semilla) guardarVistaFantasma(rec, Object.assign({}, semilla, { vivo: true }));
         if (reanudado && rec.ultimaVista) {
@@ -2289,6 +2314,7 @@ io.on("connection", socket => {
         socket.fantasmaToken = token;
         socket.fantasmaNombre = sanitizarTexto(payload && payload.nombre, 40);
         socket.join(salaFantasma(token));
+        asegurarHostEnSalaFantasma(rec);
         const host = rec.hostId ? vehiculos[rec.hostId] : null;
         const vista = vistaDesdeVehiculoFantasma(host, rec) || rec.ultimaVista || null;
         if (vista) {
@@ -2321,9 +2347,9 @@ io.on("connection", socket => {
         vista.iconoX = sanitizarEntero(yo.iconoX, 0, 64, vista.iconoX || 0);
         vista.iconoY = sanitizarEntero(yo.iconoY, 0, 64, vista.iconoY || 0);
         vista.vivo = true;
-        rec.socketId = socket.id;
         rec.nombre = vista.nombre;
         rec.ultimaVista = vista;
+        vincularSocketAFantasma(socket, rec);
         socket.to(salaFantasma(token)).emit("fantasmaVista", vista);
     });
 
@@ -2343,7 +2369,7 @@ io.on("connection", socket => {
             (yo && yo.nombre) || (payload && payload.nombre) || socket.fantasmaNombre,
             40
         ) || "Alguien";
-        socket.to(salaFantasma(token)).emit("audioFantasma", {
+        const paquete = {
             de: de,
             nombre: nombre,
             mime: sanitizarTexto(payload.mime, 40) || "audio/webm",
@@ -2351,7 +2377,16 @@ io.on("connection", socket => {
             audio: audio,
             ts: Date.now(),
             canal: "fantasma"
-        });
+        };
+        const sala = salaFantasma(token);
+        const hostSock = socketHostFantasma(rec) || ((yo && rec.hostId === yo.id) ? socket : null);
+        const hostAparte = !!(hostSock && hostSock.id !== socket.id);
+        const hostYaEnSala = !!(hostAparte && hostSock.rooms && hostSock.rooms.has(sala));
+        socket.to(sala).emit("audioFantasma", paquete);
+        if (hostAparte && !hostYaEnSala) {
+            hostSock.emit("audioFantasma", paquete);
+        }
+        if (hostSock) vincularSocketAFantasma(hostSock, rec);
         if (typeof ack === "function") ack({ ok: true });
     });
 
