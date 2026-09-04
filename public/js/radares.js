@@ -39,16 +39,12 @@
         try { localStorage.setItem(STORAGE, activo ? "1" : "0"); } catch (e) {}
     }
 
-    function navOn() {
-        return !!(api && api.navGps && api.navGps());
-    }
-
     function carreraOn() {
         return !!(api && api.carreraBloquea && api.carreraBloquea());
     }
 
     function seVen() {
-        return !!(activo && navOn() && !carreraOn() && api && api.map);
+        return !!(activo && !carreraOn() && api && api.map);
     }
 
     function posActual() {
@@ -352,10 +348,8 @@
         btn.classList.toggle("on", activo);
         btn.setAttribute("aria-pressed", activo ? "true" : "false");
         btn.title = activo
-            ? (navOn()
-                ? "Radares de velocidad visibles en el alcance de la radio. Tocá para ocultarlos."
-                : "Radares listos: se ven al activar navegación GPS, dentro del alcance de la radio.")
-            : "Mostrar radares de velocidad máxima en navegación GPS (alcance de la radio)";
+            ? "Radares de velocidad visibles en el alcance de la radio. Tocá para ocultarlos."
+            : "Mostrar radares de velocidad máxima dentro del alcance de la radio";
     }
 
     function alternar() {
