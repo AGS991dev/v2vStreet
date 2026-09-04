@@ -1,7 +1,7 @@
 {
   "name": "RadioMap",
   "short_name": "RadioMap",
-  "description": "Radio de ruta: mapa, walkie y asistencia en el tránsito.",
+  "description": "Radio de ruta: GPS, handy, radares, encuentros y asistencia en el tránsito.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

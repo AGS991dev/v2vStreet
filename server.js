@@ -212,7 +212,9 @@ app.get("/api/geo/calle", (req, res) => {
             const a = j && j.address ? j.address : {};
             const calle = String(a.road || a.pedestrian || a.residential || a.footway || "").trim();
             const nro = String(a.house_number || "").trim();
-            const texto = calle ? (nro ? calle + " " + nro : calle).slice(0, 80) : "";
+            const barrio = String(a.suburb || a.neighbourhood || a.city_district || a.town || a.village || a.city || "").trim();
+            const linea = calle ? (nro ? calle + " " + nro : calle) : "";
+            const texto = (barrio && linea ? linea + ", " + barrio : (linea || barrio)).slice(0, 100);
             res.json({ ok: true, texto: texto });
         });
     });

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>RadioMap – Radio de ruta</title>
-<meta name="description" content="RadioMap es radio de ruta: mapa en el tránsito, convoy, asistencia y operativos. Ves a otros y, si hace falta, los ayudás.">
+<meta name="description" content="RadioMap es radio de ruta: GPS, handy, radares, puntos de encuentro y asistencia. Ves a otros y, si hace falta, los ayudás.">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#f5a623">
 <meta name="mobile-web-app-capable" content="yes">
@@ -14,9 +14,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-            <link rel="stylesheet" href="css/base.css?v=20260904e">
-<link rel="stylesheet" href="css/desktop.css?v=20260904e">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260904e">
+            <link rel="stylesheet" href="css/base.css?v=20260904k">
+<link rel="stylesheet" href="css/desktop.css?v=20260904k">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260904k">
 </head>
 
 <body>
@@ -28,33 +28,112 @@
                 <svg viewBox="0 0 24 24"><path d="M12 21s-6.2-4.4-6.2-10.2a6.2 6.2 0 1 1 12.4 0C18.2 16.6 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="12" cy="10.8" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M3.5 7.6a10 10 0 0 1 0 8.8M20.5 7.6a10 10 0 0 0 0 8.8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
             </span>
             RadioMap
+            <button type="button" id="btnCerrarIntro" class="btn-cerrar-intro oculto" title="Volver al mapa" aria-label="Volver al mapa">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+            </button>
         </p>
 
         <div class="stepper-panel" id="step0" data-step="0">
-            <img class="stepper-foto" src="static/intro/paso-mapa.jpg" alt="Mapa de RadioMap con autos cerca y walkie">
+            <img class="stepper-foto stepper-foto-corta" src="static/intro/paso-mapa.jpg" alt="Mapa de RadioMap con autos cerca y walkie">
             <h1>Tu grupo, a la vista y al aire.</h1>
-            <p class="mision">RadioMap es la radio de ruta: ves a otros en el mapa, hablás por walkie y, si hace falta, das una mano. En dos toques dejamos listos el GPS y el micrófono, así al entrar no te corta ningún cartel.</p>
+            <p class="mision">RadioMap es la radio de ruta: GPS, handy, radares y una mano si hace falta. Esto es lo que vas a tener en el mapa.</p>
+            <ul class="intro-feats">
+                <li>
+                    <span class="intro-feat-ico" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M12 21s-7-4.6-7-11a7 7 0 1 1 14 0c0 6.4-7 11-7 11z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.2" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
+                    </span>
+                    <div>
+                        <strong>GPS de ruta</strong>
+                        <p>Te ves en la calle con velocidad y brújula. El mapa puede girar como un GPS de auto.</p>
+                    </div>
+                </li>
+                <li>
+                    <span class="intro-feat-ico" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M8 8h10v11a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V8z" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M11 4.5v3.5M14 3.2v4.8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="13" cy="13" r="1.6" fill="currentColor"/></svg>
+                    </span>
+                    <div>
+                        <strong>Handy</strong>
+                        <p>Walkie al aire: mantené para hablar a RADIO, a tu grupo o a un auto cerca.</p>
+                    </div>
+                </li>
+                <li>
+                    <span class="intro-feat-ico" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 13l4-4M8 13h.01M16 13h.01M12 7h.01" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                    </span>
+                    <div>
+                        <strong>Radares</strong>
+                        <p>Ves los radares de velocidad cerca. Si te pasás, la velocidad se pone en rojo.</p>
+                    </div>
+                </li>
+                <li>
+                    <span class="intro-feat-ico intro-feat-sos" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M12 4 3.8 19h16.4L12 4z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M12 10v4.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="12" cy="17.2" r="1" fill="currentColor"/></svg>
+                    </span>
+                    <div>
+                        <strong>Necesito ayuda</strong>
+                        <p>Un toque y quienes están cerca te ven en SOS para darte una mano.</p>
+                    </div>
+                </li>
+                <li>
+                    <span class="intro-feat-ico" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M4 12c2.2-3.2 4.6-5 8-5s5.8 1.8 8 5c-2.2 3.2-4.6 5-8 5s-5.8-1.8-8-5z" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="12" cy="12" r="2.2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M3 19l18-14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                    </span>
+                    <div>
+                        <strong>Modo fantasma</strong>
+                        <p>Compartí un enlace para que te sigan por seguridad, sin que esa persona aparezca como un auto más.</p>
+                    </div>
+                </li>
+                <li>
+                    <span class="intro-feat-ico" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M6 20V9l3-5h6l3 5v11" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M6 13h12" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
+                    </span>
+                    <div>
+                        <strong>Puntos de encuentro</strong>
+                        <p>Dejá una bandera en el mapa y, si le tocás, te arma la ruta hasta ahí.</p>
+                    </div>
+                </li>
+            </ul>
         </div>
 
         <div class="stepper-panel oculto" id="step1" data-step="1">
             <img class="stepper-foto" src="static/intro/paso-gps.jpg" alt="Ubicación en el mapa para ver quién está cerca">
-            <h1>Para verte en el mapa</h1>
-            <p class="mision">Con la ubicación te ponemos en la calle y ves quién está cerca. El navegador pregunta arriba, junto a la dirección (candado o ícono de ubicación), no en un cartel grande en el medio.</p>
+            <h1>GPS en la calle</h1>
+            <p class="mision">Con la ubicación te ponemos en el mapa: ves quién está cerca, tu velocidad, la brújula y los radares. El navegador pregunta arriba, junto a la dirección (candado), no en un cartel en el medio.</p>
             <p class="stepper-estado" id="estadoGps"></p>
         </div>
 
         <div class="stepper-panel oculto" id="step2" data-step="2">
             <img class="stepper-foto" src="static/intro/paso-mic.jpg" alt="Walkie mantené para hablar">
-            <h1>Para hablar por walkie</h1>
-            <p class="mision">El micrófono se usa solo mientras mantenés el botón. El pedido también sale arriba, junto a la dirección. No grabamos nada hasta que vos hablás.</p>
+            <h1>El handy, al aire</h1>
+            <p class="mision">El micrófono se usa solo mientras mantenés el botón. RADIO llega a tu alcance; también hay grupo y privado. No grabamos nada hasta que vos hablás.</p>
             <p class="stepper-estado" id="estadoMic"></p>
+        </div>
+
+        <div class="stepper-panel oculto" id="step3" data-step="3">
+            <div class="intro-home" aria-hidden="true">
+                <span class="intro-home-screen">
+                    <span class="intro-home-app">
+                        <img src="icon-192.png" alt="" width="56" height="56">
+                        <em>RadioMap</em>
+                    </span>
+                </span>
+            </div>
+            <h1>Dejala en tu celular</h1>
+            <p class="mision" id="instalarTexto">Un toque y RadioMap te queda como ícono en la pantalla de inicio, igual que una app. Así la abrís sin pasar por el navegador.</p>
+            <ol class="intro-ios oculto" id="instalarIos">
+                <li>Tocá <strong>Compartir</strong> (el cuadrado con la flecha).</li>
+                <li>Elegí <strong>Agregar a pantalla de inicio</strong>.</li>
+                <li>Confirmá con <strong>Agregar</strong>.</li>
+            </ol>
+            <p class="stepper-estado" id="estadoInstalar"></p>
         </div>
 
         <div class="stepper-pie">
             <ol class="stepper-puntos" aria-label="Pasos de la intro">
                 <li class="on" data-i="0"><span>1</span> Qué es</li>
                 <li data-i="1"><span>2</span> GPS</li>
-                <li data-i="2"><span>3</span> Mic</li>
+                <li data-i="2"><span>3</span> Handy</li>
+                <li data-i="3"><span>4</span> App</li>
             </ol>
             <p class="stepper-ayuda" id="stepAyuda">Sin apuro: en un momento dejamos todo listo para el mapa.</p>
             <button type="button" class="btn-portada" id="btnStepEmpezar">Empezar</button>
@@ -65,6 +144,10 @@
             <button type="button" class="btn-portada oculto" id="btnPermitirMic">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
                 Permitir micrófono
+            </button>
+            <button type="button" class="btn-portada oculto" id="btnInstalar">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8.5 10.5 12 14l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 16.5V19h14v-2.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                Instalar
             </button>
             <button type="button" class="btn-portada oculto" id="btnEntrar">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5 12 3l8 4.5V20H4V7.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M9 13h6m0 0-2.2-2.2M15 13l-2.2 2.2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -203,6 +286,12 @@
 <main class="map-container">
     <div id="map"></div>
     <div id="tipCalle" class="tip-calle oculto" role="tooltip"></div>
+    <button type="button" id="brujulaMapa" class="brujula-mapa" title="Norte" aria-label="Brújula: el norte">
+        <span class="brujula-rosa" aria-hidden="true">
+            <span class="brujula-flecha"></span>
+            <span class="brujula-n">N</span>
+        </span>
+    </button>
     <div class="habla-mapa">
         <div id="hudRuta" class="hud-ruta oculto">
             <div class="hud-ruta-txt">
@@ -871,7 +960,7 @@
 <script src="/socket.io/socket.io.js"></script>
 <script src="js/carrera.js?v=20260829e"></script>
 <script src="js/fantasma.js?v=20260904d"></script>
-<script src="js/radares.js?v=20260904f"></script>
-<script src="js/main.js?v=20260904e"></script>
+<script src="js/radares.js?v=20260904h"></script>
+<script src="js/main.js?v=20260904k"></script>
 </body>
 </html>

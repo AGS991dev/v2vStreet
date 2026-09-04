@@ -27,6 +27,15 @@
     const ICO_TEL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.8h3.4l1.2 4.6-2.4 1.4c.8 1.8 2.2 3.2 4 4l1.4-2.4 4.6 1.2V20h-2.2C9.4 20 4 14.6 4 6V3.8H7z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>';
     const ICO_MSG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v10H8l-3 3V6z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>';
     const ICO_SOS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 3.8 19h16.4L12 4z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M12 10v4.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="12" cy="17.2" r="1" fill="currentColor"/></svg>';
+    const ICO_WALKIE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8h10v11a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V8z" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M11 4.5v3.5M14 3.2v4.8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="13" cy="13" r="1.6" fill="currentColor"/><path d="M10 17h6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
+    const ICO_PERSONA = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.1" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6.5 19c.8-3.2 3-5 5.5-5s4.7 1.8 5.5 5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
+    const ICO_CAMINO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c2-4 3-7 3-11 0-2.2 1.8-4 4-4s4 1.8 4 4c0 1.2-.3 2.6-.8 4.2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><path d="M14 14l5 1.2-2.6 4.4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const ICO_RELOJ = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 8v4.2l3 1.8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
+    const ICO_HABLAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h3l5 4V5L7 9H4z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M16 8.5a4.5 4.5 0 0 1 0 7M18.5 6.2a7.5 7.5 0 0 1 0 11.6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
+    const ICO_GRUPO = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="16" cy="9" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M4.8 18c.7-3 2.6-4.6 4.7-4.6s4 1.6 4.7 4.6M14.2 13.6c1.7 0 3.2 1.2 3.8 3.4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
+    const ICO_TODOS = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M7.2 7.2a6.8 6.8 0 0 1 9.6 0M5 5a10 10 0 0 1 14 0M7.2 16.8a6.8 6.8 0 0 0 9.6 0M5 19a10 10 0 0 0 14 0" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
+    const ICO_CHEV = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const ICO_MUTE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h3l5 4V5L7 9H4z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M16 8l6 8M22 8l-6 8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
 
     function yaEntroMapa() {
         return localStorage.getItem("radiomap_entro") === "1" || localStorage.getItem("baliza_entro") === "1";
@@ -117,6 +126,13 @@
     const cacheRuta = {};
     let autos = {};
     let miPosicion = null;
+    let kmRecorridos = 0;
+    let ultimoPuntoKm = null;
+    let gpsPropioTs = 0;
+    let callePropia = "";
+    let callePropiaTs = 0;
+    let callePropiaLL = null;
+    let callePropiaPendiente = false;
     let cortinaMapaActiva = false;
     let cortinaMapaTimer = null;
     let cortinaMapaFadeTimer = null;
@@ -153,6 +169,7 @@
     let fantasmaAngulo = 0;
     let fantasmaTimer = null;
     let introPaso = 0;
+    let deferredInstall = null;
     let introGpsResuelto = false;
     let permitirSalir = false;
     let iconoCfg = { src: "static/iconos/autos.png", cols: 15, rows: 8, celdaCm: 2, celdaPx: 128 };
@@ -184,6 +201,7 @@
     let asistenciaActiva = false;
     let wakeLock = null;
     const cacheFichas = {};
+    const datosAbiertos = {};
     let clickPendiente = null;
     let previewClick = null;
     let navSeq = 0;
@@ -207,7 +225,6 @@
     let reproduciendoCola = false;
 
     function debeMostrarFicha(id) {
-        if (modoNavGps && id === miId) return false;
         if (fichasForzadas[id] === "cerrada") return false;
         if (fichasForzadas[id] === "abierta") return true;
         if (id === miId) return false;
@@ -251,9 +268,17 @@
         marker._popCapa = true;
         marker.on("popupopen", function () {
             if (marker.closeTooltip) marker.closeTooltip();
+            const el = marker.getElement && marker.getElement();
+            if (el) el.classList.add("ficha-abierta");
+            if (id === miId) {
+                const propio = Object.assign(datosPropios(), miPosicion || {}, { id: miId });
+                if (marker.getPopup()) marker.setPopupContent(fichaHtml(propio));
+            }
             requestAnimationFrame(function () { engancharFicha(marker, id); });
         });
         marker.on("popupclose", function () {
+            const el = marker.getElement && marker.getElement();
+            if (el) el.classList.remove("ficha-abierta");
             if (fichasForzadas[id] === "abierta") fichasForzadas[id] = "cerrada";
             if (debeMostrarNombre(id) && marker.openTooltip) marker.openTooltip();
         });
@@ -307,7 +332,9 @@
     function fichaPopupOpts(soyYo, a) {
         const sos = !!(a && a.asistencia && a.asistencia.activo);
         return Object.assign({}, FICHA_POPUP, {
-            className: "ficha-popup" + (soyYo ? " ficha-propia" : " ficha-radio") + (sos ? " ficha-sos" : "")
+            className: "ficha-popup" + (soyYo ? " ficha-propia" : " ficha-radio") + (sos ? " ficha-sos" : ""),
+            maxWidth: soyYo ? 340 : 320,
+            minWidth: soyYo ? 304 : 280
         });
     }
 
@@ -317,9 +344,10 @@
         const size = tamanioMarker(rec.w, rec.h);
         const ax = Math.round(size[0] / 2);
         const ay = Math.round(size[1] / 2);
+        const velHtml = soyYo ? '<div class="vel-propia" aria-hidden="true"><span class="vel-num">0</span><span class="vel-uni">km/h</span></div>' : "";
         return L.divIcon({
             className: "marker-auto" + (soyYo ? " marker-propio" : " marker-otro"),
-            html: '<div class="auto-rot"><img class="auto-cuerpo" alt="" width="' + size[0] + '" height="' + size[1] + '" src="' + rec.url + '"></div>',
+            html: '<div class="auto-rot"><img class="auto-cuerpo" alt="" width="' + size[0] + '" height="' + size[1] + '" src="' + rec.url + '"></div>' + velHtml,
             iconSize: size,
             iconAnchor: [ax, ay],
             popupAnchor: [0, -ay],
@@ -344,7 +372,21 @@
     map.on("click", onClickMapa);
     map.on("mousemove", onMoveCalle);
     map.on("mouseout", function () { ocultarTipCalle(); });
+    map.on("rotate", function () {
+        pintarBrujula();
+        pintarVelocidadPropia();
+    });
     engancharHoldCalle();
+    const btnBrujula = $("brujulaMapa");
+    if (btnBrujula) {
+        btnBrujula.addEventListener("click", function (ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (modoNavGps) return;
+            if (map.setBearing) map.setBearing(0);
+            pintarBrujula();
+        });
+    }
 
     // ===================================================
     // Identidad persistente (sobrevive reconexiones)
@@ -455,10 +497,8 @@
         if (i >= 0) bloqueados.splice(i, 1);
         else bloqueados.push(id);
         guardarBloqueados();
-        if (esBloqueado(id)) {
-            quitarVehiculo(id);
-            if (contactoActivo === id) contactoActivo = null;
-        }
+        if (esBloqueado(id) && contactoActivo === id) contactoActivo = null;
+        if (autos[id]) actualizarMarker(autos[id]);
         renderizarContactos();
     }
 
@@ -687,7 +727,10 @@
         marker.setIcon(crearIcono(id === miId, xy));
         marker._iconoXY = { x: xy.x, y: xy.y };
         marker._iconoSrc = rec.url;
-        requestAnimationFrame(function () { aplicarRumbo(id, rumbo); });
+        requestAnimationFrame(function () {
+            aplicarRumbo(id, rumbo);
+            if (id === miId) pintarVelocidadPropia();
+        });
     }
 
     function pintarPreviewIcono() {
@@ -922,6 +965,14 @@
         const prev = miPosicion ? [miPosicion.lat, miPosicion.lng] : [lat, lng];
         const rumbo = rumboHaciaDondeVa(extra, prev, [lat, lng]);
 
+        if (ultimoPuntoKm) {
+            const dKm = metrosEntre(ultimoPuntoKm, [lat, lng]);
+            if (dKm > 4 && dKm < 80) kmRecorridos += dKm / 1000;
+        }
+        ultimoPuntoKm = [lat, lng];
+        gpsPropioTs = extra && extra.ts ? extra.ts : Date.now();
+        pedirCallePropia(lat, lng);
+
         miPosicion = {
             lat: lat,
             lng: lng,
@@ -1054,6 +1105,109 @@
         return dirs[n] + " · " + Math.round(Number(deg)) + "°";
     }
 
+    function rumboLargo(deg) {
+        if (!Number.isFinite(Number(deg))) return "—";
+        const nombres = [
+            "Norte (N)", "Noreste (NE)", "Este (E)", "Sureste (SE)",
+            "Sur (S)", "Suroeste (SO)", "Oeste (O)", "Noroeste (NO)"
+        ];
+        return nombres[Math.round(Number(deg) / 45) % 8];
+    }
+
+    function horaCorta(ts) {
+        const d = new Date(ts || Date.now());
+        const h = d.getHours();
+        const m = d.getMinutes();
+        return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
+    }
+
+    function textoHaceYo(ts) {
+        if (!ts) return "—";
+        const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
+        if (s < 5) return "Ahora";
+        if (s < 60) return "Hace " + s + " seg";
+        const min = Math.round(s / 60);
+        return min === 1 ? "Hace 1 min" : "Hace " + min + " min";
+    }
+
+    function textoKmSesion(km) {
+        if (!Number.isFinite(km) || km < 0.05) return "0 m";
+        if (km < 1) return Math.round(km * 1000) + " m";
+        return km.toFixed(1).replace(".", ",") + " km";
+    }
+
+    function textoSenalGps(m) {
+        if (!Number.isFinite(Number(m))) return "Sin GPS";
+        const n = Number(m);
+        if (n <= 12) return "Excelente señal";
+        if (n <= 25) return "Buena señal";
+        if (n <= 50) return "Señal regular";
+        return "Señal baja";
+    }
+
+    function velPropiaKmh() {
+        const v = miPosicion && miPosicion.velocidad;
+        return Number.isFinite(Number(v)) ? Math.max(0, Math.round(Number(v))) : 0;
+    }
+
+    function excesoVelocidad(vel) {
+        const v = Number.isFinite(Number(vel)) ? Number(vel) : velPropiaKmh();
+        if (v < 8) return false;
+        if (v > 130) return true;
+        const lim = window.RadioMapRadares && RadioMapRadares.limiteCercano && miPosicion
+            ? RadioMapRadares.limiteCercano(miPosicion.lat, miPosicion.lng)
+            : null;
+        return !!(lim && lim.vmax && v > lim.vmax);
+    }
+
+    function bearingMapa() {
+        if (!map || !map.getBearing) return 0;
+        const b = map.getBearing();
+        return Number.isFinite(b) ? b : 0;
+    }
+
+    function pintarBrujula() {
+        const el = $("brujulaMapa");
+        if (!el) return;
+        const rosa = el.querySelector(".brujula-rosa");
+        if (rosa) rosa.style.transform = "rotate(" + (-bearingMapa()) + "deg)";
+    }
+
+    function pintarVelocidadPropia() {
+        const marker = markers[miId];
+        const el = marker && marker.getElement && marker.getElement();
+        const lab = el && el.querySelector(".vel-propia");
+        if (!lab) return;
+        const vel = velPropiaKmh();
+        const num = lab.querySelector(".vel-num");
+        if (num) num.textContent = String(vel);
+        else lab.textContent = String(vel);
+        lab.classList.toggle("exceso", excesoVelocidad(vel));
+        const b = bearingMapa();
+        lab.style.transform = "translateX(-50%) rotate(" + (-b) + "deg)";
+        if (el) el.classList.toggle("ficha-abierta", !!(marker.isPopupOpen && marker.isPopupOpen()));
+    }
+
+    function pedirCallePropia(lat, lng) {
+        const ahora = Date.now();
+        if (callePropiaPendiente) return;
+        if (callePropiaLL && metrosEntre(callePropiaLL, [lat, lng]) < 80 && ahora - callePropiaTs < 8000) return;
+        callePropiaPendiente = true;
+        fetch("/api/geo/calle?lat=" + encodeURIComponent(lat) + "&lng=" + encodeURIComponent(lng))
+            .then(function (res) { return res.json(); })
+            .then(function (j) {
+                if (j && j.ok && j.texto) {
+                    callePropia = String(j.texto);
+                    callePropiaTs = Date.now();
+                    callePropiaLL = [lat, lng];
+                    const nodo = document.querySelector(".ficha-propia .yo-calle");
+                    if (nodo) nodo.textContent = callePropia;
+                }
+            })
+            .catch(function () {})
+            .then(function () { callePropiaPendiente = false; });
+    }
+
     function pintarRumbo(id, deg) {
         if (!Number.isFinite(Number(deg)) && !(modoNavGps && id === miId)) return;
         const marker = markers[id];
@@ -1143,6 +1297,8 @@
             !(map.touchGestures && map.touchGestures._zooming)) {
             setVistaSeguir(marker.getLatLng());
         }
+        pintarBrujula();
+        pintarVelocidadPropia();
     }
 
     function clavePunto(lat, lng) {
@@ -2797,71 +2953,337 @@
 
     function fichaHtml(a) {
         const soyYo = soyYoId(a.id);
+        if (soyYo) return fichaHtmlPropia(a);
+        return fichaHtmlRadio(a);
+    }
+
+    function velDeAuto(a) {
+        const v = a && a.velocidad;
+        return Number.isFinite(Number(v)) ? Math.max(0, Math.round(Number(v))) : 0;
+    }
+
+    function distHastaYo(a) {
+        if (!miPosicion || !a || !Number.isFinite(Number(a.lat)) || !Number.isFinite(Number(a.lng))) return "";
+        return textoDistancia(calcularDistanciaKm(miPosicion.lat, miPosicion.lng, a.lat, a.lng));
+    }
+
+    function fichaHtmlRadio(a) {
         const det = datosFichaDe(a);
         const placa = det ? det.placa : "";
+        const seguro = det ? det.seguro : "";
         const telRaw = det ? det.contacto : "";
         const tel = (telRaw || "").replace(/[^\d+]/g, "");
-        const nombre = nombreConductor(a);
-        const sos = !!(a.asistencia && a.asistencia.activo) || (soyYo && asistenciaActiva);
-        const ausente = !soyYo && !!a.ausente;
-        const vehiculo = a.vehiculo || "Vehículo";
-        const lineaVeh = placa ? (vehiculo + " · " + placa) : vehiculo;
-        let dist = "";
-        if (!soyYo && miPosicion && a.lat && a.lng) {
-            dist = textoDistancia(calcularDistanciaKm(miPosicion.lat, miPosicion.lng, a.lat, a.lng));
-        }
+        const nombre = a.nombre || "Sin nombre";
+        const sos = !!(a.asistencia && a.asistencia.activo);
+        const ausente = !!a.ausente;
+        const silenciado = esBloqueado(a.id);
+        const vehiculo = (a.vehiculo || "Vehículo").trim();
+        const lineaVeh = placa ? (vehiculo.toUpperCase() + " · " + placa.toUpperCase()) : vehiculo.toUpperCase();
+        const dist = distHastaYo(a);
+        const vel = velDeAuto(a);
+        const enMov = !ausente && vel >= 4;
         const estadoTxt = sos
             ? "Pide ayuda"
             : (ausente
-                ? "Sin señal" + (textoHace(a.ultimaActualizacion) ? " · " + textoHace(a.ultimaActualizacion) : "")
-                : "Conectado");
+                ? "Sin señal"
+                : (silenciado ? "Silenciado" : "Conectado"));
         const estadoLinea = dist ? (estadoTxt + " · " + dist) : estadoTxt;
-        const walkie = soyYo ? "" : (
-            '<div class="walkie-radio">' +
-                '<button type="button" class="btn-walkie-redondo" data-accion="walkie" aria-label="Mantené para hablar">' +
+        const rumbo = rumboLargo(a.rumbo);
+        const hace = textoHaceYo(a.ultimaActualizacion);
+        const hora = a.ultimaActualizacion ? horaCorta(a.ultimaActualizacion) : "";
+        const senal = textoSenalGps(a.precision);
+        const datosOn = !!datosAbiertos[a.id];
+        const hayDatos = !!(placa || seguro || telRaw);
+        const walkie =
+            '<div class="walkie-radio' + (silenciado ? " off" : "") + '">' +
+                '<button type="button" class="btn-walkie-redondo" data-accion="walkie" aria-label="' +
+                    (silenciado ? "Silenciado. Quitá el silencio para hablarle." : "Mantené para hablarle") + '"' +
+                    (silenciado ? " disabled" : "") + ">" +
                     '<span class="walkie-ondas" aria-hidden="true"></span>' +
                     '<span class="walkie-mic-grande">' + ICO_MIC + "</span>" +
                 "</button>" +
-                '<p class="walkie-idle"><strong>Mantené para hablar</strong><small>Soltá para escuchar</small></p>' +
+                '<p class="walkie-idle"><strong>Mantené para hablar</strong><small>' +
+                    (silenciado ? "Está silenciado" : "Soltá para escuchar") +
+                "</small></p>" +
                 '<p class="walkie-on"><strong>Hablando</strong><small>Soltá para enviar</small></p>' +
-            "</div>"
-        );
-        let extra = "";
-        if (soyYo) {
-            extra = '<div class="acciones-sec">' +
-                '<button type="button" class="btn-ficha" data-accion="sos">' +
-                    ICO_SOS + (sos ? " Cancelar ayuda" : " Pedir ayuda") +
-                "</button>" +
-                "</div>";
-        } else {
-            extra = '<div class="acciones-sec">' +
-                '<button type="button" class="btn-ficha" data-accion="mensaje">' + ICO_MSG + " Escribir</button>" +
-                '<button type="button" class="btn-ficha" data-accion="silenciar">' +
-                    (esBloqueado(a.id) ? "Quitar silencio" : "Silenciar") +
-                "</button>" +
-                (tel
-                    ? '<a href="tel:' + esc(tel) + '">' + ICO_TEL + " Llamar</a>"
-                    : '<button type="button" class="btn-ficha" data-accion="ficha">' + ICO_SEGURO + " Ver datos</button>") +
-                "</div>";
-        }
-
+            "</div>";
+        const btnDatos = tel
+            ? '<a class="radio-acc" href="tel:' + esc(tel) + '">' + ICO_TEL + "<span>Llamar</span></a>"
+            : '<button type="button" class="radio-acc' + (datosOn ? " on" : "") + '" data-accion="ficha">' +
+                ICO_SEGURO + "<span>" + (datosOn ? "Ocultar" : "Datos") + "</span></button>";
         return (
-            '<div class="v2v-popup' + (soyYo ? " v2v-popup-propia" : " v2v-popup-radio") + '" data-id="' + esc(a.id) + '">' +
+            '<div class="v2v-popup v2v-popup-radio' + (sos ? " sos" : "") + (ausente ? " ausente" : "") +
+                (silenciado ? " silenciado" : "") + '" data-id="' + esc(a.id) + '">' +
                 '<div class="v2v-popup-top">' +
-                    '<p class="para">' + (sos ? "Pide ayuda" : "Radio en directo") + "</p>" +
+                    '<p class="para' + (sos ? " sos" : "") + '">' +
+                        (sos ? "Pide ayuda" : "Radio en directo") +
+                    "</p>" +
                     '<button type="button" class="btn-cerrar-ficha" data-accion="cerrar" title="Cerrar" aria-label="Cerrar">' +
                         '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>' +
                     "</button>" +
                 "</div>" +
-                "<h4>" + esc(nombre) + "</h4>" +
-                '<p class="ficha-vehiculo">' + esc(lineaVeh) + "</p>" +
-                '<p class="ficha-estado' + (ausente ? " ausente" : "") + (sos ? " sos" : "") + '">' +
-                    '<span class="ficha-senal" aria-hidden="true">' + ICO_SENAL + "</span>" +
-                    esc(estadoLinea) +
-                "</p>" +
-                walkie + extra +
+                '<div class="yo-persona">' +
+                    '<span class="yo-avatar" aria-hidden="true">' + htmlAvatarCerca(a) + "</span>" +
+                    '<div class="yo-persona-txt">' +
+                        '<div class="yo-persona-fila">' +
+                            "<h4>" + esc(nombre) + "</h4>" +
+                            '<span class="yo-mov' + (enMov ? " en-mov" : "") + '">' +
+                                (ausente ? "Sin señal" : (enMov ? "En movimiento" : "Detenido")) +
+                            "</span>" +
+                        "</div>" +
+                        '<p class="ficha-vehiculo">' + esc(lineaVeh) + "</p>" +
+                        '<p class="ficha-estado' + (ausente ? " ausente" : "") + (sos ? " sos" : "") + '">' +
+                            '<span class="ficha-senal" aria-hidden="true">' + ICO_SENAL + "</span>" +
+                            esc(estadoLinea) +
+                        "</p>" +
+                    "</div>" +
+                "</div>" +
+                '<div class="yo-grid">' +
+                    '<div class="yo-celda">' +
+                        '<span class="yo-ico" aria-hidden="true">' + ICO_VEL + "</span>" +
+                        "<small>Velocidad</small>" +
+                        '<strong class="radio-vel">' + vel + " km/h</strong>" +
+                    "</div>" +
+                    '<div class="yo-celda">' +
+                        '<span class="yo-ico" aria-hidden="true">' + ICO_RUMBO + "</span>" +
+                        "<small>Dirección</small>" +
+                        '<strong class="radio-rumbo">' + esc(rumbo) + "</strong>" +
+                    "</div>" +
+                    '<div class="yo-celda">' +
+                        '<span class="yo-ico" aria-hidden="true">' + ICO_CAMINO + "</span>" +
+                        "<small>Distancia</small>" +
+                        '<strong class="radio-dist">' + esc(dist || "—") + "</strong>" +
+                    "</div>" +
+                    '<div class="yo-celda">' +
+                        '<span class="yo-ico" aria-hidden="true">' + ICO_RELOJ + "</span>" +
+                        "<small>Última señal</small>" +
+                        '<strong class="radio-hace">' + esc(hace || "—") + "</strong>" +
+                        (hora ? '<em class="yo-hora radio-hora">' + esc(hora) + "</em>" : "") +
+                    "</div>" +
+                "</div>" +
+                '<div class="radio-datos' + (datosOn && hayDatos ? "" : " oculto") + '">' +
+                    (placa ? "<p><span>Patente</span><strong>" + esc(placa) + "</strong></p>" : "") +
+                    (seguro ? "<p><span>Seguro</span><strong>" + esc(seguro) + "</strong></p>" : "") +
+                    (telRaw ? "<p><span>Teléfono</span><strong>" + esc(telRaw) + "</strong></p>" : "") +
+                    (!hayDatos ? "<p><span>Datos</span><strong>Todavía no llegaron</strong></p>" : "") +
+                "</div>" +
+                walkie +
+                '<div class="radio-acciones">' +
+                    '<button type="button" class="radio-acc" data-accion="mensaje">' + ICO_MSG + "<span>Escribir</span></button>" +
+                    '<button type="button" class="radio-acc' + (silenciado ? " on" : "") + '" data-accion="silenciar">' +
+                        ICO_MUTE + "<span>" + (silenciado ? "Oír" : "Silenciar") + "</span></button>" +
+                    '<button type="button" class="radio-acc" data-accion="centrar" title="Centrar el mapa en este auto">' +
+                        ICO_PIN + "<span>Ir</span></button>" +
+                    btnDatos +
+                "</div>" +
             "</div>"
         );
+    }
+
+    function htmlDatosRadio(det) {
+        if (!det) return "<p><span>Datos</span><strong>Todavía no llegaron</strong></p>";
+        const placa = det.placa || "";
+        const seguro = det.seguro || "";
+        const telRaw = det.contacto || "";
+        let html = "";
+        if (placa) html += "<p><span>Patente</span><strong>" + esc(placa) + "</strong></p>";
+        if (seguro) html += "<p><span>Seguro</span><strong>" + esc(seguro) + "</strong></p>";
+        if (telRaw) html += "<p><span>Teléfono</span><strong>" + esc(telRaw) + "</strong></p>";
+        return html || "<p><span>Datos</span><strong>Todavía no llegaron</strong></p>";
+    }
+
+    function actualizarFichaRadioDom(id, a) {
+        const pop = markers[id] && markers[id].getPopup && markers[id].getPopup();
+        const root = pop && pop.getElement && pop.getElement();
+        const caja = root && root.querySelector(".v2v-popup-radio");
+        if (!caja) return false;
+        const sos = !!(a.asistencia && a.asistencia.activo);
+        const ausente = !!a.ausente;
+        const silenciado = esBloqueado(id);
+        const vel = velDeAuto(a);
+        const enMov = !ausente && vel >= 4;
+        const dist = distHastaYo(a);
+        const estadoTxt = sos ? "Pide ayuda" : (ausente ? "Sin señal" : (silenciado ? "Silenciado" : "Conectado"));
+        const estadoLinea = dist ? (estadoTxt + " · " + dist) : estadoTxt;
+        caja.classList.toggle("sos", sos);
+        caja.classList.toggle("ausente", ausente);
+        caja.classList.toggle("silenciado", silenciado);
+        const para = caja.querySelector(".para");
+        if (para) {
+            para.textContent = sos ? "Pide ayuda" : "Radio en directo";
+            para.classList.toggle("sos", sos);
+        }
+        const h4 = caja.querySelector("h4");
+        if (h4) h4.textContent = a.nombre || "Sin nombre";
+        const veh = caja.querySelector(".ficha-vehiculo");
+        if (veh) {
+            const det = datosFichaDe(a);
+            const placa = det && det.placa ? det.placa : "";
+            const nombreVeh = (a.vehiculo || "Vehículo").trim();
+            veh.textContent = placa ? (nombreVeh.toUpperCase() + " · " + placa.toUpperCase()) : nombreVeh.toUpperCase();
+        }
+        const estado = caja.querySelector(".ficha-estado");
+        if (estado) {
+            estado.classList.toggle("ausente", ausente);
+            estado.classList.toggle("sos", sos);
+            estado.innerHTML = '<span class="ficha-senal" aria-hidden="true">' + ICO_SENAL + "</span>" + esc(estadoLinea);
+        }
+        const mov = caja.querySelector(".yo-mov");
+        if (mov) {
+            mov.classList.toggle("en-mov", enMov);
+            mov.textContent = ausente ? "Sin señal" : (enMov ? "En movimiento" : "Detenido");
+        }
+        const nVel = caja.querySelector(".radio-vel");
+        if (nVel) nVel.textContent = vel + " km/h";
+        const nRumbo = caja.querySelector(".radio-rumbo");
+        if (nRumbo) nRumbo.textContent = rumboLargo(a.rumbo);
+        const nDist = caja.querySelector(".radio-dist");
+        if (nDist) nDist.textContent = dist || "—";
+        const nHace = caja.querySelector(".radio-hace");
+        if (nHace) nHace.textContent = textoHaceYo(a.ultimaActualizacion) || "—";
+        const nHora = caja.querySelector(".radio-hora");
+        if (nHora) nHora.textContent = a.ultimaActualizacion ? horaCorta(a.ultimaActualizacion) : "";
+        const walkie = caja.querySelector(".walkie-radio");
+        if (walkie) {
+            walkie.classList.toggle("off", silenciado);
+            const btn = walkie.querySelector("[data-accion='walkie']");
+            if (btn) {
+                btn.disabled = silenciado;
+                btn.setAttribute("aria-label", silenciado ? "Silenciado. Quitá el silencio para hablarle." : "Mantené para hablarle");
+            }
+            const idle = walkie.querySelector(".walkie-idle small");
+            if (idle) idle.textContent = silenciado ? "Está silenciado" : "Soltá para escuchar";
+        }
+        const btnSil = caja.querySelector("[data-accion='silenciar'] span");
+        if (btnSil) btnSil.textContent = silenciado ? "Oír" : "Silenciar";
+        const btnSilWrap = caja.querySelector("[data-accion='silenciar']");
+        if (btnSilWrap) btnSilWrap.classList.toggle("on", silenciado);
+        const panel = caja.querySelector(".radio-datos");
+        if (panel) {
+            const det = datosFichaDe(a);
+            panel.innerHTML = htmlDatosRadio(det);
+            panel.classList.toggle("oculto", !datosAbiertos[id]);
+        }
+        const btnFicha = caja.querySelector("[data-accion='ficha'] span");
+        if (btnFicha) btnFicha.textContent = datosAbiertos[id] ? "Ocultar" : "Datos";
+        const btnFichaWrap = caja.querySelector("[data-accion='ficha']");
+        if (btnFichaWrap) btnFichaWrap.classList.toggle("on", !!datosAbiertos[id]);
+        return true;
+    }
+
+    function tituloAutoPropio(a) {
+        const vehiculo = ((a && a.vehiculo) || ($("vehiculo") && $("vehiculo").value) || "Vehículo").trim();
+        const placa = ((a && a.placa) || ($("placa") && $("placa").value) || "").trim();
+        const veh = vehiculo ? vehiculo.toUpperCase() : "VEHÍCULO";
+        return placa ? (veh + " • " + placa.toUpperCase()) : veh;
+    }
+
+    function fichaHtmlPropia(a) {
+        const sos = !!(a.asistencia && a.asistencia.activo) || asistenciaActiva;
+        const vel = velPropiaKmh();
+        const rumbo = rumboLargo(a.rumbo != null ? a.rumbo : (miPosicion && miPosicion.rumbo));
+        const enMov = vel >= 4;
+        const nombre = ((a && a.nombre) || ($("nombre") && $("nombre").value) || "Sin nombre").trim() || "Sin nombre";
+        const calle = callePropia || "Buscando calle…";
+        const hace = textoHaceYo(gpsPropioTs);
+        const hora = horaCorta(gpsPropioTs || Date.now());
+        const senal = textoSenalGps(a.precision != null ? a.precision : (miPosicion && miPosicion.precision));
+        const velClass = excesoVelocidad(vel) ? " yo-vel exceso" : " yo-vel";
+        return (
+            '<div class="v2v-popup v2v-popup-propia" data-id="' + esc(a.id) + '">' +
+                '<div class="yo-cabeza">' +
+                    '<span class="yo-walkie" aria-hidden="true">' + ICO_WALKIE + "</span>" +
+                    '<div class="yo-cabeza-txt">' +
+                        "<h4>" + esc(tituloAutoPropio(a)) + "</h4>" +
+                        '<p class="yo-radio"><span class="yo-punto" aria-hidden="true"></span> RADIO EN DIRECTO</p>' +
+                    "</div>" +
+                    '<button type="button" class="btn-cerrar-ficha" data-accion="cerrar" title="Cerrar" aria-label="Cerrar">' +
+                        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>' +
+                    "</button>" +
+                "</div>" +
+                '<div class="yo-persona">' +
+                    '<span class="yo-avatar" aria-hidden="true">' + htmlAvatarCerca(a) + "</span>" +
+                    '<div class="yo-persona-txt">' +
+                        '<div class="yo-persona-fila">' +
+                            "<strong>" + esc(nombre) + "</strong>" +
+                            '<span class="yo-mov' + (enMov ? " en-mov" : "") + '">' + (enMov ? "En movimiento" : "Detenido") + "</span>" +
+                        "</div>" +
+                        '<p class="yo-meta">' +
+                            "<span>" + ICO_PERSONA + " Conectado</span>" +
+                            '<span class="yo-senal">' + ICO_SENAL + " " + esc(senal) + "</span>" +
+                        "</p>" +
+                    "</div>" +
+                "</div>" +
+                '<div class="yo-grid">' +
+                    '<div class="yo-celda">' +
+                        '<span class="yo-ico" aria-hidden="true">' + ICO_VEL + "</span>" +
+                        "<small>Velocidad</small>" +
+                        "<strong class=\"" + velClass.trim() + "\">" + vel + " km/h</strong>" +
+                    "</div>" +
+                    '<div class="yo-celda">' +
+                        '<span class="yo-ico" aria-hidden="true">' + ICO_RUMBO + "</span>" +
+                        "<small>Dirección</small>" +
+                        '<strong class="yo-rumbo">' + esc(rumbo) + "</strong>" +
+                    "</div>" +
+                    '<div class="yo-celda">' +
+                        '<span class="yo-ico" aria-hidden="true">' + ICO_CAMINO + "</span>" +
+                        "<small>Distancia</small>" +
+                        '<strong class="yo-km">' + esc(textoKmSesion(kmRecorridos)) + "</strong>" +
+                    "</div>" +
+                    '<div class="yo-celda">' +
+                        '<span class="yo-ico" aria-hidden="true">' + ICO_RELOJ + "</span>" +
+                        "<small>Última señal</small>" +
+                        '<strong class="yo-hace">' + esc(hace) + "</strong>" +
+                        '<em class="yo-hora">' + esc(hora) + "</em>" +
+                    "</div>" +
+                "</div>" +
+                '<button type="button" class="yo-ubi" data-accion="centrar">' +
+                    '<span class="yo-ubi-lab">' + ICO_PIN + " Ubicación</span>" +
+                    '<strong class="yo-calle">' + esc(calle) + "</strong>" +
+                    '<span class="yo-chev" aria-hidden="true">' + ICO_CHEV + "</span>" +
+                "</button>" +
+                '<div class="yo-acciones">' +
+                    '<button type="button" class="yo-acc yo-hablar" data-accion="walkie">' + ICO_HABLAR + " Hablar</button>" +
+                    '<button type="button" class="yo-acc" data-accion="ir-grupo">' + ICO_GRUPO + " Grupo</button>" +
+                    '<button type="button" class="yo-acc" data-accion="ir-todos">' + ICO_TODOS + " Todos</button>" +
+                "</div>" +
+                '<button type="button" class="yo-sos" data-accion="sos">' +
+                    ICO_SOS + (sos ? " Cancelar ayuda" : " Pedir ayuda") +
+                "</button>" +
+            "</div>"
+        );
+    }
+
+    function actualizarFichaPropiaDom(a) {
+        const pop = markers[miId] && markers[miId].getPopup && markers[miId].getPopup();
+        const root = pop && pop.getElement && pop.getElement();
+        const caja = root && root.querySelector(".v2v-popup-propia");
+        if (!caja) return false;
+        const vel = velPropiaKmh();
+        const nodoVel = caja.querySelector(".yo-vel");
+        if (nodoVel) {
+            nodoVel.textContent = vel + " km/h";
+            nodoVel.classList.toggle("exceso", excesoVelocidad(vel));
+        }
+        const rumbo = caja.querySelector(".yo-rumbo");
+        if (rumbo) rumbo.textContent = rumboLargo(a.rumbo != null ? a.rumbo : (miPosicion && miPosicion.rumbo));
+        const km = caja.querySelector(".yo-km");
+        if (km) km.textContent = textoKmSesion(kmRecorridos);
+        const hace = caja.querySelector(".yo-hace");
+        if (hace) hace.textContent = textoHaceYo(gpsPropioTs);
+        const hora = caja.querySelector(".yo-hora");
+        if (hora) hora.textContent = horaCorta(gpsPropioTs || Date.now());
+        const calle = caja.querySelector(".yo-calle");
+        if (calle && callePropia) calle.textContent = callePropia;
+        const mov = caja.querySelector(".yo-mov");
+        if (mov) {
+            const enMov = vel >= 4;
+            mov.classList.toggle("en-mov", enMov);
+            mov.textContent = enMov ? "En movimiento" : "Detenido";
+        }
+        const senal = caja.querySelector(".yo-senal");
+        if (senal) senal.innerHTML = ICO_SENAL + " " + esc(textoSenalGps(a.precision != null ? a.precision : (miPosicion && miPosicion.precision)));
+        return true;
     }
 
     function engancharFicha(marker, id) {
@@ -2874,6 +3296,7 @@
                 btn.onpointerdown = function (ev) {
                     ev.preventDefault();
                     ev.stopPropagation();
+                    if (id !== miId && esBloqueado(id)) return;
                     ctxPtt();
                     if (btn.setPointerCapture) btn.setPointerCapture(ev.pointerId);
                     if (esFantasma(id)) {
@@ -2932,10 +3355,31 @@
                 }
                 if (accion === "silenciar") {
                     alternarBloqueo(id);
-                    refrescarFicha(id, autos[id]);
+                    marcarSilenciado(id, esBloqueado(id));
+                    const auto = autos[id];
+                    if (auto && !actualizarFichaRadioDom(id, auto)) refrescarFicha(id, auto);
                 }
-                if (accion === "ficha") pedirFicha(id);
+                if (accion === "ficha") {
+                    datosAbiertos[id] = !datosAbiertos[id];
+                    pedirFicha(id);
+                    const auto = autos[id];
+                    if (auto) actualizarFichaRadioDom(id, auto);
+                }
                 if (accion === "sos") alternarAsistencia();
+                if (accion === "ir-grupo") {
+                    cerrarFicha(id);
+                    if (miGrupo) {
+                        mostrarTab("grupo");
+                        abrirComms();
+                    } else {
+                        irACrearGrupo();
+                    }
+                }
+                if (accion === "ir-todos") {
+                    cerrarFicha(id);
+                    mostrarTab("general");
+                    abrirComms();
+                }
             };
         });
     }
@@ -2966,10 +3410,6 @@
             quitarVehiculo(a.id);
             return;
         }
-        if (a.id !== miId && esBloqueado(a.id)) {
-            quitarVehiculo(a.id);
-            return;
-        }
         if (a.id !== miId && !visibleEnMapa(a)) {
             if (markers[a.id]) {
                 map.removeLayer(markers[a.id]);
@@ -2995,10 +3435,12 @@
             aplicarIconoEnMarker(a.id, iconoDeAuto(a));
             marcarSosMarker(a.id, !!(a.asistencia && a.asistencia.activo));
             marcarAusente(a.id, !!a.ausente);
+            marcarSilenciado(a.id, a.id !== miId && esBloqueado(a.id));
             requestAnimationFrame(function () {
                 aplicarRumbo(a.id, a.rumbo);
                 aplicarIconoEnMarker(a.id, iconoDeAuto(a));
                 marcarAusente(a.id, !!a.ausente);
+                marcarSilenciado(a.id, a.id !== miId && esBloqueado(a.id));
                 aplicarVisibilidadCapa(marker, a.id);
             });
             if (soyYo) asegurarTickGps();
@@ -3016,6 +3458,7 @@
             };
             asegurarTickGps();
         } else if (mapaOcupado) {
+            marcarSilenciado(a.id, a.id !== miId && esBloqueado(a.id));
             return;
         } else {
             animarHacia(a.id, markers[a.id], latlng, a.rumbo);
@@ -3024,6 +3467,7 @@
         aplicarIconoEnMarker(a.id, iconoDeAuto(a));
         marcarSosMarker(a.id, !!(a.asistencia && a.asistencia.activo));
         marcarAusente(a.id, !!a.ausente);
+        marcarSilenciado(a.id, a.id !== miId && esBloqueado(a.id));
         refrescarFicha(a.id, a);
     }
 
@@ -3072,6 +3516,30 @@
         } else {
             m.setTooltipContent(nombreHtml(a));
         }
+        const abierta = !!(m.isPopupOpen && m.isPopupOpen());
+        if (id === miId && abierta && actualizarFichaPropiaDom(a)) {
+            silenciarHoverFicha(m, id);
+            aplicarClasesCapa(m, id, a);
+            pintarVelocidadPropia();
+            return;
+        }
+        if (id === miId && !abierta) {
+            if (!m.getPopup()) {
+                m.bindPopup(fichaHtml(a), fichaPopupOpts(true, a));
+                silenciarClickPopupLeaflet(m);
+                engancharPopupCapa(m, id);
+            }
+            silenciarHoverFicha(m, id);
+            aplicarClasesCapa(m, id, a);
+            aplicarVisibilidadCapa(m, id);
+            pintarVelocidadPropia();
+            return;
+        }
+        if (id !== miId && abierta && actualizarFichaRadioDom(id, a)) {
+            silenciarHoverFicha(m, id);
+            aplicarClasesCapa(m, id, a);
+            return;
+        }
         if (!m.getPopup()) {
             m.bindPopup(fichaHtml(a), fichaPopupOpts(id === miId, a));
             silenciarClickPopupLeaflet(m);
@@ -3082,6 +3550,7 @@
         silenciarHoverFicha(m, id);
         aplicarClasesCapa(m, id, a);
         aplicarVisibilidadCapa(m, id);
+        if (id === miId) pintarVelocidadPropia();
     }
 
     function aplicarVisibilidadPopups() {
@@ -3100,6 +3569,7 @@
         delete autos[id];
         delete fichasForzadas[id];
         delete cacheFichas[id];
+        delete datosAbiertos[id];
         if (contactoActivo === id) {
             contactoActivo = null;
             $("contactoSeleccionado").textContent = "Ese vehículo se desconectó.";
@@ -3142,10 +3612,6 @@
         });
         Object.keys(autos).forEach(function (id) {
             if (id === FANTASMA_ID || soyYoId(id)) return;
-            if (esBloqueado(id)) {
-                quitarVehiculo(id);
-                return;
-            }
             actualizarMarker(autos[id]);
         });
         podarAutosLejanos();
@@ -3161,7 +3627,6 @@
         const lista = [];
         Object.keys(autos).forEach(function (id) {
             if (soyYoId(id)) return;
-            if (esBloqueado(id)) return;
             const a = autos[id];
             if (!a || !a.lat || !a.lng) return;
             const dist = miPosicion
@@ -3171,11 +3636,13 @@
                 id: id,
                 a: a,
                 dist: dist,
+                silenciado: esBloqueado(id),
                 enGrupo: !!a.enGrupo || !!(miGrupo && a.grupo && a.grupo === miGrupo),
                 sos: !!(a.asistencia && a.asistencia.activo)
             });
         });
         lista.sort(function (x, y) {
+            if (x.silenciado !== y.silenciado) return x.silenciado ? 1 : -1;
             if (x.sos !== y.sos) return x.sos ? -1 : 1;
             if (x.enGrupo !== y.enGrupo) return x.enGrupo ? -1 : 1;
             const dx = x.dist == null ? 9999 : x.dist;
@@ -3203,6 +3670,7 @@
                 mostrarMensajeFantasma();
                 return;
             }
+            if (esBloqueado(id)) return;
             ctxPtt();
             if (btn.setPointerCapture) btn.setPointerCapture(ev.pointerId);
             seleccionarContacto(id, true);
@@ -3224,23 +3692,29 @@
 
     function crearFilaRadioCerca(item) {
         const fila = document.createElement("div");
+        const silenciado = !!item.silenciado;
         fila.className = "radio-cerca-item" +
             (item.sos ? " sos" : "") +
             (item.a.ausente ? " ausente" : "") +
+            (silenciado ? " silenciado" : "") +
             (contactoActivo === item.id ? " activo" : "");
         fila.setAttribute("data-id", item.id);
         const nom = item.a.nombre || "Sin nombre";
         const dist = item.dist == null ? "—" : textoDistancia(item.dist);
+        const tituloAuto = silenciado
+            ? (nom + " está silenciado. Tocá para volver a escucharlo.")
+            : nom;
         fila.innerHTML =
             '<div class="radio-cerca-meta">' +
                 "<strong>" + esc(nom) + "</strong>" +
-                "<small>" + esc(dist) + "</small>" +
+                "<small>" + esc(silenciado ? "Silenciado" : dist) + "</small>" +
             "</div>" +
-            '<button type="button" class="hud-btn hud-ico radio-cerca-mic" title="Mantené para hablarle a ' + esc(nom) + '">' +
+            '<button type="button" class="hud-btn hud-ico radio-cerca-mic" title="Mantené para hablarle a ' + esc(nom) + '"' +
+                (silenciado ? " disabled" : "") + ">" +
                 ICO_MIC +
                 "<span>Walkie</span>" +
             "</button>" +
-            '<button type="button" class="hud-btn hud-ico radio-cerca-auto" title="' + esc(nom) + '">' +
+            '<button type="button" class="hud-btn hud-ico radio-cerca-auto" title="' + esc(tituloAuto) + '">' +
                 htmlAvatarCerca(item.a) +
                 "<span>" + esc(nom) + "</span>" +
             "</button>";
@@ -3248,12 +3722,16 @@
         btnAuto.addEventListener("click", function (ev) {
             ev.preventDefault();
             ev.stopPropagation();
+            if (silenciado) {
+                alternarBloqueo(item.id);
+                return;
+            }
             seleccionarContacto(item.id, true);
             abrirFicha(item.id);
             const a = item.a;
             if (a) volarHastaAuto(a.lat, a.lng, Math.max(map.getZoom(), 16));
         });
-        engancharWalkieCerca(fila.querySelector(".radio-cerca-mic"), item.id);
+        if (!silenciado) engancharWalkieCerca(fila.querySelector(".radio-cerca-mic"), item.id);
         return fila;
     }
 
@@ -3793,6 +4271,12 @@
         if (el) el.classList.toggle("ausente", !!on);
     }
 
+    function marcarSilenciado(id, on) {
+        const marker = markers[id];
+        const el = marker && marker.getElement();
+        if (el) el.classList.toggle("silenciado", !!on);
+    }
+
     function pintarEstadoGrupo() {
         const estado = $("estadoGrupo");
         const salir = $("btnGrupoSalir");
@@ -4133,6 +4617,8 @@
         fijarVistaNavGps(pos);
         pintarRumbo(miId, 0);
         refrescarRumbosMarcadores();
+        pintarBrujula();
+        pintarVelocidadPropia();
 
         navGpsRaf = requestAnimationFrame(tickNavGps);
     }
@@ -5216,22 +5702,77 @@
     }
 
     function mostrarEntrarMapa() {
-        $("btnPermitirGps").classList.add("oculto");
-        $("btnPermitirMic").classList.add("oculto");
-        $("btnSaltarPermiso").classList.add("oculto");
-        $("btnStepEmpezar").classList.add("oculto");
-        $("btnEntrar").classList.remove("oculto");
-        document.querySelectorAll(".stepper-puntos li").forEach(function (li) {
-            li.classList.add("ok");
-            li.classList.remove("on");
+        mostrarPasoIntro(3);
+    }
+
+    function esIosMovil() {
+        const ua = navigator.userAgent || "";
+        if (/iPad|iPhone|iPod/.test(ua)) return true;
+        return navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+    }
+
+    function appEnPantalla() {
+        if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) return true;
+        if (navigator.standalone === true) return true;
+        return false;
+    }
+
+    function pintarBotonInstalar() {
+        const btn = $("btnInstalar");
+        const ios = $("instalarIos");
+        const texto = $("instalarTexto");
+        const estado = $("estadoInstalar");
+        const entrar = $("btnEntrar");
+        if (!btn) return;
+        const enPaso = introPaso === 3;
+        const enPantalla = appEnPantalla();
+        const nativo = !!(deferredInstall && !enPantalla);
+        const esIos = esIosMovil() && !enPantalla;
+        btn.classList.toggle("oculto", !enPaso || !nativo);
+        if (entrar) entrar.classList.toggle("alt", enPaso && nativo);
+        if (ios) ios.classList.toggle("oculto", !enPaso || !esIos);
+        if (texto && enPaso) {
+            if (enPantalla) {
+                texto.textContent = "RadioMap ya está como ícono en tu pantalla. Entrá al mapa cuando quieras.";
+            } else if (esIos) {
+                texto.textContent = "En el iPhone se agrega con Compartir, en tres toques. Queda el ícono en la pantalla de inicio.";
+            } else if (nativo) {
+                texto.textContent = "Un toque y RadioMap te queda como ícono en la pantalla de inicio, igual que una app.";
+            } else {
+                texto.textContent = "Si no ves Instalar, abrí el menú del navegador (⋮) y elegí «Instalar app» o «Agregar a pantalla de inicio».";
+            }
+        }
+        if (estado && enPaso && enPantalla) estado.textContent = "Listo: ya la tenés en el celular.";
+    }
+
+    function instalarApp() {
+        const estado = $("estadoInstalar");
+        if (appEnPantalla()) {
+            if (estado) estado.textContent = "Ya está en tu pantalla de inicio.";
+            return;
+        }
+        if (!deferredInstall) {
+            if (estado) estado.textContent = "Este navegador no muestra el botón. Usá el menú: Instalar app / Agregar a pantalla de inicio.";
+            return;
+        }
+        const ev = deferredInstall;
+        ev.prompt();
+        ev.userChoice.then(function (c) {
+            deferredInstall = null;
+            if (c && c.outcome === "accepted") {
+                if (estado) estado.textContent = "Listo. Te quedó el ícono en la pantalla de inicio.";
+            } else if (estado) {
+                estado.textContent = "No se instaló. Podés reintentar o entrar igual al mapa.";
+            }
+            pintarBotonInstalar();
+        }).catch(function () {
+            pintarBotonInstalar();
         });
-        const ultimo = document.querySelector(".stepper-puntos li[data-i='2']");
-        if (ultimo) ultimo.classList.add("on");
     }
 
     function mostrarPasoIntro(n) {
         introPaso = n;
-        [0, 1, 2].forEach(function (i) {
+        [0, 1, 2, 3].forEach(function (i) {
             const el = $("step" + i);
             if (el) el.classList.toggle("oculto", i !== n);
         });
@@ -5243,16 +5784,22 @@
         $("btnStepEmpezar").classList.toggle("oculto", n !== 0);
         $("btnPermitirGps").classList.toggle("oculto", n !== 1);
         $("btnPermitirMic").classList.toggle("oculto", n !== 2);
-        $("btnEntrar").classList.add("oculto");
-        $("btnSaltarPermiso").classList.toggle("oculto", n === 0);
-        $("btnSaltarPermiso").textContent = n === 1 ? "Ahora no, seguir" : "Prefiero después";
+        $("btnEntrar").classList.toggle("oculto", n !== 3);
+        $("btnSaltarPermiso").classList.toggle("oculto", n === 0 || n === 3);
+        if ($("btnSaltarPermiso")) {
+            $("btnSaltarPermiso").textContent = n === 1 ? "Ahora no, seguir" : "Prefiero después";
+        }
+        const cerrar = $("btnCerrarIntro");
+        if (cerrar) cerrar.classList.toggle("oculto", !yaEntroMapa());
         const ayudas = [
-            "Sin apuro: en un momento dejamos todo listo para el mapa.",
+            "Mirá qué incluye y, cuando quieras, dejamos listos GPS y handy.",
             "El pedido sale arriba, junto a la dirección del sitio. Tocá Permitir ahí.",
-            "Igual que antes: el micrófono se pide arriba, junto a la dirección. Tocá Permitir."
+            "Igual que antes: el micrófono se pide arriba, junto a la dirección. Tocá Permitir.",
+            "Instalala en un toque. Si no, podés entrar igual al mapa."
         ];
-        if ($("stepAyuda")) $("stepAyuda").textContent = ayudas[n];
+        if ($("stepAyuda")) $("stepAyuda").textContent = ayudas[n] || "";
         if (n !== 1 && n !== 2) taparBarraPermisos();
+        pintarBotonInstalar();
     }
 
     function pedirMicrofonoIntro() {
@@ -5280,8 +5827,8 @@
         navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
             taparBarraPermisos();
             pttStream = stream;
-            if (estado) estado.textContent = "Listo. El walkie ya no te va a interrumpir al usarlo.";
-            if ($("stepAyuda")) $("stepAyuda").textContent = "GPS y mic listos. Entrá al mapa y hablá cuando quieras.";
+            if (estado) estado.textContent = "Listo. El handy ya no te va a interrumpir al usarlo.";
+            if ($("stepAyuda")) $("stepAyuda").textContent = "GPS y handy listos. Ahora podés dejarla en la pantalla del celular.";
             if (btn) btn.disabled = false;
             mostrarEntrarMapa();
         }).catch(function () {
@@ -5488,9 +6035,15 @@
         $("btnSaltarPermiso").addEventListener("click", function () {
             taparBarraPermisos();
             if (introPaso === 1) mostrarPasoIntro(2);
-            else mostrarEntrarMapa();
+            else mostrarPasoIntro(3);
         });
         $("btnEntrar").addEventListener("click", entrarAlMapa);
+        if ($("btnInstalar")) $("btnInstalar").addEventListener("click", instalarApp);
+        if ($("btnCerrarIntro")) {
+            $("btnCerrarIntro").addEventListener("click", function () {
+                $("portada").classList.add("oculto");
+            });
+        }
         $("btnQueEs").addEventListener("click", function () {
             $("portada").classList.remove("oculto");
             mostrarPasoIntro(0);
@@ -6257,4 +6810,15 @@
     if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("/service-worker.js").catch(function () {});
     }
+    window.addEventListener("beforeinstallprompt", function (ev) {
+        ev.preventDefault();
+        deferredInstall = ev;
+        pintarBotonInstalar();
+    });
+    window.addEventListener("appinstalled", function () {
+        deferredInstall = null;
+        const estado = $("estadoInstalar");
+        if (estado) estado.textContent = "Listo. Te quedó el ícono en la pantalla de inicio.";
+        pintarBotonInstalar();
+    });
 })();

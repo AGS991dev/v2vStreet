@@ -17,6 +17,19 @@
         margin-top: 10px;
     }
 
+    .stepper-foto-corta {
+        height: 88px;
+    }
+
+    .stepper-puntos li {
+        font-size: 9px;
+        letter-spacing: 0;
+    }
+
+    .intro-feats p {
+        font-size: 11px;
+    }
+
     .mision {
         font-size: 14px;
     }
@@ -113,5 +126,18 @@
     .comms-panel .dock-radio .dock-item {
         min-height: 48px;
         padding: 8px 8px;
+    }
+
+    .v2v-popup-propia {
+        padding: 10px 10px 8px;
+    }
+
+    .yo-persona-fila strong {
+        font-size: 16px;
+    }
+
+    .yo-acciones {
+        margin-left: -10px;
+        margin-right: -10px;
     }
 }

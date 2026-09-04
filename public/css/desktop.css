@@ -65,6 +65,11 @@
         align-items: flex-start;
     }
 
+    .brujula-mapa {
+        left: 16px;
+        bottom: 104px;
+    }
+
     .dock-mapa {
         display: none !important;
     }
@@ -94,5 +99,9 @@
 
     .stepper-foto {
         height: 210px;
+    }
+
+    .stepper-foto-corta {
+        height: 132px;
     }
 }

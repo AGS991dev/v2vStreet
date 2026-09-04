@@ -186,6 +186,42 @@
         return inflight[key];
     }
 
+    function puntosCargados() {
+        if (catalogo && catalogo.length) return catalogo;
+        var acc = [];
+        var k;
+        for (k in tiles) {
+            if (Object.prototype.hasOwnProperty.call(tiles, k) && tiles[k] && tiles[k].length) {
+                acc = acc.concat(tiles[k]);
+            }
+        }
+        return acc.length ? acc : null;
+    }
+
+    function limiteCercano(lat, lng) {
+        var pos = { lat: Number(lat), lng: Number(lng) };
+        if (!Number.isFinite(pos.lat) || !Number.isFinite(pos.lng)) return null;
+        var todos = puntosCargados();
+        if (!todos) {
+            asegurarManifest().then(function () {
+                if (manifest && manifest.modo === "baldosas") {
+                    return Promise.all(tilesParaRadio(pos, 1).map(cargarTile));
+                }
+                return cargarCatalogo();
+            }).catch(function () {});
+            return null;
+        }
+        var best = null;
+        var i, r, d;
+        for (i = 0; i < todos.length; i++) {
+            r = todos[i];
+            d = distKm(pos, r);
+            if (d > 0.45) continue;
+            if (!best || d < best.dist) best = { vmax: r.vmax, dist: d };
+        }
+        return best;
+    }
+
     function puntosCercanos(pos, km) {
         var modo = manifest && manifest.modo;
         var promesa;
@@ -391,6 +427,9 @@
             });
         }
         pintarBoton();
+        asegurarManifest().then(function () {
+            if (manifest && manifest.modo !== "baldosas") return cargarCatalogo();
+        }).catch(function () {});
         if (seVen()) pedirRefresco(true);
     }
 
@@ -399,6 +438,7 @@
         onGps: onGps,
         onRadio: onRadio,
         onNavGps: onNavGps,
-        activo: function () { return activo; }
+        activo: function () { return activo; },
+        limiteCercano: limiteCercano
     };
 })(window);
