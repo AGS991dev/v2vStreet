@@ -74,7 +74,7 @@
             if (!btn) continue;
             btn.classList.toggle("activo", compartiendo);
             var txt = btn.querySelector(".atajo-tip") || btn.querySelector("span:not(.atajo-ico)");
-            if (txt && (btn.id === "btnFantasmaMapa" || btn.id === "btnDockFantasma")) {
+            if (txt && btn.id === "btnFantasmaMapa") {
                 txt.textContent = compartiendo ? "Cortar fantasma" : "Compartir fantasma";
             } else if (txt) {
                 txt.textContent = compartiendo ? "Cortar" : "Fantasma";

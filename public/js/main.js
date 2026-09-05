@@ -3908,16 +3908,9 @@
         if ($("txtAvisoGrupo")) {
             $("txtAvisoGrupo").placeholder = miGrupo ? ("Aviso a " + etiquetaGrupo() + "…") : "Escribí un mensaje…";
         }
-        if (modoPttTab() === "fantasma") pintarLeyendaPttFantasma();
-        else {
-            const pttSmall = document.querySelector("#btnPttMapa .ptt-leyenda small");
-            if (pttSmall) pttSmall.textContent = "Walkie a RADIO";
-        }
+        pintarCanalPtt();
         const btnRadio = $("btnEnviarV2V");
-        if (btnRadio) {
-            const txt = btnRadio.childNodes[btnRadio.childNodes.length - 1];
-            if (txt && txt.nodeType === 3) txt.textContent = " RADIO";
-        }
+        if (btnRadio) btnRadio.setAttribute("title", "Enviar");
         if (contactoActivo && autos[contactoActivo] && $("lblEnviarPrivado")) {
             const nom = autos[contactoActivo].nombre || "esa persona";
             $("lblEnviarPrivado").textContent = "A " + nom;
@@ -4314,8 +4307,8 @@
         if (itemRadio) itemRadio.classList.toggle("activo", true);
         if (nomMio) nomMio.textContent = miGrupoNombre || miGrupo || "—";
         if (detMio) detMio.textContent = miGrupo ? ("Código " + miGrupo) : "Código —";
-        if (tabGrupo) tabGrupo.classList.toggle("oculto", !miGrupo && tabActiva !== "grupo");
-        if (btnIr) btnIr.classList.toggle("oculto", !!miGrupo);
+        if (tabGrupo) tabGrupo.classList.remove("oculto");
+        if (btnIr) btnIr.classList.remove("oculto");
         pintarResumenEnRuta();
     }
 
@@ -4924,11 +4917,11 @@
     function actualizarTabFantasma() {
         const tab = $("tabFantasma");
         const hay = enWalkieFantasma();
-        if (tab) tab.classList.toggle("oculto", !hay);
+        if (tab) tab.classList.remove("oculto");
         if (!hay) {
             noLeidosFantasma = 0;
             actualizarBadgeFantasma();
-            if (tabActiva === "fantasma") mostrarTab("general");
+            if (tabActiva === "fantasma") pintarCanalPtt();
             return;
         }
         if ($("detalleSalaFantasma")) {
@@ -4973,40 +4966,36 @@
         return "general";
     }
 
+    function nombreFrecuencia(canal) {
+        if (canal === "privado") return "Privados";
+        if (canal === "grupo") return "grupo";
+        if (canal === "fantasma") return "fantasma";
+        return "Todos";
+    }
+
     function pintarCanalPtt() {
         const canal = modoPttTab();
-        if (canal === "fantasma") {
-            pintarLeyendaPttFantasma();
-            ["btnPttDock", "btnPttMapa", "btnPttPanel"].forEach(function (id) {
-                const btn = $(id);
-                if (!btn) return;
-                btn.classList.toggle("ptt-canal-privado", false);
-                btn.classList.toggle("ptt-canal-grupo", false);
-                btn.classList.toggle("ptt-canal-fantasma", true);
-            });
-            if ($("pttPanelSub")) $("pttPanelSub").textContent = "para hablar a Fantasmas";
-            return;
-        }
-        const titulo = canal === "privado"
-            ? "Mantené para hablar en privado"
-            : (canal === "grupo" ? "Mantené para hablar al grupo" : "Mantené para hablar a RADIO");
+        if (canal === "fantasma") pintarLeyendaPttFantasma();
+        const titulo = canal === "fantasma"
+            ? "Mantené para hablar a Fantasmas"
+            : (canal === "privado"
+                ? "Mantené para hablar en privado"
+                : (canal === "grupo" ? "Mantené para hablar al grupo" : "Mantené para hablar a RADIO"));
         ["btnPttDock", "btnPttMapa", "btnPttPanel"].forEach(function (id) {
             const btn = $(id);
             if (!btn) return;
             btn.classList.toggle("ptt-canal-privado", canal === "privado");
             btn.classList.toggle("ptt-canal-grupo", canal === "grupo");
-            btn.classList.toggle("ptt-canal-fantasma", false);
+            btn.classList.toggle("ptt-canal-fantasma", canal === "fantasma");
             btn.title = titulo;
         });
-        if ($("pttPanelSub")) {
-            $("pttPanelSub").textContent = canal === "privado"
-                ? "para hablar en privado"
-                : (canal === "grupo" ? "para hablar al grupo" : "para hablar");
-        }
+        if ($("pttPanelCon")) $("pttPanelCon").textContent = "Hablando con " + nombreFrecuencia(canal);
+        if ($("pttPanelSub")) $("pttPanelSub").textContent = "mantené para hablar";
         const pttSmall = document.querySelector("#btnPttMapa .ptt-leyenda small");
         if (pttSmall && canal === "general") pttSmall.textContent = "Walkie a RADIO";
         if (pttSmall && canal === "grupo") pttSmall.textContent = "Walkie al grupo";
         if (pttSmall && canal === "privado") pttSmall.textContent = "Walkie privado";
+        if (pttSmall && canal === "fantasma") pttSmall.textContent = "Walkie a Fantasmas";
     }
 
     function bindPtt(el, modo) {
@@ -6536,13 +6525,9 @@
 
     function mostrarTab(nombre) {
         if (esInvitadoFantasma()) nombre = "fantasma";
-        if (nombre === "grupo") {
-            if ($("tabGrupo")) $("tabGrupo").classList.remove("oculto");
-        }
-        if (nombre === "fantasma" && enWalkieFantasma()) {
-            if ($("tabFantasma")) $("tabFantasma").classList.remove("oculto");
-        }
-        if (nombre === "fantasma" && enWalkieFantasma()) tabActiva = "fantasma";
+        if ($("tabGrupo")) $("tabGrupo").classList.remove("oculto");
+        if ($("tabFantasma")) $("tabFantasma").classList.remove("oculto");
+        if (nombre === "fantasma") tabActiva = "fantasma";
         else if (nombre === "grupo") tabActiva = "grupo";
         else if (nombre === "privado") tabActiva = "privado";
         else tabActiva = "general";
@@ -6572,12 +6557,6 @@
         if (tabActiva === "fantasma") {
             noLeidosFantasma = 0;
             actualizarBadgeFantasma();
-        }
-        if (tabActiva !== "grupo" && !miGrupo && $("tabGrupo")) {
-            $("tabGrupo").classList.add("oculto");
-        }
-        if (tabActiva !== "fantasma" && !enWalkieFantasma() && $("tabFantasma")) {
-            $("tabFantasma").classList.add("oculto");
         }
         pintarDock();
     }

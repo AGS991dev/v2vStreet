@@ -1644,7 +1644,7 @@ body.modo-a-pie .switch-ir-modo .switch-ir-pie {
 .comms-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     gap: 8px;
     padding: 8px 14px 8px;
 }
@@ -4178,7 +4178,8 @@ body.modo-manejo .hud-ruta-txt p {
 
 .comms-header {
     align-items: center;
-    padding: 12px 14px 10px;
+    padding: 10px 14px 8px;
+    gap: 8px;
 }
 
 .comms-header h2 {
@@ -4192,6 +4193,58 @@ body.modo-manejo .hud-ruta-txt p {
     margin-top: 2px;
     font-size: 12px;
     color: var(--suave);
+}
+
+.comms-alcance {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    padding: 4px 8px 4px 8px;
+    background: #fff;
+    border: 1px solid var(--linea);
+    border-radius: 999px;
+    color: var(--suave);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.comms-alcance svg {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    color: var(--ambar);
+}
+
+.comms-alcance .select-radio {
+    width: auto;
+    margin: 0;
+    padding: 2px 4px;
+    border: 0;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--tinta);
+}
+
+.btn-ico-grupo {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: #e8f1fb;
+    color: var(--azul);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    flex: 0 0 36px;
+}
+
+.btn-ico-grupo svg {
+    width: 18px;
+    height: 18px;
 }
 
 .btn-cerrar-comms {
@@ -4714,7 +4767,8 @@ body.modo-manejo .hud-ruta-txt p {
 
 .comms-panel .chat-tabs {
     align-items: stretch;
-    gap: 4px;
+    gap: 6px;
+    padding: 4px 14px 12px;
 }
 
 .comms-panel .tab,
@@ -4722,56 +4776,87 @@ body.modo-manejo .hud-ruta-txt p {
     position: relative;
     flex: 1;
     min-width: 0;
-    background: transparent;
-    color: #5a5a5a;
+    background: #f3f4f6;
+    color: #4b5563;
     border: 0;
-    border-bottom: 2px solid transparent;
-    border-radius: 0;
-    padding: 8px 8px;
+    border-bottom: 0;
+    border-radius: 14px;
+    padding: 8px 4px 7px;
     font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.2px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1px;
     text-transform: none;
     cursor: pointer;
     display: inline-flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
-    gap: 6px;
+    justify-content: center;
+    gap: 4px;
 }
 
 .comms-panel .tab svg,
 .comms-panel .tab-mapa svg {
-    width: 16px;
-    height: 16px;
-    flex: 0 0 16px;
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+}
+
+.comms-panel .tab[data-tab="general"] {
+    background: #fff6e8;
+    color: #9a6700;
+}
+
+.comms-panel .tab[data-tab="privado"] {
+    background: #ecfdf3;
+    color: #15803d;
+}
+
+.comms-panel .tab[data-tab="grupo"] {
+    background: #eaf3fb;
+    color: #1e4b7b;
+}
+
+.comms-panel .tab[data-tab="fantasma"] {
+    background: #eef0f2;
+    color: #4b5563;
 }
 
 .comms-panel .tab.activa {
-    background: transparent;
-    color: var(--radio-tinta);
-    border-bottom-color: var(--radio-naranja);
-    box-shadow: none;
-    font-weight: 700;
+    box-shadow: inset 0 0 0 1.5px currentColor;
+    font-weight: 800;
 }
 
-.comms-panel .tab[data-tab="privado"].activa,
-.comms-panel .tab[data-tab="grupo"].activa,
+.comms-panel .tab[data-tab="general"].activa {
+    background: #ffe8c4;
+    color: #8a5a00;
+}
+
+.comms-panel .tab[data-tab="privado"].activa {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.comms-panel .tab[data-tab="grupo"].activa {
+    background: #d7e8f7;
+    color: #1e4b7b;
+}
+
 .comms-panel .tab[data-tab="fantasma"].activa {
-    background: transparent;
-    color: var(--radio-tinta);
-    border-bottom-color: var(--radio-naranja);
+    background: #e5e7eb;
+    color: #1f2937;
 }
 
 .comms-panel .tab .badge {
-    position: static;
-    margin-left: auto;
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    margin-left: 0;
     background: #8d5a32;
     min-width: 16px;
     height: 16px;
     padding: 0 4px;
-    border-radius: 2px;
+    border-radius: 8px;
     line-height: 16px;
     font-size: 9px;
     font-weight: 700;
@@ -4782,8 +4867,10 @@ body.modo-manejo .hud-ruta-txt p {
 }
 
 .comms-panel .tab-txt strong {
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.1;
+    text-align: center;
 }
 
 .comms-panel .tab-txt small {
@@ -4797,28 +4884,28 @@ body.modo-manejo .hud-ruta-txt p {
 
 .radio-ptt-bloque {
     display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
+    flex-direction: column;
+    flex-wrap: nowrap;
     align-items: center;
-    justify-content: flex-start;
-    gap: 10px 12px;
-    padding: 8px 14px 10px;
+    justify-content: center;
+    gap: 8px;
+    padding: 6px 14px 4px;
     flex: 0 0 auto;
 }
 
 .btn-ptt-panel {
     position: relative;
-    width: 44px;
-    height: 44px;
-    flex: 0 0 44px;
-    border: 1px solid #d8d2cb;
-    border-radius: 4px;
-    background: #3a3a3a;
+    width: 88px;
+    height: 88px;
+    flex: 0 0 88px;
+    border: 0;
+    border-radius: 50%;
+    background: #1c1c1c;
     color: #f4f4f4;
     cursor: pointer;
     display: grid;
     place-items: center;
-    box-shadow: none;
+    box-shadow: 0 10px 24px rgba(28, 28, 28, 0.22);
     z-index: 1;
 }
 
@@ -4827,15 +4914,15 @@ body.modo-manejo .hud-ruta-txt p {
 }
 
 .btn-ptt-panel .ico {
-    width: 22px;
-    height: 22px;
+    width: 36px;
+    height: 36px;
     display: grid;
     place-items: center;
 }
 
 .btn-ptt-panel .ico svg {
-    width: 20px;
-    height: 20px;
+    width: 34px;
+    height: 34px;
 }
 
 .btn-ptt-panel.grabando {
@@ -4844,39 +4931,32 @@ body.modo-manejo .hud-ruta-txt p {
     box-shadow: none;
 }
 
-.btn-ptt-panel.ptt-canal-fantasma {
-    background: #1a1a1a;
-    color: #f5f5f5;
-    filter: none;
-    box-shadow: none;
-}
-
-.btn-ptt-panel.ptt-canal-privado {
-    background: #2f5d42;
-}
-
+.btn-ptt-panel.ptt-canal-fantasma,
+.btn-ptt-panel.ptt-canal-privado,
 .btn-ptt-panel.ptt-canal-grupo {
-    background: #35506b;
+    background: #1c1c1c;
+    color: #f4f4f4;
 }
 
 .ptt-instruccion {
     margin: 0;
-    text-align: left;
-    flex: 1;
+    text-align: center;
+    flex: 0 0 auto;
     min-width: 0;
 }
 
 .ptt-instruccion strong {
     display: block;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--radio-tinta);
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--tinta);
 }
 
 .ptt-instruccion small {
     display: block;
-    margin-top: 1px;
-    font-size: 11px;
+    margin-top: 2px;
+    font-size: 12px;
+    font-weight: 500;
     color: var(--suave);
 }
 
@@ -5098,13 +5178,17 @@ body.modo-manejo .hud-ruta-txt p {
 }
 
 .comms-panel .btn-enviar {
-    min-width: 36px !important;
-    width: 36px;
-    height: 36px;
+    min-width: 40px !important;
+    width: 40px;
+    height: 40px;
     padding: 0;
-    border-radius: 4px !important;
-    background: #3a3a3a !important;
+    border-radius: 50% !important;
+    background: var(--azul) !important;
     box-shadow: none;
+}
+
+#vistaPublico .destino-chat {
+    display: none;
 }
 
 .comms-panel .btn-enviar svg {
@@ -5127,7 +5211,7 @@ body.modo-manejo .hud-ruta-txt p {
 
 .comms-panel .dock-radio {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 6px;
     padding: 8px 14px calc(10px + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid #e6e1db;
@@ -5208,6 +5292,10 @@ body.modo-manejo .hud-ruta-txt p {
 }
 
 .comms-panel .dock-radio .dock-radio-aux {
+    display: none !important;
+}
+
+.comms-panel .dock-radio > .badge-dock {
     display: none !important;
 }
 
@@ -5788,26 +5876,26 @@ body.modo-manejo .atajo-pill {
     }
 
     .chat-tabs {
-        gap: 8px;
-        padding: 0 14px 10px;
+        gap: 6px;
+        padding: 4px 14px 12px;
     }
 
-    .tab,
-    .tab-mapa {
-        flex-direction: row;
+    .comms-panel .tab,
+    .comms-panel .tab-mapa {
+        flex-direction: column;
         align-items: center;
-        justify-content: flex-start;
-        gap: 6px;
-        padding: 8px 8px;
-        border-radius: 0;
+        justify-content: center;
+        gap: 4px;
+        padding: 8px 4px 7px;
+        border-radius: 14px;
         text-transform: none;
         letter-spacing: 0;
     }
 
-    .tab svg,
-    .tab-mapa svg {
-        width: 18px;
-        height: 18px;
+    .comms-panel .tab svg,
+    .comms-panel .tab-mapa svg {
+        width: 22px;
+        height: 22px;
     }
 
     .tab-txt small {

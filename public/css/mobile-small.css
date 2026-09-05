@@ -92,6 +92,12 @@
         font-size: 16px;
     }
 
+    .comms-alcance {
+        padding: 4px 6px;
+        gap: 4px;
+        font-size: 10px;
+    }
+
     .chat-mensajes {
         min-height: 90px;
     }
