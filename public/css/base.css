@@ -1631,6 +1631,16 @@ body.modo-a-pie .switch-ir-modo .switch-ir-pie {
     transform: translateY(0);
 }
 
+body.comms-open .dock-mapa #btnPttDock,
+body.comms-open #btnPttDock {
+    display: none !important;
+    pointer-events: none !important;
+}
+
+body.comms-open .vel-hud {
+    visibility: hidden;
+}
+
 .comms-handle {
     display: block;
     width: 42px;
@@ -4902,12 +4912,12 @@ body.modo-manejo .hud-ruta-txt p {
     flex: 0 0 88px;
     border: 0;
     border-radius: 50%;
-    background: #1c1c1c;
-    color: #f4f4f4;
+    background: var(--ambar);
+    color: #fff;
     cursor: pointer;
     display: grid;
     place-items: center;
-    box-shadow: 0 10px 24px rgba(28, 28, 28, 0.22);
+    box-shadow: 0 10px 24px rgba(245, 166, 35, 0.32);
     z-index: 1;
 }
 
@@ -4927,17 +4937,27 @@ body.modo-manejo .hud-ruta-txt p {
     height: 34px;
 }
 
+.btn-ptt-panel.ptt-canal-privado {
+    background: var(--verde);
+    box-shadow: 0 10px 24px rgba(34, 197, 94, 0.28);
+}
+
+.btn-ptt-panel.ptt-canal-grupo {
+    background: var(--celeste);
+    box-shadow: 0 10px 24px rgba(43, 108, 176, 0.28);
+}
+
+.btn-ptt-panel.ptt-canal-fantasma {
+    background: #6b7280;
+    color: #fff;
+    box-shadow: 0 10px 24px rgba(107, 114, 128, 0.28);
+    filter: none;
+}
+
 .btn-ptt-panel.grabando {
     background: #8a2e2e;
     border-color: #8a2e2e;
     box-shadow: none;
-}
-
-.btn-ptt-panel.ptt-canal-fantasma,
-.btn-ptt-panel.ptt-canal-privado,
-.btn-ptt-panel.ptt-canal-grupo {
-    background: #1c1c1c;
-    color: #f4f4f4;
 }
 
 .ptt-instruccion {
@@ -5679,10 +5699,11 @@ body.modo-manejo .atajo-pill {
         width: 168px;
         height: 84px;
         min-width: 168px;
-        padding: 44px 10px 4px;
+        padding: 10px 10px 28px;
         border-radius: 84px 84px 0 0;
         box-shadow: none;
-        align-items: flex-end;
+        align-items: center;
+        justify-content: center;
         overflow: visible;
     }
 
@@ -5698,15 +5719,17 @@ body.modo-manejo .atajo-pill {
     }
 
     .vel-hud .vel-num {
-        font-size: 32px;
-        line-height: 1;
+        font-size: 50px;
+        line-height: 0.85;
         padding-top: 0;
+        transform: none;
     }
 
     .vel-hud .vel-uni {
         font-size: 13px;
         padding-top: 0;
-        padding-bottom: 5px;
+        padding-bottom: 0;
+        transform: none;
     }
 
     .brujula-mapa {
@@ -5751,6 +5774,10 @@ body.modo-manejo .atajo-pill {
     .dock-mapa #btnPttDock {
         flex: 0 0 auto;
         order: 3;
+    }
+
+    body.comms-open .dock-mapa #btnPttDock {
+        display: none !important;
     }
     .dock-mapa #btnAyudaDock { order: 4; }
     .dock-mapa .dock-mas { order: 5; }
