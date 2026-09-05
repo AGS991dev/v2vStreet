@@ -1470,6 +1470,10 @@ body.modo-a-pie .switch-ir-modo .switch-ir-pie {
     display: none;
 }
 
+#btnRadares {
+    display: none !important;
+}
+
 .badge-hud {
     position: absolute;
     top: -2px;
@@ -2223,7 +2227,9 @@ body.comms-open .vel-hud {
     border-radius: 12px;
     box-shadow: var(--sombra);
     font-size: 12px;
-    white-space: nowrap;
+    white-space: normal;
+    max-width: min(280px, calc(100vw - 24px));
+    text-align: center;
 }
 
 .ack-walkie {
@@ -5160,6 +5166,317 @@ body.modo-manejo .hud-ruta-txt p {
     border-radius: 4px;
 }
 
+.fg-sala {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.fg-cabeza {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid #e6e1db;
+    border-radius: 4px;
+}
+
+.fg-ico {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    display: grid;
+    place-items: center;
+    background: #2a2a2a;
+    color: #f5f5f5;
+    border-radius: 4px;
+}
+
+.fg-ico svg {
+    width: 20px;
+    height: 20px;
+}
+
+.fg-cabeza-txt {
+    flex: 1;
+    min-width: 0;
+}
+
+.fg-cabeza-txt strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--radio-tinta, var(--tinta));
+}
+
+.fg-cabeza-txt small {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--suave);
+}
+
+.fg-estado {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #ececec;
+    color: #5b5b5b;
+    font-size: 10px;
+    font-weight: 800;
+    font-style: normal;
+    letter-spacing: 0.2px;
+    text-transform: uppercase;
+}
+
+.fg-estado.on {
+    background: #2a2a2a;
+    color: #fff;
+}
+
+.fg-estado.ver {
+    background: #1e4b7b;
+    color: #fff;
+}
+
+.fg-hechos {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.fg-hechos.oculto,
+.fg-pasos.oculto,
+.fg-link.oculto {
+    display: none !important;
+}
+
+.fg-hechos li {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 4px;
+    background: #fff;
+    border: 1px solid #e6e1db;
+    border-radius: 4px;
+    color: var(--tinta);
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.fg-mini {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    color: #1e4b7b;
+}
+
+.fg-mini svg {
+    width: 18px;
+    height: 18px;
+}
+
+.fg-pasos {
+    padding: 10px;
+    background: #fff;
+    border: 1px solid #e6e1db;
+    border-radius: 4px;
+}
+
+.fg-vacio .fg-pasos {
+    display: block;
+}
+
+.fg-host .fg-pasos,
+.fg-invitado .fg-pasos,
+.fg-pasos.oculto {
+    display: none;
+}
+
+.fg-pasos-tit {
+    margin: 0 0 8px;
+    color: var(--suave);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+.fg-pasos ol {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin: 0 0 10px;
+    padding: 0;
+    list-style: none;
+}
+
+.fg-pasos li {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    text-align: center;
+}
+
+.fg-paso-ico {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    background: #f4f4f4;
+    color: #1e4b7b;
+    border-radius: 4px;
+}
+
+.fg-paso-ico svg {
+    width: 18px;
+    height: 18px;
+}
+
+.fg-pasos li strong {
+    font-size: 11px;
+    color: var(--tinta);
+}
+
+.fg-pasos li span:last-child {
+    font-size: 10px;
+    color: var(--suave);
+    line-height: 1.2;
+}
+
+.fg-btn-pri {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 4px;
+    background: #2a2a2a;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.fg-btn-pri svg {
+    width: 18px;
+    height: 18px;
+}
+
+.fg-btn-pri:hover,
+.fg-btn-pri:focus {
+    background: #1a1a1a;
+    outline: none;
+}
+
+.fg-link {
+    padding: 10px;
+    background: #fff;
+    border: 1px solid #e6e1db;
+    border-radius: 4px;
+}
+
+.fg-link.oculto {
+    display: none;
+}
+
+.fg-link-lab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 6px;
+    color: var(--suave);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+.fg-link-lab svg {
+    width: 14px;
+    height: 14px;
+    color: #1e4b7b;
+}
+
+.fg-link-url {
+    margin: 0 0 8px;
+    padding: 8px;
+    background: #f6f6f6;
+    border-radius: 4px;
+    color: var(--tinta);
+    font-size: 11px;
+    line-height: 1.35;
+    word-break: break-all;
+}
+
+.fg-link-acc {
+    display: flex;
+    gap: 6px;
+}
+
+.fg-btn-copiar,
+.fg-btn-wa {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex: 1;
+    min-height: 40px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.fg-btn-copiar {
+    border: 1px solid #2a2a2a;
+    background: #fff;
+    color: #2a2a2a;
+}
+
+.fg-btn-copiar.ok {
+    border-color: #1f7a4d;
+    background: #e9f8ef;
+    color: #1f7a4d;
+}
+
+.fg-btn-wa {
+    border: 0;
+    background: #1f7a4d;
+    color: #fff;
+}
+
+.fg-btn-copiar svg,
+.fg-btn-wa svg {
+    width: 16px;
+    height: 16px;
+}
+
+.fg-host .fg-hechos#fgHechosHost,
+.fg-invitado .fg-hechos#fgHechosInvitado {
+    display: grid;
+}
+
+.fg-vacio .fg-hechos,
+.fg-host .fg-hechos#fgHechosInvitado,
+.fg-invitado .fg-hechos#fgHechosHost {
+    display: none;
+}
+
 .comms-panel .chat-mensajes {
     flex: 1;
     min-height: 88px;
@@ -5622,7 +5939,7 @@ body.modo-manejo .atajo-pill {
     }
 
     .hud-mob {
-        display: inline-flex;
+        display: none !important;
     }
 
     .hud-iconos {
@@ -5768,19 +6085,20 @@ body.modo-manejo .atajo-pill {
         flex: 1 1 0;
     }
 
-    /* Mapa · Radio · MIC · Ayuda · Más (Carrera / Fantasma) */
-    .dock-mapa #btnMapaDock { order: 1; }
-    .dock-mapa #btnRadioDock { order: 2; }
+    /* Radio · MIC · Más (Ayuda / Carrera / Fantasma) */
+    .dock-mapa #btnMapaDock {
+        display: none !important;
+    }
+    .dock-mapa #btnRadioDock { order: 1; }
     .dock-mapa #btnPttDock {
         flex: 0 0 auto;
-        order: 3;
+        order: 2;
     }
 
     body.comms-open .dock-mapa #btnPttDock {
         display: none !important;
     }
-    .dock-mapa #btnAyudaDock { order: 4; }
-    .dock-mapa .dock-mas { order: 5; }
+    .dock-mapa .dock-mas { order: 3; }
 
     .dock-mapa .dock-item.on {
         color: var(--ambar);
@@ -5789,6 +6107,10 @@ body.modo-manejo .atajo-pill {
     }
 
     .dock-mapa .dock-ayuda {
+        color: var(--rojo);
+    }
+
+    .dock-mas-item.dock-ayuda svg {
         color: var(--rojo);
     }
 

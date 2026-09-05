@@ -32,7 +32,11 @@
     }
 
     function leerToggle() {
-        try { return localStorage.getItem(STORAGE) === "1"; } catch (e) { return false; }
+        try {
+            var v = localStorage.getItem(STORAGE);
+            if (v === null) return true;
+            return v === "1";
+        } catch (e) { return true; }
     }
 
     function guardarToggle() {
@@ -417,7 +421,8 @@
 
     function init(a) {
         api = a || {};
-        activo = leerToggle();
+        activo = true;
+        guardarToggle();
         var btn = $("btnRadares");
         if (btn) {
             btn.addEventListener("click", function (ev) {

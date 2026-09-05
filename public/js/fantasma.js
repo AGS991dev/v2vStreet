@@ -87,6 +87,70 @@
             }
             btn.setAttribute("aria-pressed", compartiendo ? "true" : "false");
         }
+        pintarSala();
+    }
+
+    function pintarSala() {
+        var host = !!(compartiendo && tokenActivo && !esInvitado());
+        var guest = esInvitado();
+        var root = $("vistaFantasma");
+        if (root) {
+            root.classList.toggle("fg-host", host);
+            root.classList.toggle("fg-invitado", guest);
+            root.classList.toggle("fg-vacio", !host && !guest);
+        }
+        mostrar($("fgPasos"), !host && !guest);
+        mostrar($("cajaLinkFantasma"), host);
+        mostrar($("fgHechosHost"), host);
+        mostrar($("fgHechosInvitado"), guest);
+        var url = host ? urlPublica(tokenActivo) : "";
+        var txt = $("txtLinkFantasma");
+        if (txt) txt.textContent = url;
+        var est = $("fgEstado");
+        if (est) {
+            est.textContent = guest ? "Siguiendo" : (host ? "Al aire" : "Sin enlace");
+            est.className = "fg-estado" + (host ? " on" : "") + (guest ? " ver" : "");
+        }
+        var det = $("detalleSalaFantasma");
+        if (det) {
+            det.textContent = guest
+                ? "Ves el recorrido de otra persona"
+                : (host ? "Quienes tienen el enlace te ven y te escuchan" : "Creá un enlace para que te sigan");
+        }
+        var dest = $("destinoFantasmaDetalle");
+        if (dest) {
+            dest.textContent = guest ? "Walkie de este enlace" : (host ? "Tu enlace · walkie" : "Sala Fantasma");
+        }
+        var ley = $("leyendaSalaFantasma");
+        if (ley) {
+            ley.textContent = guest
+                ? "Ves el recorrido. Hablá con el micrófono."
+                : (host ? "Mandá el enlace. Te ven, vos hablás." : "Creá el enlace, mandalo y hablá.");
+        }
+    }
+
+    function copiarLinkFantasma() {
+        var url = (compartiendo && tokenActivo) ? urlPublica(tokenActivo) : "";
+        if (!url) return;
+        var btn = $("btnCopiarLinkFantasma");
+        var lab = btn && btn.querySelector("span");
+        var ok = function () {
+            if (!btn || !lab) return;
+            btn.classList.add("ok");
+            lab.textContent = "Copiado";
+            setTimeout(function () {
+                btn.classList.remove("ok");
+                lab.textContent = "Copiar";
+            }, 1600);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(ok).catch(function () {
+                prompt("Copiá el enlace fantasma:", url);
+            });
+            return;
+        }
+        prompt("Copiá el enlace fantasma:", url);
+        ok();
     }
 
     function escHtml(s) {
@@ -685,6 +749,16 @@
         if (dock) dock.addEventListener("click", compartir);
         var dockPanel = $("btnDockFantasma");
         if (dockPanel) dockPanel.addEventListener("click", compartir);
+        var crear = $("btnCrearLinkFantasma");
+        if (crear) crear.addEventListener("click", compartir);
+        var copiar = $("btnCopiarLinkFantasma");
+        if (copiar) copiar.addEventListener("click", copiarLinkFantasma);
+        var wa = $("btnWaLinkFantasma");
+        if (wa) {
+            wa.addEventListener("click", function () {
+                if (tokenActivo) abrirWhatsApp(tokenActivo);
+            });
+        }
         var salir = $("btnFantasmaSalir");
         if (salir) salir.addEventListener("click", salirInvitado);
         engancharSocket();
@@ -718,6 +792,10 @@
         init: init,
         esInvitado: esInvitado,
         activo: function () { return compartiendo; },
+        url: function () {
+            return (compartiendo && tokenActivo && !esInvitado()) ? urlPublica(tokenActivo) : "";
+        },
+        pintarSala: pintarSala,
         onGps: onGpsListo,
         consumeClick: function () { return esInvitado(); }
     };

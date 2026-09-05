@@ -14,7 +14,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-            <link rel="stylesheet" href="css/base.css?v=20260905g">
+            <link rel="stylesheet" href="css/base.css?v=20260905j">
 <link rel="stylesheet" href="css/desktop.css?v=20260905g">
 <link rel="stylesheet" href="css/mobile-small.css?v=20260905g">
 </head>
@@ -249,11 +249,11 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M8 9h8M8 13h5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
                 <span>Mostrar fichas</span>
             </label>
-            <button type="button" id="btnRadares" class="hud-btn hud-ico" title="Mostrar radares de velocidad máxima dentro del alcance de la radio" aria-pressed="false">
+            <button type="button" id="btnRadares" class="hud-btn hud-ico on" title="Radares de velocidad visibles en el alcance de la radio. Tocá para ocultarlos." aria-pressed="true">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="5.4" fill="none" stroke="currentColor" stroke-width="1.3"/><text x="12" y="15.2" text-anchor="middle" font-size="7.2" font-weight="800" fill="currentColor" font-family="ui-sans-serif, system-ui, sans-serif">60</text></svg>
                 <span>Radares de velocidad</span>
             </button>
-            <button type="button" id="btnHudComms" class="hud-btn hud-ico hud-mob" title="Walkie y avisos">
+            <button type="button" id="btnHudComms" class="hud-btn hud-ico hud-mob" title="Walkie y avisos" hidden>
                 <img src="img/antena.png?v=20260829g" alt="" width="20" height="20" decoding="async">
                 <span>Walkie y avisos</span>
                 <span id="badgeHudAvisos" class="badge-hud oculto">0</span>
@@ -668,29 +668,122 @@
             </div>
         </section>
 
-        <section class="comms-canal oculto" id="vistaFantasma">
-            <div class="lista-grupos">
-                <div class="grupo-item activo" id="itemGrupoFantasma">
-                    <span class="grupo-ico ico-fantasma" aria-hidden="true">
+        <section class="comms-canal oculto fg-vacio" id="vistaFantasma">
+            <div class="fg-sala" id="itemGrupoFantasma">
+                <header class="fg-cabeza">
+                    <span class="fg-ico" aria-hidden="true">
                         <svg viewBox="0 0 24 24"><path d="M5 19V8.5C5 5.5 8 3 12 3s7 2.5 7 5.5V19l-2.2-1.4-2.3 1.4-2.5-1.4L9.5 19 7.2 17.6 5 19z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="9.2" cy="10.2" r="1" fill="currentColor"/><circle cx="14.8" cy="10.2" r="1" fill="currentColor"/></svg>
                     </span>
-                    <div class="grupo-meta">
-                        <strong>Sala Fantasmas</strong>
+                    <div class="fg-cabeza-txt">
+                        <strong>Sala Fantasma</strong>
                         <small id="detalleSalaFantasma">Walkie del enlace compartido</small>
                     </div>
+                    <em id="fgEstado" class="fg-estado">Sin enlace</em>
+                </header>
+
+                <ul class="fg-hechos" id="fgHechosHost">
+                    <li>
+                        <span class="fg-mini" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M4 12c2.2-3.2 4.6-5 8-5s5.8 1.8 8 5c-2.2 3.2-4.6 5-8 5s-5.8-1.8-8-5z" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="2.2" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+                        </span>
+                        Te ven
+                    </li>
+                    <li>
+                        <span class="fg-mini" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M4 12c2.2-3.2 4.6-5 8-5s5.8 1.8 8 5c-2.2 3.2-4.6 5-8 5s-5.8-1.8-8-5z" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="2.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M4 19 20 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                        </span>
+                        No aparecen
+                    </li>
+                    <li>
+                        <span class="fg-mini" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                        </span>
+                        Walkie
+                    </li>
+                </ul>
+                <ul class="fg-hechos oculto" id="fgHechosInvitado">
+                    <li>
+                        <span class="fg-mini" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M4 12c2.2-3.2 4.6-5 8-5s5.8 1.8 8 5c-2.2 3.2-4.6 5-8 5s-5.8-1.8-8-5z" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="2.2" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+                        </span>
+                        Ves el auto
+                    </li>
+                    <li>
+                        <span class="fg-mini" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                        </span>
+                        Podés hablar
+                    </li>
+                    <li>
+                        <span class="fg-mini" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M4 16V9l3-3h8l3 3v7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="7.5" cy="16" r="2" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="16.5" cy="16" r="2" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+                        </span>
+                        No salís vos
+                    </li>
+                </ul>
+
+                <div class="fg-pasos" id="fgPasos">
+                    <p class="fg-pasos-tit">Cómo funciona</p>
+                    <ol>
+                        <li>
+                            <span class="fg-paso-ico" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 1 0-5.6l2-2a4 4 0 0 1 5.6 5.6l-1.2 1.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M14 10a4 4 0 0 1 0 5.6l-2 2a4 4 0 1 1-5.6-5.6l1.2-1.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                            </span>
+                            <strong>1</strong>
+                            <span>Creá el enlace</span>
+                        </li>
+                        <li>
+                            <span class="fg-paso-ico" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><path d="M4 12h12M12 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </span>
+                            <strong>2</strong>
+                            <span>Mandalo</span>
+                        </li>
+                        <li>
+                            <span class="fg-paso-ico" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                            </span>
+                            <strong>3</strong>
+                            <span>Hablá</span>
+                        </li>
+                    </ol>
+                    <button type="button" id="btnCrearLinkFantasma" class="fg-btn-pri">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h12M12 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        Crear enlace
+                    </button>
                 </div>
-            </div>
-            <p class="leyenda-cerca" id="leyendaSalaFantasma">Acá hablás con quienes entraron a tu enlace fantasma. El micrófono central queda en blanco y negro.</p>
-            <div id="panelFantasma" class="chat-panel">
+
                 <div class="destino-chat destino-fantasma">
                     <span class="destino-ico" aria-hidden="true">
                         <svg viewBox="0 0 24 24"><path d="M5 19V8.5C5 5.5 8 3 12 3s7 2.5 7 5.5V19l-2.2-1.4-2.3 1.4-2.5-1.4L9.5 19 7.2 17.6 5 19z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="9.2" cy="10.2" r="1" fill="currentColor"/><circle cx="14.8" cy="10.2" r="1" fill="currentColor"/></svg>
                     </span>
                     <span class="destino-txt">
-                        <span>Enviás a la sala Fantasmas</span>
-                        <strong id="destinoFantasmaDetalle">Tu enlace · walkie</strong>
+                        <span>Hablás acá</span>
+                        <strong id="destinoFantasmaDetalle">Sala Fantasma</strong>
                     </span>
                 </div>
+
+                <div id="cajaLinkFantasma" class="fg-link oculto">
+                    <p class="fg-link-lab">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 1 0-5.6l2-2a4 4 0 0 1 5.6 5.6l-1.2 1.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M14 10a4 4 0 0 1 0 5.6l-2 2a4 4 0 1 1-5.6-5.6l1.2-1.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                        Tu enlace
+                    </p>
+                    <p id="txtLinkFantasma" class="fg-link-url"></p>
+                    <div class="fg-link-acc">
+                        <button type="button" id="btnCopiarLinkFantasma" class="fg-btn-copiar">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M6 16H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                            <span>Copiar</span>
+                        </button>
+                        <button type="button" id="btnWaLinkFantasma" class="fg-btn-wa">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.04 2c-5.46 0-9.91 4.4-9.91 9.82 0 1.73.46 3.42 1.34 4.91L2 22l5.46-1.43a10 10 0 0 0 4.58 1.1h.01c5.46 0 9.9-4.4 9.9-9.82C21.95 6.4 17.5 2 12.04 2zm5.76 13.99c-.24.67-1.4 1.23-1.93 1.31-.49.07-1.12.1-1.81-.11-.42-.13-.95-.31-1.63-.6-2.87-1.24-4.74-4.14-4.88-4.33-.14-.19-1.14-1.51-1.14-2.88 0-1.37.72-2.04.97-2.32.25-.28.55-.35.73-.35h.53c.17 0 .4-.06.62.47.24.58.81 2 .88 2.14.07.14.12.31.02.5-.1.19-.14.31-.28.48-.14.17-.29.37-.42.5-.14.14-.28.29-.12.56.16.28.71 1.17 1.53 1.9 1.05.93 1.94 1.22 2.21 1.36.28.14.44.12.6-.07.16-.19.69-.8.87-1.08.19-.28.37-.23.62-.14.25.1 1.58.74 1.85.88.28.14.46.2.53.31.07.12.07.67-.17 1.34z"/></svg>
+                            <span>WhatsApp</span>
+                        </button>
+                    </div>
+                </div>
+
+                <p class="sr-only" id="leyendaSalaFantasma">Acá hablás con quienes entraron a tu enlace fantasma.</p>
+            </div>
+            <div id="panelFantasma" class="chat-panel">
                 <div id="msgsFantasma" class="chat-mensajes"></div>
             </div>
         </section>
@@ -725,7 +818,7 @@
 </aside>
 
 <nav class="dock-mapa" aria-label="Mapa y radio">
-    <button type="button" id="btnMapaDock" class="dock-item on" title="Mapa">
+    <button type="button" id="btnMapaDock" class="dock-item on dock-mob-oculto" title="Mapa" hidden>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5 9.5 4 14.5 6.5 20 4v13.5L14.5 20 9.5 17.5 4 20V6.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M9.5 4v13.5M14.5 6.5V20" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
         <span>Mapa</span>
     </button>
@@ -743,16 +836,16 @@
             <small>Walkie a RADIO</small>
         </span>
     </button>
-    <button type="button" id="btnAyudaDock" class="dock-item dock-ayuda" title="Pedir ayuda">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8.5h14l-1.2 8.2a2 2 0 0 1-2 1.7H8.2a2 2 0 0 1-2-1.7L5 8.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M9 8.5V6.6a3 3 0 0 1 6 0v1.9M8 12.5h.01M12 12.5h.01M16 12.5h.01" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
-        <span>Ayuda</span>
-    </button>
     <div class="dock-mas">
         <button type="button" id="btnMasDock" class="dock-item" title="Más opciones" aria-haspopup="menu" aria-expanded="false" aria-controls="menuMasDock">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="19" r="1.7" fill="currentColor"/></svg>
             <span>Más</span>
         </button>
         <div id="menuMasDock" class="dock-mas-menu oculto" role="menu" aria-label="Más opciones">
+            <button type="button" id="btnAyudaDock" class="dock-mas-item dock-ayuda" role="menuitem" title="Pedir ayuda">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8.5h14l-1.2 8.2a2 2 0 0 1-2 1.7H8.2a2 2 0 0 1-2-1.7L5 8.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M9 8.5V6.6a3 3 0 0 1 6 0v1.9M8 12.5h.01M12 12.5h.01M16 12.5h.01" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                <span>Ayuda</span>
+            </button>
             <button type="button" id="btnCarreraDock" class="dock-mas-item dock-carrera" role="menuitem" title="Armar una carrera">
                 <img src="img/banderas-de-carreras.png?v=20260829g" alt="" width="22" height="22" decoding="async">
                 <span>Carrera</span>
@@ -934,8 +1027,8 @@
 <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script src="js/carrera.js?v=20260829e"></script>
-<script src="js/fantasma.js?v=20260905a"></script>
-<script src="js/radares.js?v=20260904h"></script>
-<script src="js/main.js?v=20260905a"></script>
+<script src="js/fantasma.js?v=20260905b"></script>
+<script src="js/radares.js?v=20260905b"></script>
+<script src="js/main.js?v=20260905d"></script>
 </body>
 </html>

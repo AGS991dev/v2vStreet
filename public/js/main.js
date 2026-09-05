@@ -159,6 +159,8 @@
     let pttReconocimiento = null;
     let audioCtxPtt = null;
     let pttAckHecho = false;
+    let pttEsperaAuto = false;
+    let pttEsperaTimer = 0;
     let popupsVisibles = false;
     let fichasForzadas = {};
     let radioCercaAbierta = false;
@@ -291,6 +293,7 @@
         marker._clickFicha = true;
         marker.on("click", function (ev) {
             L.DomEvent.stopPropagation(ev);
+            if (tomarAutoParaPtt(id)) return;
             if (marker.isPopupOpen && marker.isPopupOpen()) {
                 cerrarFicha(id);
                 return;
@@ -302,6 +305,7 @@
             tip._clickNombre = true;
             tip.on("click", function (ev) {
                 L.DomEvent.stopPropagation(ev);
+                if (tomarAutoParaPtt(id)) return;
                 if (marker.isPopupOpen && marker.isPopupOpen()) cerrarFicha(id);
                 else abrirFicha(id);
             });
@@ -1827,6 +1831,7 @@
             saltearClickCalle = false;
             return;
         }
+        if (pttEsperaAuto) return;
         if (clickSobreUiMapa(ev)) return;
         if (modalMapaClickVisible() || modalEncuentroVisible() || modalBuscarVisible() ||
             modalRetomarVisible() || modalAvisosVisible()) return;
@@ -3922,6 +3927,10 @@
     function seleccionarContacto(id, silencioso) {
         const a = autos[id];
         if (!a) return;
+        if (pttEsperaAuto) {
+            cancelarEsperaAutoPtt(false);
+            avisoPttBreve("Listo. Mantené el micrófono para hablarle a " + (a.nombre || "esa persona") + ".");
+        }
         contactoActivo = id;
         pedirFicha(id);
         const det = cacheFichas[id];
@@ -4452,7 +4461,14 @@
         const dock = $("btnDockAyuda");
         if (dock) dock.classList.toggle("activo", asistenciaActiva);
         const dockAyuda = $("btnAyudaDock");
-        if (dockAyuda) dockAyuda.classList.toggle("activo", asistenciaActiva);
+        if (dockAyuda) {
+            dockAyuda.classList.toggle("activo", asistenciaActiva);
+            const lab = dockAyuda.querySelector("span");
+            if (lab) lab.textContent = asistenciaActiva ? "Cancelar ayuda" : "Ayuda";
+            dockAyuda.title = asistenciaActiva
+                ? "Cancelar el aviso de ayuda"
+                : "Pedir ayuda";
+        }
     }
 
     function sonidoSos() {
@@ -4918,26 +4934,14 @@
         const tab = $("tabFantasma");
         const hay = enWalkieFantasma();
         if (tab) tab.classList.remove("oculto");
+        if (window.RadioMapFantasma && RadioMapFantasma.pintarSala) {
+            RadioMapFantasma.pintarSala();
+        }
         if (!hay) {
             noLeidosFantasma = 0;
             actualizarBadgeFantasma();
             if (tabActiva === "fantasma") pintarCanalPtt();
             return;
-        }
-        if ($("detalleSalaFantasma")) {
-            $("detalleSalaFantasma").textContent = esInvitadoFantasma()
-                ? "Walkie con quien compartió el enlace"
-                : "Walkie con quienes entraron a tu enlace";
-        }
-        if ($("leyendaSalaFantasma")) {
-            $("leyendaSalaFantasma").textContent = esInvitadoFantasma()
-                ? "Acá hablás con quien compartió el fantasma. El micrófono queda en blanco y negro."
-                : "Acá hablás con quienes entraron a tu enlace fantasma. El micrófono central queda en blanco y negro.";
-        }
-        if ($("destinoFantasmaDetalle")) {
-            $("destinoFantasmaDetalle").textContent = esInvitadoFantasma()
-                ? "Enlace fantasma · walkie"
-                : "Tu enlace · walkie";
         }
         if (esInvitadoFantasma() && tabActiva !== "fantasma") mostrarTab("fantasma");
         pintarCanalPtt();
@@ -4998,6 +5002,47 @@
         if (pttSmall && canal === "fantasma") pttSmall.textContent = "Walkie a Fantasmas";
     }
 
+    function ignorarProximoClickMapa() {
+        saltearClickCalle = true;
+        setTimeout(function () { saltearClickCalle = false; }, 600);
+    }
+
+    function cancelarEsperaAutoPtt(limpiarAviso) {
+        pttEsperaAuto = false;
+        if (pttEsperaTimer) {
+            clearTimeout(pttEsperaTimer);
+            pttEsperaTimer = 0;
+        }
+        if (limpiarAviso) setAvisoAudio("");
+    }
+
+    function avisoPttBreve(texto, ms) {
+        setAvisoAudio(texto);
+        if (pttEsperaTimer) clearTimeout(pttEsperaTimer);
+        pttEsperaTimer = setTimeout(function () {
+            pttEsperaTimer = 0;
+            setAvisoAudio("");
+        }, ms || 4000);
+    }
+
+    function pedirSeleccionAutoPtt() {
+        pttEsperaAuto = true;
+        if (pttEsperaTimer) clearTimeout(pttEsperaTimer);
+        pttEsperaTimer = setTimeout(function () {
+            cancelarEsperaAutoPtt(true);
+        }, 12000);
+        setAvisoAudio("Tocá un auto para hablarle.");
+        ignorarProximoClickMapa();
+        if (modalMapaClickVisible()) cerrarModalMapaClick();
+    }
+
+    function tomarAutoParaPtt(id) {
+        if (!pttEsperaAuto) return false;
+        if (!id || id === miId || esFantasma(id) || esBloqueado(id) || !autos[id]) return false;
+        seleccionarContacto(id, true);
+        return true;
+    }
+
     function bindPtt(el, modo) {
         if (!el) return;
         el.addEventListener("pointerdown", function (ev) {
@@ -5030,25 +5075,30 @@
         }
         if (pttActivo) return;
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === "undefined") {
-            alert("Este navegador no permite walkie-talkie.");
+            ignorarProximoClickMapa();
+            avisoPttBreve("Este navegador no permite walkie-talkie.");
             return;
         }
         const canal = resolverModoPtt(modo);
-        if (canal === "privado" && !contactoActivo) {
-            alert("Elegí un auto del mapa o de la lista para hablarle.");
+        if (canal === "privado" && !(contactoActivo && autos[contactoActivo])) {
+            contactoActivo = null;
+            pedirSeleccionAutoPtt();
             return;
         }
         if (canal === "grupo" && !miGrupo) {
-            alert("Creá o unite a un grupo para hablarle al convoy.");
+            ignorarProximoClickMapa();
+            avisoPttBreve("Creá o unite a un grupo para hablarle al convoy.");
             return;
         }
         if (canal === "carrera" && !(window.RadioMapCarrera && RadioMapCarrera.activo())) {
             return;
         }
         if (canal === "fantasma" && !enWalkieFantasma()) {
-            alert("Compartí un fantasma o entrá con un enlace para usar esta sala.");
+            ignorarProximoClickMapa();
+            avisoPttBreve("Compartí un fantasma o entrá con un enlace para usar esta sala.");
             return;
         }
+        cancelarEsperaAutoPtt(false);
         ctxPtt();
         pedirWakeLock();
         pttModo = canal;
@@ -5110,9 +5160,9 @@
                     b.classList.remove("grabando");
                 });
                 if ($("destinoHabla")) $("destinoHabla").classList.remove("transmitiendo");
-                setAvisoAudio("");
                 avisarEnvioPtt(false);
-                alert("No se pudo usar el micrófono.");
+                ignorarProximoClickMapa();
+                avisoPttBreve("No se pudo usar el micrófono.");
             });
         }
     }
@@ -6277,8 +6327,8 @@
             });
         });
         $("btnVozPrivado").addEventListener("click", function () {
-            if (!contactoActivo) {
-                alert("Elegí un contacto primero.");
+            if (!(contactoActivo && autos[contactoActivo])) {
+                pedirSeleccionAutoPtt();
                 return;
             }
             vozATexto(function (texto) {
@@ -6290,7 +6340,7 @@
         if ($("btnVozGrupo")) {
             $("btnVozGrupo").addEventListener("click", function () {
                 if (!miGrupo) {
-                    alert("Creá o unite a un grupo primero.");
+                    avisoPttBreve("Creá o unite a un grupo primero.");
                     return;
                 }
                 vozATexto(function (texto) {
@@ -6531,6 +6581,7 @@
         else if (nombre === "grupo") tabActiva = "grupo";
         else if (nombre === "privado") tabActiva = "privado";
         else tabActiva = "general";
+        if (tabActiva !== "privado" && pttEsperaAuto) cancelarEsperaAutoPtt(true);
         document.querySelectorAll(".tab").forEach(function (t) {
             t.classList.toggle("activa", t.getAttribute("data-tab") === tabActiva);
         });
@@ -6538,6 +6589,9 @@
         if ($("vistaPrivado")) $("vistaPrivado").classList.toggle("oculto", tabActiva !== "privado");
         if ($("vistaGrupo")) $("vistaGrupo").classList.toggle("oculto", tabActiva !== "grupo");
         if ($("vistaFantasma")) $("vistaFantasma").classList.toggle("oculto", tabActiva !== "fantasma");
+        if (tabActiva === "fantasma" && window.RadioMapFantasma && RadioMapFantasma.pintarSala) {
+            RadioMapFantasma.pintarSala();
+        }
         if ($("panelGeneral")) $("panelGeneral").classList.toggle("oculto", tabActiva !== "general");
         if ($("panelPrivado")) $("panelPrivado").classList.toggle("oculto", tabActiva !== "privado");
         if ($("panelGrupo")) $("panelGrupo").classList.toggle("oculto", tabActiva !== "grupo");
