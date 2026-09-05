@@ -14,9 +14,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-            <link rel="stylesheet" href="css/base.css?v=20260905a">
-<link rel="stylesheet" href="css/desktop.css?v=20260905a">
-<link rel="stylesheet" href="css/mobile-small.css?v=20260905a">
+            <link rel="stylesheet" href="css/base.css?v=20260905c">
+<link rel="stylesheet" href="css/desktop.css?v=20260905c">
+<link rel="stylesheet" href="css/mobile-small.css?v=20260905c">
 </head>
 
 <body>
@@ -480,6 +480,42 @@
         </button>
     </header>
 
+    <div class="radio-texto">
+        <div class="chat-composer composer-general">
+            <input id="txtV2V" class="chat-input" placeholder="Escribí un mensaje…" maxlength="500">
+            <button type="button" id="btnVozV2V" class="btn-voz" title="Dictar texto">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                <span>Dictar</span>
+            </button>
+            <button type="button" id="btnEnviarV2V" class="btn-enviar" title="Enviar">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 20 4.5l-6.2 15.2-2.4-6.4L4 11.5z" fill="currentColor"/></svg>
+                <span class="sr-only">Enviar</span>
+            </button>
+        </div>
+        <div class="chat-composer composer-privado">
+            <input id="txtPrivado" class="chat-input" placeholder="Escribí un mensaje…" maxlength="500">
+            <button type="button" id="btnVozPrivado" class="btn-voz" title="Dictar texto">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                <span>Dictar</span>
+            </button>
+            <button type="button" id="btnEnviarPrivado" class="btn-enviar" title="Enviar directo">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 20 4.5l-6.2 15.2-2.4-6.4L4 11.5z" fill="currentColor"/></svg>
+                <span id="lblEnviarPrivado" class="sr-only">Enviar</span>
+            </button>
+        </div>
+        <div class="chat-composer composer-grupo">
+            <input id="txtAvisoGrupo" class="chat-input" placeholder="Escribí un mensaje…" maxlength="500">
+            <button type="button" id="btnVozGrupo" class="btn-voz" title="Dictar texto">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                <span>Dictar</span>
+            </button>
+            <button type="button" id="btnEnviarGrupo" class="btn-enviar" title="Enviar al grupo">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 20 4.5l-6.2 15.2-2.4-6.4L4 11.5z" fill="currentColor"/></svg>
+                <span class="sr-only">GRUPO</span>
+            </button>
+        </div>
+    </div>
+
     <div class="radio-ptt-bloque">
         <button type="button" id="btnPttPanel" class="btn-ptt-panel" title="Mantené para hablar a RADIO">
             <span class="ptt-anillos" aria-hidden="true"></span>
@@ -552,17 +588,6 @@
                     <strong id="destinoConvoyDetalle" class="sr-only">RADIO · 3 km</strong>
                 </div>
                 <div id="msgsV2V" class="chat-mensajes"></div>
-                <div class="chat-composer">
-                    <input id="txtV2V" class="chat-input" placeholder="Escribí un mensaje…" maxlength="500">
-                    <button type="button" id="btnVozV2V" class="btn-voz" title="Dictar texto">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
-                        <span>Dictar</span>
-                    </button>
-                    <button type="button" id="btnEnviarV2V" class="btn-enviar" title="Enviar">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 20 4.5l-6.2 15.2-2.4-6.4L4 11.5z" fill="currentColor"/></svg>
-                        <span class="sr-only">Enviar</span>
-                    </button>
-                </div>
             </div>
         </section>
 
@@ -589,17 +614,6 @@
                     </span>
                 </div>
                 <div id="msgsPrivado" class="chat-mensajes"></div>
-                <div class="chat-composer">
-                    <input id="txtPrivado" class="chat-input" placeholder="Escribí un mensaje…" maxlength="500">
-                    <button type="button" id="btnVozPrivado" class="btn-voz" title="Dictar texto">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
-                        <span>Dictar</span>
-                    </button>
-                    <button type="button" id="btnEnviarPrivado" class="btn-enviar" title="Enviar directo">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 20 4.5l-6.2 15.2-2.4-6.4L4 11.5z" fill="currentColor"/></svg>
-                        <span id="lblEnviarPrivado" class="sr-only">Enviar</span>
-                    </button>
-                </div>
             </div>
         </section>
 
@@ -651,17 +665,6 @@
                     </span>
                 </div>
                 <div id="msgsGrupo" class="chat-mensajes"></div>
-                <div class="chat-composer">
-                    <input id="txtAvisoGrupo" class="chat-input" placeholder="Escribí un mensaje…" maxlength="500">
-                    <button type="button" id="btnVozGrupo" class="btn-voz" title="Dictar texto">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
-                        <span>Dictar</span>
-                    </button>
-                    <button type="button" id="btnEnviarGrupo" class="btn-enviar" title="Enviar al grupo">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 20 4.5l-6.2 15.2-2.4-6.4L4 11.5z" fill="currentColor"/></svg>
-                        <span class="sr-only">GRUPO</span>
-                    </button>
-                </div>
             </div>
         </section>
 
@@ -693,7 +696,7 @@
         </section>
     </div>
 
-    <nav class="dock-radio" aria-label="Radio">
+    <nav class="dock-radio oculto" aria-hidden="true" aria-label="Radio">
         <button type="button" id="btnDockAyuda" class="dock-item dock-ayuda" title="Pedir ayuda">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5c.8 2.2 3.2 3.6 3.2 6.2A3.2 3.2 0 0 1 12 14.4 3.2 3.2 0 0 1 8.8 11.2C8.8 8.6 11.2 7.2 12 5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7.2 14.8c1.2 1.6 2.8 2.4 4.8 2.4s3.6-.8 4.8-2.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="18.6" r="1.3" fill="currentColor"/></svg>
             <span>Necesito ayuda</span>

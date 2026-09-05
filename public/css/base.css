@@ -4768,7 +4768,8 @@ body.modo-manejo .hud-ruta-txt p {
 .comms-panel .chat-tabs {
     align-items: stretch;
     gap: 6px;
-    padding: 4px 14px 12px;
+    padding: 4px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+    flex: 0 0 auto;
 }
 
 .comms-panel .tab,
@@ -4889,8 +4890,9 @@ body.modo-manejo .hud-ruta-txt p {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 6px 14px 4px;
+    padding: 4px 14px 8px;
     flex: 0 0 auto;
+    margin-top: auto;
 }
 
 .btn-ptt-panel {
@@ -5139,11 +5141,24 @@ body.modo-manejo .hud-ruta-txt p {
 }
 
 .comms-panel .chat-mensajes {
-    min-height: 72px;
+    flex: 1;
+    min-height: 88px;
     border-radius: 4px;
     border: 1px solid #e6e1db;
     background: #fff;
 }
+
+.comms-handle { order: 0; }
+.comms-header { order: 1; }
+.comms-cuerpo {
+    order: 2;
+    flex: 1;
+    min-height: 0;
+}
+.radio-texto { order: 3; }
+.radio-ptt-bloque { order: 4; }
+.comms-panel .chat-tabs { order: 5; }
+.comms-panel .dock-radio { order: 6; }
 
 .comms-panel .chat-composer {
     align-items: center;
@@ -5151,7 +5166,30 @@ body.modo-manejo .hud-ruta-txt p {
     padding: 4px 4px 4px 10px;
     background: #fff;
     border: 1px solid #dcd7d1;
-    border-radius: 4px;
+    border-radius: 14px;
+}
+
+.radio-texto {
+    flex: 0 0 auto;
+    padding: 4px 14px 8px;
+}
+
+.comms-panel .radio-texto .chat-composer {
+    display: none;
+}
+
+.comms-panel[data-tab="general"] .radio-texto .composer-general,
+.comms-panel[data-tab="privado"] .radio-texto .composer-privado,
+.comms-panel[data-tab="grupo"] .radio-texto .composer-grupo {
+    display: flex;
+}
+
+.comms-panel[data-tab="fantasma"] .radio-texto {
+    display: none;
+}
+
+.comms-panel .radio-texto .btn-voz {
+    display: none !important;
 }
 
 .comms-panel .chat-input {
@@ -5163,18 +5201,7 @@ body.modo-manejo .hud-ruta-txt p {
 }
 
 .comms-panel .btn-voz {
-    min-width: 36px;
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    border-radius: 4px;
-    background: #ececec;
-    box-shadow: none;
-    color: #555;
-}
-
-.comms-panel .btn-voz span {
-    display: none;
+    display: none !important;
 }
 
 .comms-panel .btn-enviar {
@@ -5210,12 +5237,7 @@ body.modo-manejo .hud-ruta-txt p {
 }
 
 .comms-panel .dock-radio {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 6px;
-    padding: 8px 14px calc(10px + env(safe-area-inset-bottom, 0px));
-    border-top: 1px solid #e6e1db;
-    background: #f4f4f4;
+    display: none !important;
 }
 
 .comms-panel .dock-radio .dock-item {
